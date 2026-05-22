@@ -17,7 +17,8 @@ const Settings = {
                 this.settings = {
                     companyName: 'Dalse',
                     logo1: '',
-                    logo2: ''
+                    logo2: '',
+                    sourceZipUrl: ''
                 };
             }
             // Update sidebar with company branding
@@ -27,7 +28,8 @@ const Settings = {
             this.settings = {
                 companyName: 'Dalse',
                 logo1: '',
-                logo2: ''
+                logo2: '',
+                sourceZipUrl: ''
             };
         }
     },
@@ -93,6 +95,12 @@ const Settings = {
                             </div>
                         </div>
 
+                        <div class="form-group">
+                            <label for="source-zip-url">URL de Descarga del Código Fuente (GitHub .zip)</label>
+                            <input type="text" id="source-zip-url" value="${sanitizeHTML(this.settings?.sourceZipUrl || '')}" placeholder="https://github.com/TU_USUARIO/dalse/archive/refs/heads/main.zip">
+                            <small style="color: var(--text-tertiary);">URL del archivo .zip del repositorio GitHub para descargar el código completo.</small>
+                        </div>
+
                         <button type="submit" class="btn btn-primary">💾 Guardar Configuración</button>
                     </form>
                 </div>
@@ -107,6 +115,25 @@ const Settings = {
                     <button class="btn btn-primary" onclick="Settings.showUserManagement()">
                         👥 Abrir Gestión de Usuarios
                     </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>📦 Descargar Código Fuente</h2>
+                </div>
+                <div class="card-body">
+                    ${this.settings?.sourceZipUrl
+                        ? `
+                        <p>Descarga el código completo del proyecto para respaldo o desarrollo local.</p>
+                        <a href="${this.settings.sourceZipUrl}" class="btn btn-primary" target="_blank">
+                            ⬇️ Descargar Código (.zip)
+                        </a>
+                        `
+                        : `
+                        <p style="color: var(--text-tertiary);">Configura la URL del repositorio GitHub en el formulario de arriba para habilitar la descarga.</p>
+                        `
+                    }
                 </div>
             </div>
         `;
@@ -195,11 +222,13 @@ const Settings = {
 
         try {
             const companyName = document.getElementById('company-name').value.trim();
+            const sourceZipUrl = document.getElementById('source-zip-url').value.trim();
 
             const settingsData = {
                 companyName: companyName || 'Dalse',
                 logo1: this.settings.logo1 || '',
                 logo2: this.settings.logo2 || '',
+                sourceZipUrl: sourceZipUrl || '',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
