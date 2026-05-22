@@ -1,0 +1,321 @@
+// ===================================
+// Liquidación Module
+// ===================================
+
+const Liquidacion = {
+    records: [],
+    filteredRecords: [],
+    currentView: 'contado', // 'contado' or 'credito'
+    filters: {
+        startDate: '2025-01-01',
+        endDate: new Date().toISOString().split('T')[0]
+    },
+    unsubscribe: null,
+
+    // Render Contado view
+    async renderContado() {
+        this.currentView = 'contado';
+        await this.render();
+    },
+
+    // Render Crédito view
+    async renderCredito() {
+        this.currentView = 'credito';
+        await this.render();
+    },
+
+    // Main render
+    async render() {
+        const contentArea = document.getElementById('content-area');
+        const isContado = this.currentView === 'contado';
+        const title = isContado ? '💵 Liquidación Contado' : '💳 Liquidación Crédito';
+        const subtitle = isContado
+            ? 'Entregas pagadas al contado'
+            : 'Entregas a crédito - Control de cobros';
+
+        contentArea.innerHTML = `
+            <div class="module-header">
+                <div>
+                    <h1>${title}</h1>
+                    <p>${subtitle}</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="liq-filter-start-date" style="margin-bottom: 0; white-space: nowrap;">📅 Desde:</label>
+                        <input type="date" id="liq-filter-start-date" class="form-control" value="${this.filters.startDate}" style="padding: 0.4rem; font-size: 0.8rem;">
+                        <label for="liq-filter-end-date" style="margin-bottom: 0; white-space: nowrap;">Hasta:</label>
+                        <input type="date" id="liq-filter-end-date" class="form-control" value="${this.filters.endDate}" style="padding: 0.4rem; font-size: 0.8rem;">
+                    </div>
+                    <button id="liq-btn-export-excel" class="btn btn-secondary">
+                        📥 Exportar Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="liquidacion-stats">
+                <div class="stat-card">
+                    <h3>Total Entregado</h3>
+                    <p id="liq-stat-total-entregado">$0.00</p>
+                </div>
+                ${isContado ? '' : `
+                    <div class="stat-card">
+                        <h3>Total Cobrado</h3>
+                        <p id="liq-stat-total-cobrado" style="color: #22c55e;">$0.00</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pendiente de Cobro</h3>
+                        <p id="liq-stat-pendiente" style="color: #f97316;">$0.00</p>
+                    </div>
+                `}
+                <div class="stat-card">
+                    <h3>Cantidad</h3>
+                    <p id="liq-stat-cantidad">0</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Guía</th>
+                                <th>Empresa</th>
+                                <th>Fecha Entrega</th>
+                                <th>Cliente</th>
+                                <th>Venta</th>
+                                ${isContado ? '' : '<th>¿Cobrado?</th><th>Fecha Cobro</th>'}
+                            </tr>
+                        </thead>
+                        <tbody id="liquidacion-table-body">
+                            <tr>
+                                <td colspan="${isContado ? 5 : 7}" style="text-align: center; padding: 2rem;">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="liquidacion-table-footer"></tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // Load records
+        await this.loadRecords();
+
+        // Setup event listeners
+        const startEl = document.getElementById('liq-filter-start-date');
+        if (startEl) startEl.addEventListener('change', (e) => {
+            this.filters.startDate = e.target.value;
+            this.applyFilters();
+        });
+        const endEl = document.getElementById('liq-filter-end-date');
+        if (endEl) endEl.addEventListener('change', (e) => {
+            this.filters.endDate = e.target.value;
+            this.applyFilters();
+        });
+        const exportBtn = document.getElementById('liq-btn-export-excel');
+        if (exportBtn) exportBtn.addEventListener('click', () => this.exportToExcel());
+
+        this.applyStyles();
+    },
+
+    // Load records from Firestore
+    async loadRecords() {
+        if (this.unsubscribe) this.unsubscribe();
+
+        const db = firebase.firestore();
+        // Note: We only filter by 'entregado' to avoid needing a composite index
+        // Sorting is done in JavaScript after fetching
+        this.unsubscribe = db.collection('interlogic')
+            .where('entregado', '==', true)
+            .onSnapshot(snapshot => {
+                this.records = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                // Sort by createdAt descending in JavaScript
+                this.records.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                    return dateB - dateA;
+                });
+                this.applyFilters();
+            }, error => {
+                console.error('Error loading records:', error);
+                showToast('Error en sincronización: ' + error.message, 'error');
+            });
+    },
+
+    applyFilters() {
+        const condicion = this.currentView === 'contado' ? 'Contado' : 'Crédito';
+
+        this.filteredRecords = this.records.filter(record => {
+            // Filter by condition
+            if (record.condicionPago !== condicion) return false;
+
+            // Filter by date range
+            const recordDate = record.fecha
+                ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0]
+                : '';
+            if (this.filters.startDate && recordDate < this.filters.startDate) return false;
+            if (this.filters.endDate && recordDate > this.filters.endDate) return false;
+
+            return true;
+        });
+
+        this.renderTable();
+        this.updateStats();
+    },
+
+    renderTable() {
+        const body = document.getElementById('liquidacion-table-body');
+        if (!body) return;
+
+        const isContado = this.currentView === 'contado';
+        const colspan = isContado ? 5 : 7;
+
+        if (this.filteredRecords.length === 0) {
+            body.innerHTML = `<tr><td colspan="${colspan}" style="text-align: center; padding: 2rem;">No hay registros coincidentes.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = this.filteredRecords.map(record => {
+            const isCobrado = record.cobrado === true;
+            const fechaCobro = record.fechaCobro
+                ? (record.fechaCobro.toDate ? formatDate(record.fechaCobro, false) : record.fechaCobro)
+                : '';
+
+            return `
+                <tr class="${isCobrado ? 'liq-row-cobrado' : 'liq-row-pendiente'}">
+                    <td><strong>${record.guia || ''}</strong></td>
+                    <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
+                    <td>${record.fecha ? formatDate(record.fecha, false) : ''}</td>
+                    <td>${sanitizeHTML(record.cliente || '')}</td>
+                    <td style="font-weight: 700;">$${Number(record.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    ${isContado ? '' : `
+                        <td style="text-align: center;">
+                            <label class="ds-switch">
+                                <input type="checkbox" ${isCobrado ? 'checked' : ''} 
+                                       onchange="Liquidacion.toggleCobrado('${record.id}', this.checked)">
+                                <span class="ds-slider"></span>
+                            </label>
+                        </td>
+                        <td>
+                            ${isCobrado ? `<span class="badge badge-success">${fechaCobro}</span>` : '<span class="badge badge-warning">Pendiente</span>'}
+                        </td>
+                    `}
+                </tr>
+            `;
+        }).join('');
+
+        this.updateFooter();
+    },
+
+    updateFooter() {
+        const tfoot = document.getElementById('liquidacion-table-footer');
+        if (!tfoot) return;
+
+        const isContado = this.currentView === 'contado';
+        const total = this.filteredRecords.reduce((acc, r) => acc + Number(r.venta || 0), 0);
+        const colspan = isContado ? 4 : 4;
+
+        tfoot.innerHTML = `
+            <tr class="ds-totals-row">
+                <td colspan="${colspan}" style="text-align: right;">TOTAL:</td>
+                <td>$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                ${isContado ? '' : '<td colspan="2"></td>'}
+            </tr>
+        `;
+    },
+
+    updateStats() {
+        const isContado = this.currentView === 'contado';
+        const totalEntregado = this.filteredRecords.reduce((acc, r) => acc + Number(r.venta || 0), 0);
+        const cantidad = this.filteredRecords.length;
+
+        const entregadoEl = document.getElementById('liq-stat-total-entregado');
+        if (entregadoEl) entregadoEl.textContent = `$${totalEntregado.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+        const cantidadEl = document.getElementById('liq-stat-cantidad');
+        if (cantidadEl) cantidadEl.textContent = cantidad;
+
+        if (!isContado) {
+            const totalCobrado = this.filteredRecords
+                .filter(r => r.cobrado === true)
+                .reduce((acc, r) => acc + Number(r.venta || 0), 0);
+            const pendiente = totalEntregado - totalCobrado;
+
+            const cobradoEl = document.getElementById('liq-stat-total-cobrado');
+            if (cobradoEl) cobradoEl.textContent = `$${totalCobrado.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+            const pendienteEl = document.getElementById('liq-stat-pendiente');
+            if (pendienteEl) pendienteEl.textContent = `$${pendiente.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        }
+    },
+
+    async toggleCobrado(recordId, checked) {
+        try {
+            const updateData = {
+                cobrado: checked,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (checked) {
+                updateData.fechaCobro = firebase.firestore.FieldValue.serverTimestamp();
+            } else {
+                updateData.fechaCobro = null;
+            }
+
+            await firebase.firestore().collection('interlogic').doc(recordId).update(updateData);
+            showToast(checked ? '✅ Marcado como cobrado' : '↩️ Desmarcado', 'success');
+        } catch (error) {
+            console.error('Error updating cobrado:', error);
+            showToast('Error al actualizar: ' + error.message, 'error');
+        }
+    },
+
+    exportToExcel() {
+        if (typeof XLSX === 'undefined') {
+            showToast('Error: XLSX no cargado', 'error');
+            return;
+        }
+        const isContado = this.currentView === 'contado';
+        const headers = isContado
+            ? ['Guía', 'Empresa', 'Fecha', 'Cliente', 'Total']
+            : ['Guía', 'Empresa', 'Fecha', 'Cliente', 'Total', 'Cobrado', 'Fecha Cobro'];
+
+        const rows = this.filteredRecords.map(r => {
+            const base = [
+                r.guia || '',
+                r.empresa || '',
+                r.fecha ? formatDate(r.fecha, false) : '',
+                r.cliente || '',
+                Number(r.venta || 0)
+            ];
+            if (!isContado) {
+                base.push(r.cobrado ? 'SÍ' : 'NO');
+                base.push(r.fechaCobro ? formatDate(r.fechaCobro, false) : '');
+            }
+            return base;
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const workbook = XLSX.utils.book_new();
+        const sheetName = isContado ? 'Liquidacion_Contado' : 'Liquidacion_Credito';
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+        XLSX.writeFile(workbook, `${sheetName}.xlsx`);
+    },
+
+    applyStyles() {
+        if (document.getElementById('liq-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'liq-styles';
+        style.textContent = `
+            .liq-row-cobrado { background-color: rgba(34, 197, 94, 0.08) !important; }
+            .liq-row-pendiente { border-left: 3px solid #f97316; }
+            .badge-success { background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+            .badge-warning { background: #f97316; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
+        `;
+        document.head.appendChild(style);
+    }
+};
+
+window.Liquidacion = Liquidacion;

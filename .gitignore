@@ -1,0 +1,9 @@
+node_modules/
+.firebase/
+.claude/
+users.json
+server.js
+firebase-debug.log
+*.log
+.DS_Store
+Thumbs.db

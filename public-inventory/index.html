@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Using a CDN for icons (Phosphor Icons or similar) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Login View -->
+        <section id="login-view" class="view active">
+            <div class="login-container">
+                <div class="login-card">
+                    <h2>Bienvenido</h2>
+                    <p>Inicia sesión para continuar</p>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label>Usuario</label>
+                            <input type="text" id="username" required placeholder="admin">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="password" required placeholder="admin">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard View -->
+        <section id="dashboard-view" class="view hidden">
+            <aside class="sidebar">
+                <div class="brand" id="brand-container">
+                    <img id="brand-logo" src="" alt="" style="display: none;">
+                    <span id="brand-name"><i class="ph ph-cube"></i> Inventario</span>
+                </div>
+                <nav>
+                    <button class="nav-btn active" data-target="home-panel"><i class="ph ph-squares-four"></i>
+                        Dashboard</button>
+                    <button class="nav-btn" data-target="products-panel"><i class="ph ph-package"></i>
+                        Productos</button>
+                    <button class="nav-btn" data-target="movements-panel"><i class="ph ph-arrows-left-right"></i>
+                        Movimientos</button>
+                    <button class="nav-btn" data-target="reports-panel"><i class="ph ph-chart-line-up"></i>
+                        Reportes</button>
+                    <button class="nav-btn hidden" id="nav-config" data-target="config-panel"><i class="ph ph-gear"></i>
+                        Configuración</button>
+                </nav>
+                <div class="user-info">
+                    <span id="display-username">Usuario</span>
+                    <button id="logout-btn"><i class="ph ph-sign-out"></i></button>
+                </div>
+            </aside>
+
+            <main class="content">
+                <!-- Home Panel -->
+                <div id="home-panel" class="panel active">
+                    <header>
+                        <h1>Dashboard</h1>
+                    </header>
+                    <div class="stats-grid">
+                        <div class="card stat-card">
+                            <div class="icon-wrap blue"><i class="ph ph-package"></i></div>
+                            <div class="stat-info">
+                                <h3>Total Productos</h3>
+                                <p id="stat-total-products">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="icon-wrap green"><i class="ph ph-trend-up"></i></div>
+                            <div class="stat-info">
+                                <h3>Valor Inventario</h3>
+                                <p id="stat-total-value">$0.00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="icon-wrap orange"><i class="ph ph-warning"></i></div>
+                            <div class="stat-info">
+                                <h3>Stock Bajo</h3>
+                                <p id="stat-low-stock">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Chart Section -->
+                    <div class="card" style="margin-top: 1.5rem;">
+                        <canvas id="dashboard-chart" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Products Panel -->
+                <div id="products-panel" class="panel hidden">
+                    <header class="flex-header">
+                        <h1>Productos</h1>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="exportProducts()"><i class="ph ph-file-csv"></i>
+                                Exportar Excel</button>
+                            <button class="btn btn-primary" id="btn-add-product"><i class="ph ph-plus"></i> Nuevo
+                                Producto</button>
+                        </div>
+                    </header>
+                    <div class="card">
+                        <div class="table-container">
+                            <table id="products-table">
+                                <thead>
+                                    <tr>
+                                        <th>Imagen</th>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Categoría</th>
+                                        <th>Stock</th>
+                                        <th>Precio</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Movements Panel -->
+                <div id="movements-panel" class="panel hidden">
+                    <header class="flex-header">
+                        <h1>Movimientos</h1>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="exportMovements()"><i class="ph ph-file-csv"></i>
+                                Exportar Excel</button>
+                            <button class="btn btn-primary" id="btn-new-movement"><i class="ph ph-plus"></i> Registrar
+                                Movimiento</button>
+                        </div>
+                    </header>
+                    <div class="card">
+                        <div class="table-container">
+                            <table id="movements-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Tipo</th>
+                                        <th>Ref</th>
+                                        <th>Producto</th>
+                                        <th>Cant</th>
+                                        <th>Obs</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Panel -->
+                <div id="reports-panel" class="panel hidden">
+                    <header class="flex-header no-print">
+                        <h1>Reportes</h1>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="exportReport()"><i class="ph ph-file-csv"></i>
+                                Exportar Excel</button>
+                            <button class="btn btn-secondary" onclick="window.print()"><i class="ph ph-printer"></i>
+                                Imprimir</button>
+                        </div>
+                    </header>
+                    <div class="card no-print">
+                        <form id="filter-form" class="filters">
+                            <div class="form-group">
+                                <label>Desde</label>
+                                <input type="date" id="filter-date-from">
+                            </div>
+                            <div class="form-group">
+                                <label>Hasta</label>
+                                <input type="date" id="filter-date-to">
+                            </div>
+                            <div class="form-group">
+                                <label>Producto</label>
+                                <select id="filter-product">
+                                    <option value="">Todos</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ref</label>
+                                <input type="text" id="filter-ref" placeholder="Referencia">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <button type="button" id="btn-clear-filters" class="btn btn-outline">Limpiar</button>
+                        </form>
+                    </div>
+
+                    <div class="report-preview">
+                        <div class="print-header">
+                            <img id="print-logo" src="" style="display: none; height: 100px; margin-bottom: 1rem;">
+                            <h2>Reporte de Movimientos</h2>
+                            <p id="report-date-range"></p>
+                        </div>
+                        <table id="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Ref</th>
+                                    <th>Producto</th>
+                                    <th>Cant</th>
+                                    <th>Obs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+
+                        <div class="print-footer no-screen">
+                            <div class="sign-box">
+                                <p>Entregado por:</p>
+                                <div class="line"></div>
+                            </div>
+                            <div class="sign-box">
+                                <p>Recibido por:</p>
+                                <div class="line"></div>
+                            </div>
+                            <div class="sign-box">
+                                <p>Hora:</p>
+                                <div class="line"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Config Panel -->
+                <div id="config-panel" class="panel hidden">
+                    <header>
+                        <h1>Configuración</h1>
+                    </header>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                        <!-- Company Settings -->
+                        <div class="card">
+                            <h3>Datos de la Empresa</h3>
+                            <form id="settings-form" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label>Nombre de la Empresa</label>
+                                    <input type="text" id="set-company-name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Logotipo</label>
+                                    <input type="file" id="set-logo" accept="image/*">
+                                    <img id="set-logo-preview" src=""
+                                        style="max-height: 50px; margin-top: 0.5rem; display: none;">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            </form>
+                        </div>
+
+                        <!-- User Management -->
+                        <div class="card">
+                            <h3>Gestión de Usuarios</h3>
+                            <form id="user-form"
+                                style="margin-top: 1rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Usuario</label>
+                                        <input type="text" id="new-username" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Contraseña</label>
+                                        <input type="password" id="new-password" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Rol</label>
+                                    <div class="radio-group" style="display: flex; gap: 1rem;">
+                                        <label><input type="radio" name="new-role" value="admin"> Admin</label>
+                                        <label><input type="radio" name="new-role" value="readonly" checked>
+                                            Lectura</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-secondary"><i class="ph ph-plus"></i> Agregar
+                                    Usuario</button>
+                            </form>
+
+                            <table id="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Rol</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </section>
+
+        <!-- Modals -->
+        <div id="product-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="product-modal-title">Nuevo Producto</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <form id="product-form">
+                    <input type="hidden" id="prod-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="prod-name">
+                        </div>
+                        <div class="form-group">
+                            <label>Código</label>
+                            <input type="text" id="prod-code">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <input type="text" id="prod-category">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio</label>
+                            <input type="number" step="0.01" id="prod-price">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Stock Mínimo</label>
+                            <input type="number" id="prod-min-stock">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen del Producto</label>
+                        <input type="file" id="prod-image" accept="image/*">
+                        <img id="prod-image-preview" src="" alt=""
+                            style="max-height: 100px; display: none; margin-top: 0.5rem; border-radius: 6px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea id="prod-description"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline close-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="movement-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Registrar Movimiento</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <form id="movement-form">
+                    <input type="hidden" id="mov-id">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="mov-type" value="IN" checked> Entrada</label>
+                            <label><input type="radio" name="mov-type" value="OUT"> Salida</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Producto</label>
+                        <select id="mov-product"></select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cantidad</label>
+                            <input type="number" id="mov-quantity" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="mov-date">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Referencia</label>
+                        <input type="text" id="mov-ref">
+                    </div>
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea id="mov-obs"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline close-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Registrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="image-modal" class="modal hidden" style="z-index: 2000;">
+        <div class="modal-content"
+            style="max-width: 800px; text-align: center; background: transparent; box-shadow: none;">
+            <img id="preview-image" src="" alt="Vista previa"
+                style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <button type="button" class="btn btn-secondary close-modal"
+                style="margin-top: 1rem; background: white; color: #333;">Cerrar</button>
+        </div>
+    </div>
+
+    </div>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

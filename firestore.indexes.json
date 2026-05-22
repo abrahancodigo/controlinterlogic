@@ -1,0 +1,33 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "deliveries",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "createdBy",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "fecha",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "deliveries",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "tienda",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "fecha",
+                    "order": "DESCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}

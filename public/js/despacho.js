@@ -1,0 +1,650 @@
+// ===================================
+// Despacho Interlogic Module (Enhanced)
+// ===================================
+
+const Despacho = {
+    records: [],
+    filteredRecords: [],
+    loading: false,
+    filters: {
+        search: '',
+        startDate: '2025-01-01',
+        endDate: new Date().toISOString().split('T')[0],
+        guia: [],
+        empresa: [],
+        fecha: [],
+        doc: [],
+        cliente: [],
+        vendedor: [],
+        condicionPago: [],
+        venta: [],
+        cobrador: [],
+        horaEntrega: [],
+        status: 'all'
+    },
+    currentSort: {
+        field: 'createdAt',
+        direction: 'desc'
+    },
+    unsubscribe: null,
+
+    // Initialize module and render content
+    async render() {
+        const contentArea = document.getElementById('content-area');
+
+        contentArea.innerHTML = `
+            <div class="module-header">
+                <div>
+                    <h1>🚚 Despacho Interlogic</h1>
+                    <p>Seguimiento de entregas y liquidación sobre base total</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="ds-filter-start-date" style="margin-bottom: 0; white-space: nowrap;">📅 Desde:</label>
+                        <input type="date" id="ds-filter-start-date" class="form-control" value="${this.filters.startDate}" style="padding: 0.4rem; font-size: 0.8rem;">
+                        <label for="ds-filter-end-date" style="margin-bottom: 0; white-space: nowrap;">Hasta:</label>
+                        <input type="date" id="ds-filter-end-date" class="form-control" value="${this.filters.endDate}" style="padding: 0.4rem; font-size: 0.8rem;">
+                    </div>
+                    <button id="ds-btn-export-excel" class="btn btn-secondary">
+                        📥 Exportar Excel
+                    </button>
+                    <button id="ds-btn-clear-all-filters" class="btn btn-secondary" style="display: none;">
+                        🧹 Quitar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="despacho-stats">
+                <div class="stat-card">
+                    <h3>Total Venta</h3>
+                    <p id="ds-stat-total-venta">$0.00</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Bultos</h3>
+                    <p id="ds-stat-total-bultos">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Importe</h3>
+                    <p id="ds-stat-total-importe">$0.00</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Entregados</h3>
+                    <p id="ds-stat-total-entregados">0</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 0.5rem;">
+                    <div style="flex: 1; max-width: 400px;">
+                        <input type="text" id="ds-global-search" class="form-control" placeholder="🔍 Buscar en cualquier columna..." style="width: 100%; padding: 0.5rem 1rem; border-radius: 8px;">
+                    </div>
+                </div>
+                <div class="table-container" style="overflow-x: visible;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                            <tr>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'guia')">
+                                        Guía <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-guia" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('guia', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-guia"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'empresa')">
+                                        Empresa <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-empresa" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('empresa', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-empresa"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'fecha')">
+                                        Fecha <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-fecha" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('fecha', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-fecha"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'doc')">
+                                        Doc <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-doc" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('doc', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-doc"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'cliente')">
+                                        Cliente <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-cliente" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('cliente', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-cliente"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'vendedor')">
+                                        Vendedor <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-vendedor" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('vendedor', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-vendedor"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'condicionPago')">
+                                        Pago <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-condicionPago" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('condicionPago', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-condicionPago"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'venta')">
+                                        Venta <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-venta" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('venta', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-venta"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'cobrador')">
+                                        Cobra <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-cobrador" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('cobrador', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-cobrador"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Despacho.toggleFilter(event, 'horaEntrega')">
+                                        Hora <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="ds-filter-popup-horaEntrega" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Despacho.searchInFilter('horaEntrega', this.value)">
+                                            <div class="filter-options-list" id="ds-filter-options-horaEntrega"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th style="text-align: center;">¿Entregado?</th>
+                            </tr>
+                        </thead>
+                        <tbody id="despacho-table-body">
+                            <tr>
+                                <td colspan="12" style="text-align: center; padding: 2rem;">Cargando registros...</td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="despacho-table-footer"></tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // Load records
+        await this.loadRecords();
+
+        // Setup event listeners
+        const startEl = document.getElementById('ds-filter-start-date');
+        if (startEl) startEl.addEventListener('change', (e) => {
+            this.filters.startDate = e.target.value;
+            this.applyFilters();
+        });
+        const endEl = document.getElementById('ds-filter-end-date');
+        if (endEl) endEl.addEventListener('change', (e) => {
+            this.filters.endDate = e.target.value;
+            this.applyFilters();
+        });
+        const clearBtn = document.getElementById('ds-btn-clear-all-filters');
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearAllFilters());
+        const exportBtn = document.getElementById('ds-btn-export-excel');
+        if (exportBtn) exportBtn.addEventListener('click', () => this.exportToExcel());
+
+        // Global search listener
+        const searchEl = document.getElementById('ds-global-search');
+        if (searchEl) {
+            searchEl.addEventListener('input', (e) => {
+                this.filters.search = e.target.value;
+                this.applyFilters();
+            });
+        }
+
+        // Close filters when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.filter-header')) {
+                document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+            }
+        });
+
+        this.applyDespachoStyles();
+    },
+
+    // Load records from Firestore
+    async loadRecords() {
+        if (this.unsubscribe) this.unsubscribe();
+
+        const db = firebase.firestore();
+        this.unsubscribe = db.collection('interlogic')
+            .orderBy('createdAt', 'desc')
+            .onSnapshot(snapshot => {
+                this.records = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                this.applyFilters();
+            }, error => {
+                console.error('Error loading records:', error);
+                showToast('Error en sincronización: ' + error.message, 'error');
+            });
+    },
+
+    toggleFilter(event, field) {
+        event.stopPropagation();
+        const popup = document.getElementById(`ds-filter-popup-${field}`);
+        const isShowing = popup.classList.contains('show');
+
+        // Hide all popups
+        document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+
+        if (!isShowing) {
+            popup.classList.add('show');
+            this.populateFilterOptions(field);
+        }
+    },
+
+    searchInFilter(field, query) {
+        const list = document.getElementById(`ds-filter-options-${field}`);
+        const items = list.querySelectorAll('.filter-option-item');
+        const q = query.toLowerCase();
+
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(q) ? 'flex' : 'none';
+        });
+    },
+
+    populateFilterOptions(field) {
+        const list = document.getElementById(`ds-filter-options-${field}`);
+        if (!list) return;
+
+        // Header with sorting and toggle all
+        let headerHtml = '<div class="filter-sort-options">';
+        headerHtml += '<button class="sort-btn ' + (this.currentSort.field === field && this.currentSort.direction === 'asc' ? 'active' : '') + '" onclick="Despacho.setSort(\'' + field + '\', \'asc\')">↑ A a Z</button>';
+        headerHtml += '<button class="sort-btn ' + (this.currentSort.field === field && this.currentSort.direction === 'desc' ? 'active' : '') + '" onclick="Despacho.setSort(\'' + field + '\', \'desc\')">↓ Z a A</button>';
+        headerHtml += '</div>';
+        headerHtml += '<div class="filter-toggle-all">';
+        headerHtml += '<button class="btn-toggle-filter" onclick="Despacho.toggleAllFilterValues(\'' + field + '\', true)">☑ Seleccionar Todo</button>';
+        headerHtml += '<button class="btn-toggle-filter" onclick="Despacho.toggleAllFilterValues(\'' + field + '\', false)">☐ Deseleccionar</button>';
+        headerHtml += '</div>';
+
+        // Unique values passing other filters
+        const recordsPassingOthers = this.records.filter(record => {
+            for (let f in this.filters) {
+                if (f === field || f === 'status') continue;
+                const activeValues = this.filters[f];
+                if (f === 'startDate' || f === 'endDate') {
+                    const recordDate = record.fecha ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0] : '';
+                    if (this.filters.startDate && recordDate < this.filters.startDate) return false;
+                    if (this.filters.endDate && recordDate > this.filters.endDate) return false;
+                    continue;
+                }
+                if (Array.isArray(activeValues) && activeValues.length > 0) {
+                    let recordVal;
+                    if (f === 'fecha') {
+                        recordVal = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    } else if (f === 'venta' || f === 'total') {
+                        recordVal = formatNumber(record[f] || 0, 2);
+                    } else {
+                        recordVal = String(record[f] || ' (Vacío)');
+                    }
+                    if (!activeValues.includes(recordVal)) return false;
+                }
+            }
+            return true;
+        });
+
+        const uniqueValues = [...new Set(recordsPassingOthers.map(r => {
+            if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
+            if (field === 'venta' || field === 'total') return formatNumber(r[field] || 0, 2);
+            return String(r[field] || ' (Vacío)');
+        }))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+        const activeValues = this.filters[field] || [];
+
+        const optionsHtml = uniqueValues.map(val => `
+            <div class="filter-option-item" onclick="event.stopPropagation()">
+                <input type="checkbox" id="ds-chk-${field}-${val}" ${activeValues.includes(val) ? 'checked' : ''} 
+                       onchange="Despacho.updateFilterValue('${field}', '${val}', this.checked)">
+                <label for="ds-chk-${field}-${val}">${val}</label>
+            </div>
+        `).join('');
+
+        list.innerHTML = headerHtml + optionsHtml;
+    },
+
+    toggleAllFilterValues(field, checked) {
+        if (!checked) {
+            this.filters[field] = [];
+        } else {
+            const list = document.getElementById(`ds-filter-options-${field}`);
+            const checkboxes = list.querySelectorAll('input[type="checkbox"]');
+            this.filters[field] = Array.from(checkboxes).map(cb => {
+                const idParts = cb.id.split('-');
+                return idParts.slice(3).join('-'); // format: ds-chk-field-value
+            });
+        }
+        this.applyFilters();
+        this.populateFilterOptions(field);
+    },
+
+    updateFilterValue(field, value, checked) {
+        if (!this.filters[field]) this.filters[field] = [];
+        if (checked) {
+            if (!this.filters[field].includes(value)) this.filters[field].push(value);
+        } else {
+            this.filters[field] = this.filters[field].filter(v => v !== value);
+        }
+        this.applyFilters();
+    },
+
+    setSort(field, direction) {
+        this.currentSort = { field, direction };
+        this.applyFilters();
+    },
+
+    applyFilters() {
+        this.filteredRecords = this.records.filter(record => {
+            for (let field in this.filters) {
+                const val = this.filters[field];
+                if (field === 'startDate' || field === 'endDate') {
+                    const date = record.fecha ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0] : '';
+                    if (this.filters.startDate && date < this.filters.startDate) return false;
+                    if (this.filters.endDate && date > this.filters.endDate) return false;
+                    continue;
+                }
+                if (field === 'status') continue;
+                if (Array.isArray(val) && val.length > 0) {
+                    const recordVal = String(record[field] || ' (Vacío)');
+                    if (!val.includes(recordVal)) return false;
+                }
+            }
+            // Global search filter
+            if (this.filters.search && this.filters.search.trim() !== '') {
+                const q = this.filters.search.toLowerCase();
+                const textFields = ['guia', 'empresa', 'cliente', 'vendedor', 'zona', 'cobrador', 'doc', 'docNum', 'condicionPago'];
+                const textMatch = textFields.some(f => {
+                    const val = String(record[f] || '').toLowerCase();
+                    return val.includes(q);
+                });
+                // Also search in venta as a number (formatted)
+                const ventaVal = Number(record.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                const ventaMatch = ventaVal.includes(q) || String(record.venta || '').includes(q);
+                if (!textMatch && !ventaMatch) return false;
+            }
+            return true;
+        });
+
+        // Apply sort
+        const { field, direction } = this.currentSort;
+        if (field && direction) {
+            this.filteredRecords.sort((a, b) => {
+                let vA = a[field] || '';
+                let vB = b[field] || '';
+                if (vA < vB) return direction === 'asc' ? -1 : 1;
+                if (vA > vB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        const hasFilters = Object.values(this.filters).some(f => Array.isArray(f) ? f.length > 0 : false);
+        const clearBtn = document.getElementById('ds-btn-clear-all-filters');
+        if (clearBtn) clearBtn.style.display = hasFilters ? 'block' : 'none';
+
+        this.renderTable();
+        this.updateStats();
+    },
+
+    renderTable() {
+        const body = document.getElementById('despacho-table-body');
+        if (!body) return;
+
+        // Update active header styles
+        for (let field in this.filters) {
+            const header = document.querySelector('[onclick*="Despacho.toggleFilter(event, \'' + field + '\')"]');
+            if (header) {
+                const isActive = Array.isArray(this.filters[field]) && this.filters[field].length > 0;
+                header.classList.toggle('filter-active', isActive);
+            }
+        }
+
+        if (this.filteredRecords.length === 0) {
+            body.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 2rem;">No hay registros coincidentes.</td></tr>';
+            return;
+        }
+
+        body.innerHTML = this.filteredRecords.map(record => {
+            const isDelivered = record.entregado === true;
+            return `
+                <tr class="${isDelivered ? 'ds-row-delivered' : 'ds-row-pending'}">
+                    <td><strong>${record.guia || ''}</strong></td>
+                    <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
+                    <td>${record.fecha ? formatDate(record.fecha, false) : ''}</td>
+                    <td>${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
+                    <td>${sanitizeHTML(record.cliente || '')}</td>
+                    <td>${sanitizeHTML(record.vendedor || '')}</td>
+                    <td>${record.condicionPago || ''}</td>
+                    <td style="font-weight: 700;">$${formatNumber(record.venta || 0, 2)}</td>
+                    <td>${sanitizeHTML(record.cobrador || '')}</td>
+                    <td>
+                        <input type="text" class="ds-time-input" value="${record.horaEntrega || ''}" placeholder="HH:MM"
+                               onchange="Despacho.updateField('${record.id}', 'horaEntrega', this.value)">
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
+                            <label class="ds-switch">
+                                <input type="checkbox" ${isDelivered ? 'checked' : ''} 
+                                       onchange="Despacho.updateField('${record.id}', 'entregado', this.checked)">
+                                <span class="ds-slider"></span>
+                            </label>
+                            ${isDelivered && record.telefono ? `
+                                <button class="ds-btn-whatsapp" onclick="Despacho.sendWhatsAppNotification('${record.id}')" title="Enviar WhatsApp">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.548-.68.116-.173.231-.144.39-.087.158.058 1.011.477 1.184.564.173.087.289.129.332.202.043.073.043.419-.101.824z"/>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        this.updateFooter();
+    },
+
+    updateFooter() {
+        let tfoot = document.getElementById('despacho-table-footer');
+        if (!tfoot) return;
+
+        const totals = this.filteredRecords.reduce((acc, r) => {
+            acc.venta += Number(r.venta || 0);
+            acc.total += Number(r.total || 0);
+            return acc;
+        }, { venta: 0, total: 0 });
+
+        tfoot.innerHTML = `
+            <tr class="ds-totals-row">
+                <td colspan="7" style="text-align: right;">TOTALES:</td>
+                <td>$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                <td></td>
+                <td>$${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                <td colspan="2"></td>
+            </tr>
+        `;
+    },
+
+    updateStats() {
+        const totals = this.filteredRecords.reduce((acc, r) => {
+            acc.venta += Number(r.venta || 0);
+            acc.bultos += Number(r.bultos || 0);
+            acc.total += Number(r.total || 0);
+            if (r.entregado) acc.entregados++;
+            return acc;
+        }, { venta: 0, bultos: 0, total: 0, entregados: 0 });
+
+        const ventaEl = document.getElementById('ds-stat-total-venta');
+        if (ventaEl) ventaEl.textContent = `$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const bultosEl = document.getElementById('ds-stat-total-bultos');
+        if (bultosEl) bultosEl.textContent = totals.bultos;
+        const importeEl = document.getElementById('ds-stat-total-importe');
+        if (importeEl) importeEl.textContent = `$${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        const entEl = document.getElementById('ds-stat-total-entregados');
+        if (entEl) entEl.textContent = totals.entregados;
+    },
+
+    async sendWhatsAppNotification(recordId) {
+        const record = this.records.find(r => r.id === recordId);
+        if (!record || !record.telefono) {
+            showToast('No hay número de teléfono registrado', 'error');
+            return;
+        }
+
+        // Clean number
+        let phone = record.telefono.replace(/\D/g, '');
+        // If it doesn't have a country code and looks like a local number, we could potentially prepend one, 
+        // but it's safer to let the user enter exactly what's needed or assume local if it's 8 digits.
+        // For SV, it would be 503.
+        if (phone.length === 8) phone = '503' + phone;
+
+        const message = `Hola ${record.cliente}, te informamos que tu pedido con guía #${record.guia} ha sido entregado exitosamente. ¡Gracias por confiar en Dalse! 😊`;
+        const encodedMsg = encodeURIComponent(message);
+
+        const url = `https://wa.me/${phone}?text=${encodedMsg}`;
+        window.open(url, '_blank');
+    },
+
+    async updateField(recordId, field, value) {
+        try {
+            await firebase.firestore().collection('interlogic').doc(recordId).update({
+                [field]: value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            console.error('Error updating field:', error);
+            showToast('Error al actualizar: ' + error.message, 'error');
+        }
+    },
+
+    clearAllFilters() {
+        this.filters = {
+            search: '',
+            startDate: '2025-01-01',
+            endDate: new Date().toISOString().split('T')[0],
+            empresa: [],
+            zona: [],
+            vendedor: [],
+            cobrador: [],
+            cliente: [],
+            condicionPago: [],
+            status: 'all'
+        };
+        this.applyFilters();
+    },
+
+    exportToExcel() {
+        if (typeof XLSX === 'undefined') {
+            showToast('Error: XLSX no cargado', 'error');
+            return;
+        }
+        const headers = ['Guía', 'Empresa', 'Fecha', 'Doc', 'Cliente', 'Vendedor', 'Pago', 'Venta', 'Cobra', 'Total', 'Hora', 'Entregado'];
+        const rows = this.filteredRecords.map(r => [
+            r.guia || '', r.empresa || '', r.fecha ? formatDate(r.fecha, false) : '', r.doc || '',
+            r.cliente || '', r.vendedor || '', r.condicionPago || '', Number(r.venta || 0),
+            r.cobrador || '', Number(r.total || 0), r.horaEntrega || '', r.entregado ? 'SÍ' : 'NO'
+        ]);
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Despacho');
+        XLSX.writeFile(workbook, 'Despacho_Liquidacion.xlsx');
+    },
+
+    applyDespachoStyles() {
+        if (document.getElementById('ds-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'ds-styles';
+        style.textContent = `
+            .ds-row-delivered { background-color: rgba(34, 197, 94, 0.08) !important; }
+            .ds-row-pending { border-left: 3px solid #f97316; }
+            .ds-time-input { 
+                width: 70px; padding: 2px 5px; border: 1px solid var(--border-color); 
+                border-radius: 4px; font-size: 0.8rem; text-align: center;
+            }
+            .ds-totals-row { background: var(--gray-50); font-weight: 700; }
+            .ds-switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+            .ds-switch input { opacity: 0; width: 0; height: 0; }
+            .ds-slider { 
+                position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+                background-color: #cbd5e1; transition: .3s; border-radius: 18px;
+            }
+            .ds-slider:before { 
+                position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px;
+                background-color: white; transition: .3s; border-radius: 50%;
+            }
+            input:checked + .ds-slider { background-color: #22c55e; }
+            input:checked + .ds-slider:before { transform: translateX(16px); }
+
+            .ds-btn-whatsapp {
+                background: #25d366;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: transform 0.2s, background 0.2s;
+                padding: 0;
+            }
+            .ds-btn-whatsapp:hover {
+                background: #128c7e;
+                transform: scale(1.1);
+            }
+            .ds-btn-whatsapp svg {
+                width: 18px;
+                height: 18px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+};
+
+window.Despacho = Despacho;
