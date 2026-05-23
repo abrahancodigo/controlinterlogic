@@ -831,7 +831,7 @@ const Interlogic = {
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td><strong>${record.guia || ''}</strong></td>
                 <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
-                <td>${record.fecha ? formatDate(record.fecha, false) : ''}</td>
+                <td>${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td>${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
                 <td>${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.7rem; color: #000;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td>${sanitizeHTML(record.zona || '')}</td>

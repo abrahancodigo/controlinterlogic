@@ -455,7 +455,7 @@ const Despacho = {
                 <tr class="${isDelivered ? 'ds-row-delivered' : 'ds-row-pending'}">
                     <td><strong>${record.guia || ''}</strong></td>
                     <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
-                    <td>${record.fecha ? formatDate(record.fecha, false) : ''}</td>
+                    <td>${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                     <td>${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
                     <td>${sanitizeHTML(record.cliente || '')}</td>
                     <td>${sanitizeHTML(record.vendedor || '')}</td>

@@ -25,6 +25,19 @@ function formatDate(date, includeTime = true) {
 }
 
 /**
+ * Format a date to short format (DD/MM/YYYY)
+ */
+function formatDateShort(date) {
+    if (!date) return '';
+    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+}
+
+/**
  * Format a date to YYYY-MM-DD for input fields
  */
 function formatDateForInput(date) {
