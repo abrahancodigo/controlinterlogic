@@ -468,15 +468,14 @@ const Auth = {
 function forceShowLoginScreen() {
     const loadingScreen = document.getElementById('loading-screen');
     const loginScreen = document.getElementById('login-screen');
-    if (loginScreen && loadingScreen && 
-        loadingScreen.style.display !== 'none' && 
-        loginScreen.style.display !== 'flex') {
-        console.log('⏰ Fallback: forcing login screen after timeout');
+    if (loadingScreen && loginScreen) {
+        console.log('⏰ Fallback: forcing login screen');
         loadingScreen.style.display = 'none';
+        loadingScreen.style.pointerEvents = 'none';
         loginScreen.style.display = 'flex';
     }
 }
-setTimeout(forceShowLoginScreen, 10000);
+setTimeout(forceShowLoginScreen, 8000);
 
 // Initialize auth when Firebase is ready
 function initAuthWhenReady() {
