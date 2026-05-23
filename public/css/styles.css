@@ -978,7 +978,6 @@ tbody tr {
 @media (max-width: 768px) {
     .mobile-header {
         display: flex !important;
-        /* Ensure it shows over root display:none */
     }
 
     .sidebar {
@@ -1025,6 +1024,11 @@ tbody tr {
     .table-container {
         position: relative;
         -webkit-overflow-scrolling: touch;
+        overflow-x: auto;
+    }
+    
+    table {
+        min-width: 600px;
     }
 }
 
@@ -1461,6 +1465,30 @@ tbody tr {
     margin-bottom: var(--spacing-lg);
 }
 
+/* Safe area insets for modern phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .mobile-header {
+        padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top));
+        height: calc(64px + env(safe-area-inset-top));
+    }
+    .main-content {
+        padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
+    }
+    .sidebar {
+        padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
+    }
+    .toast-container {
+        bottom: calc(var(--spacing-sm) + env(safe-area-inset-bottom)) !important;
+    }
+    .filter-popup {
+        padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom)) !important;
+    }
+}
+
 /* ===================================
    Mobile Responsive Enhancements
    =================================== */
@@ -1550,6 +1578,23 @@ tbody tr {
         }
     }
 
+    /* Filter backdrop on mobile - covers area above bottom sheet */
+    .filter-popup.show {
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.15);
+    }
+
+    .filter-popup.show::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 60vh;
+        background: rgba(0,0,0,0.3);
+        z-index: -1;
+        pointer-events: none;
+    }
+
     /* Action buttons in table */
     .actions-cell {
         flex-direction: column;
@@ -1631,19 +1676,32 @@ tbody tr {
 
 /* -- Small Phones (≤480px) -- */
 @media (max-width: 480px) {
+    :root {
+        --sidebar-width: 100%;
+    }
 
     .main-content {
-        padding: var(--spacing-sm) !important;
+        padding: 0.5rem !important;
         padding-top: 72px !important;
     }
 
-    /* Stats: still 2 column but compact */
+    /* Stats: compact 2 column */
     .stats-grid {
         grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+    }
+
+    .stat-card {
+        padding: 0.5rem;
+        border-left-width: 2px;
+    }
+
+    .stat-card h3 {
+        font-size: 0.55rem;
     }
 
     .stat-card p {
-        font-size: 0.95rem;
+        font-size: 0.85rem;
     }
 
     /* Module header buttons: wrap and fill */
@@ -1651,50 +1709,75 @@ tbody tr {
         flex: 1 1 45%;
         min-width: 0;
         text-align: center;
-        font-size: 0.7rem;
-        padding: 0.3rem 0.5rem;
+        font-size: 0.65rem;
+        padding: 0.35rem 0.4rem;
+        min-height: 36px;
     }
 
-    /* Table: even smaller */
+    .module-header input[type="date"] {
+        max-width: 120px;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    /* Table: compact */
     .data-table {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
 
     .data-table th,
     .data-table td {
-        padding: 0.1rem 0.2rem !important;
+        padding: 0.1rem 0.15rem !important;
     }
 
-    /* Actions cell: horizontal but tiny */
+    /* Actions cell */
     .actions-cell {
         flex-direction: row;
         gap: 1px;
     }
 
     .btn-icon {
-        width: 24px;
-        height: 24px;
-        font-size: 0.75rem;
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+        min-width: 28px;
+        min-height: 28px;
     }
 
-    /* Modal: near-fullscreen */
+    /* Modal: full-width bottom sheet */
     .modal-backdrop {
         padding: 0;
-        align-items: stretch;
+        align-items: flex-end;
     }
 
     .modal-content {
-        max-height: 100vh;
-        border-radius: 0;
-        padding: var(--spacing-md);
+        max-height: 92vh;
+        max-width: 100% !important;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        padding: var(--spacing-lg);
+        margin-bottom: 0;
+    }
+
+    .modal-confirm {
+        max-width: 100%;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
+    .content-header {
+        margin-bottom: 0.5rem;
     }
 
     .content-header h1 {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .content-header p {
+        font-size: 0.7rem;
     }
 
     .signature-pad {
-        height: 130px;
+        height: 120px;
     }
 
     .auth-container {
@@ -1705,6 +1788,32 @@ tbody tr {
     .auth-header h1 {
         font-size: var(--font-size-2xl);
     }
+
+    /* Card section headers */
+    .card {
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+    }
+
+    .card-header h2 {
+        font-size: var(--font-size-lg);
+    }
+
+    /* Form section header more compact */
+    .form-section-header h3 {
+        font-size: 0.85rem;
+    }
+
+    .form-section {
+        margin-bottom: 1rem;
+    }
+
+    .premium-modal-header,
+    .premium-modal-body,
+    .premium-modal-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
 
 /* ===================================
@@ -1712,23 +1821,46 @@ tbody tr {
    =================================== */
 @media (hover: none) and (pointer: coarse) {
 
-    /* Larger touch targets */
+    /* Larger touch targets - minimum 44px */
     .btn {
         min-height: 44px;
+        padding: 0.6rem 1rem;
     }
 
     .btn-icon {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .btn-sm {
+        min-height: 36px;
+        padding: 0.4rem 0.75rem;
     }
 
     .nav-item {
         padding: 0.85rem var(--spacing-md);
+        min-height: 44px;
     }
 
     .filter-option-item {
-        padding: 0.6rem;
+        padding: 0.7rem;
         min-height: 44px;
+    }
+
+    .filter-trigger {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    .mobile-menu-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
     }
 
     /* Remove hover animations on touch */
@@ -1757,6 +1889,14 @@ tbody tr {
         top: 0;
         z-index: 10;
         background: var(--gray-50);
+    }
+
+    /* Better form inputs for touch */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        min-height: 44px;
+        font-size: 1rem;
     }
 }
 
