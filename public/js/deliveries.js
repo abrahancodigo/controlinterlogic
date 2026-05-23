@@ -8,6 +8,13 @@ const Deliveries = {
 
     // Render deliveries view
     async render() {
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
+        return this.renderDesktop();
+    },
+
+    async renderDesktop() {
         const contentArea = document.getElementById('content-area');
 
         // Check permissions
@@ -335,7 +342,11 @@ const Deliveries = {
                 ...doc.data()
             }));
 
-            this.renderDeliveriesList();
+            if (this.isMobile) {
+                this.renderMobileCards();
+            } else {
+                this.renderDeliveriesList();
+            }
         } catch (error) {
             console.error('Error loading deliveries:', error);
             showToast('Error al cargar entregas', 'error');
@@ -1019,6 +1030,113 @@ const Deliveries = {
             if (e.target === previewModal) {
                 previewModal.remove();
                 printArea.innerHTML = '';
+            }
+        });
+    },
+
+    // ============= MOBILE RENDER =============
+    async renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        this.isMobile = true;
+
+        contentArea.innerHTML = `
+            <div style="padding: 0 0 8px 0;">
+                <h1 style="font-size:1.35rem;font-weight:800;margin-bottom:2px;">📋 Entregas</h1>
+                <p style="font-size:0.78rem;color:#8e8e93;">Registro de entregas de muebles</p>
+            </div>
+            <div class="m-actions-bar">
+                <button class="btn btn-primary" id="md-btn-add" style="border-radius:20px;">➕ Nueva Entrega</button>
+                <button class="btn" id="md-btn-refresh" style="border-radius:20px;">🔄 Actualizar</button>
+            </div>
+            <div class="m-data-list" id="md-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando entregas...</div>
+            </div>
+        `;
+
+        await this.loadDeliveries();
+
+        document.getElementById('md-btn-add').addEventListener('click', () => this.showMobileForm());
+        document.getElementById('md-btn-refresh').addEventListener('click', () => this.loadDeliveries());
+    },
+
+    renderMobileCards() {
+        const list = document.getElementById('md-data-list');
+        if (!list) return;
+
+        const canEdit = window.permissions?.canEdit;
+        const canDelete = window.permissions?.canDelete;
+
+        if (!this.deliveries || this.deliveries.length === 0) {
+            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin entregas</div><div class="m-empty-text">No hay registros aún.</div></div>';
+            return;
+        }
+
+        list.innerHTML = this.deliveries.map(d => {
+            const folio = d.folio || d.id.substring(0,8).toUpperCase();
+            return `
+            <div class="m-data-card" onclick="Deliveries.showMobileView('${d.id}')">
+                <div class="m-card-header">
+                    <span class="m-card-title">#${folio}</span>
+                    <span class="m-card-badge primary">${sanitizeHTML(d.tipoMueble || 'Mueble')}</span>
+                </div>
+                <div class="m-card-rows">
+                    <div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">${sanitizeHTML(d.cliente || '-')}</span></div>
+                    <div class="m-card-row"><span class="m-card-label">Tienda</span><span class="m-card-value">${sanitizeHTML(d.tienda || '-')}</span></div>
+                    <div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${d.fecha ? formatDate(d.fecha) : '-'}</span></div>
+                </div>
+                <div class="m-card-actions" onclick="event.stopPropagation()">
+                    <button class="m-card-action" onclick="Deliveries.showMobileView('${d.id}')" title="Ver">👁️</button>
+                    ${canEdit ? `<button class="m-card-action" onclick="Deliveries.showMobileForm('${d.id}')" title="Editar">✏️</button>` : ''}
+                    ${canDelete ? `<button class="m-card-action delete" onclick="Deliveries.deleteDelivery('${d.id}')" title="Eliminar">🗑️</button>` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    },
+
+    showMobileView(id) {
+        const d = this.deliveries.find(x => x.id === id);
+        if (!d) return;
+        const sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + (d.folio || d.id.substring(0,8).toUpperCase()) + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(d.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Tienda</span><div style="font-weight:500;">' + sanitizeHTML(d.tienda || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (d.fecha ? formatDate(d.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Mueble</span><div style="font-weight:500;">' + sanitizeHTML(d.tipoMueble || '-') + '</div></div></div>' + (d.accesorios ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Accesorios</span><div style="font-weight:500;">' + sanitizeHTML(d.accesorios) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer">' + (window.permissions?.canEdit ? '<button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Deliveries.showMobileForm(\'' + d.id + '\')">✏️ Editar</button>' : '') + ' 🖨️ <button class="m-card-action" onclick="Deliveries.printDelivery(\'' + d.id + '\')">Imprimir</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Deliveries.deleteDelivery(\'' + d.id + '\')">🗑️ Eliminar</button>' : '') + '</div></div>';
+        document.body.appendChild(sheet);
+    },
+
+    showMobileForm(id) {
+        const d = id ? this.deliveries.find(x => x.id === id) : null;
+        const isEdit = !!d;
+        const sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mdf-sheet\').remove();document.getElementById(\'mdf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? d.fecha.split('T')[0] : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mdf-sheet\').remove();document.getElementById(\'mdf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        document.body.appendChild(sheet);
+
+        document.getElementById('mdf-submit').addEventListener('click', async () => {
+            const btn = document.getElementById('mdf-submit');
+            btn.disabled = true; btn.textContent = 'Guardando...';
+            const data = {
+                cliente: document.getElementById('mdf-cliente').value,
+                tienda: document.getElementById('mdf-tienda').value,
+                fecha: document.getElementById('mdf-fecha').value,
+                tipoMueble: document.getElementById('mdf-tipoMueble').value,
+                accesorios: document.getElementById('mdf-accesorios').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                const db = firebase.firestore();
+                if (isEdit) {
+                    await db.collection('deliveries').doc(id).update(data);
+                } else {
+                    data.folio = await this.generateFolio();
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    data.createdBy = window.currentUserData?.displayName || 'Usuario';
+                    await db.collection('deliveries').add(data);
+                }
+                showToast(isEdit ? 'Actualizado' : 'Creado', 'success');
+                document.getElementById('mdf-sheet').remove();
+                document.getElementById('mdf-backdrop').remove();
+                await this.loadDeliveries();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = isEdit ? 'Guardar' : 'Crear';
             }
         });
     }
