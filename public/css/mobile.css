@@ -256,7 +256,6 @@ body {
     border: 0.5px solid var(--m-separator);
     position: relative;
     width: 100%;
-    max-width: 100%;
     overflow: hidden;
     box-sizing: border-box;
 }
@@ -284,15 +283,21 @@ body {
 .m-card-badge.warning { background: #fef3c7; color: #92400e; }
 .m-card-badge.danger { background: #fee2e2; color: #991b1b; }
 
+/* Card rows - horizontally scrollable to see full info */
 .m-card-rows {
     display: flex; flex-direction: column; gap: 6px;
     margin-bottom: 10px;
-    max-width: 100%; overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
 }
+.m-card-rows::-webkit-scrollbar { display: none; }
 .m-card-row {
     display: flex; justify-content: space-between; align-items: center;
     gap: 8px;
-    min-width: 0;
+    min-width: max-content;
+    padding-right: 4px;
 }
 .m-card-label {
     font-size: 0.7rem; color: var(--m-text-secondary);
@@ -302,10 +307,8 @@ body {
 .m-card-value {
     font-size: 0.85rem; color: var(--m-text); font-weight: 500;
     text-align: right;
-    max-width: 60%;
-    min-width: 0;
-    overflow: hidden; text-overflow: ellipsis;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 .m-card-value.money {
     font-weight: 700; color: var(--m-success);
@@ -315,13 +318,15 @@ body {
 .m-card-actions {
     display: flex; gap: 8px; justify-content: flex-end;
     padding-top: 8px; border-top: 0.5px solid var(--m-separator);
+    flex-wrap: wrap;
 }
 .m-card-action {
-    width: 36px; height: 36px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 12px;
     border: none; background: var(--m-bg);
     display: flex; align-items: center; justify-content: center;
     font-size: 0.9rem; cursor: pointer; transition: all 0.15s;
     color: var(--m-text-secondary);
+    flex-shrink: 0;
 }
 .m-card-action.delete { color: var(--m-danger); background: #fef2f2; }
 .m-card-action:active { transform: scale(0.9); background: var(--m-primary-light); }
@@ -365,7 +370,7 @@ body {
     display: flex; align-items: center; justify-content: center;
     color: var(--m-text-secondary);
 }
-.m-sheet-body { padding: 16px 20px; }
+.m-sheet-body { padding: 16px 20px; overflow-x: hidden; }
 .m-sheet-footer {
     display: flex; gap: 10px; padding: 14px 20px;
     border-top: 0.5px solid var(--m-separator);
