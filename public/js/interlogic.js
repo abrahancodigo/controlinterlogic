@@ -58,6 +58,14 @@ const Interlogic = {
 
     // Initialize module and render content
     async render() {
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
+        return this.renderDesktop();
+    },
+
+    // ============= DESKTOP RENDER =============
+    async renderDesktop() {
         const contentArea = document.getElementById('content-area');
 
         // Check permissions
@@ -428,6 +436,225 @@ const Interlogic = {
         }
     },
 
+    // ============= MOBILE RENDER =============
+    async renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        this.isMobile = true;
+
+        contentArea.innerHTML = `
+            <div style="padding: 0 0 8px 0;">
+                <h1 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px; color: var(--m-text);">📊 Interlogic</h1>
+                <p style="font-size: 0.78rem; color: var(--m-text-secondary);">Gestión de registros</p>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="date" id="m-filter-start" value="${this.filters.startDate}" style="flex:1; padding: 10px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 0.85rem; font-family: var(--font-family); background: white; min-height: 42px;">
+                <input type="date" id="m-filter-end" value="${this.filters.endDate}" style="flex:1; padding: 10px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 0.85rem; font-family: var(--font-family); background: white; min-height: 42px;">
+            </div>
+
+            <div class="m-search-bar">
+                <span class="search-icon-m">🔍</span>
+                <input type="text" id="m-global-search" placeholder="Buscar por guía, cliente, zona..." value="${this.filters.search || ''}">
+            </div>
+
+            <div class="m-stats-row" id="m-stats">
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Venta</div><div class="m-stat-chip-value" id="ms-venta">$0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Bultos</div><div class="m-stat-chip-value" id="ms-bultos">0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Costo Envío</div><div class="m-stat-chip-value" id="ms-envio">$0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">% Costo</div><div class="m-stat-chip-value" id="ms-pct">0%</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Registros</div><div class="m-stat-chip-value" id="ms-count">0</div></div>
+            </div>
+
+            <div class="m-actions-bar">
+                <button class="btn" id="m-btn-filter" style="border-radius:20px;">🔽 Filtrar</button>
+                <button class="btn btn-primary" id="m-btn-add" style="border-radius:20px;">➕ Nuevo</button>
+                <button class="btn" id="m-btn-export" style="border-radius:20px;">📥 Excel</button>
+            </div>
+
+            <div class="m-data-list" id="m-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando registros...</div>
+            </div>
+        `;
+
+        await this.loadRecords();
+
+        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
+        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('m-global-search').addEventListener('input', e => { this.filters.search = e.target.value; this.applyFilters(); });
+        document.getElementById('m-btn-add').addEventListener('click', () => this.showMobileForm());
+        document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
+        document.getElementById('m-btn-filter').addEventListener('click', () => this.showMobileFilters());
+    },
+
+    showMobileFilters() {
+        const fields = [
+            { key: 'empresa', label: 'Empresa', options: this.getDistinctValues('empresa') },
+            { key: 'condicionPago', label: 'Condición', options: this.getDistinctValues('condicionPago') },
+            { key: 'zona', label: 'Zona', options: this.getDistinctValues('zona') },
+            { key: 'vendedor', label: 'Vendedor', options: this.getDistinctValues('vendedor') },
+            { key: 'cobrador', label: 'Cobrador', options: this.getDistinctValues('cobrador') },
+        ];
+
+        let body = '';
+        fields.forEach(f => {
+            if (!f.options.length) return;
+            body += '<div style="margin-bottom:16px;"><div style="font-weight:700;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#8e8e93;margin-bottom:8px;">' + f.label + '</div><div class="m-filter-list">';
+            f.options.forEach(v => {
+                const isActive = this.filters[f.key]?.includes(String(v));
+                body += '<label class="m-filter-item"><input type="checkbox" value="' + v + '" ' + (isActive ? 'checked' : '') + ' onchange="Interlogic.toggleMobileFilter(\'' + f.key + '\',\'' + String(v).replace(/'/g,"\\'") + '\', this.checked)"><span>' + (v || '(vacío)') + '</span></label>';
+            });
+            body += '</div></div>';
+        });
+
+        const sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Filtros</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body">' + body + '</div><div class="m-sheet-footer"><button class="btn" onclick="Interlogic.clearAllFilters();document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Limpiar filtros</button><button class="btn btn-primary" onclick="document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Aplicar</button></div></div>';
+        document.body.appendChild(sheet);
+    },
+
+    toggleMobileFilter(field, value, checked) {
+        if (!this.filters[field]) this.filters[field] = [];
+        if (checked) {
+            if (!this.filters[field].includes(value)) this.filters[field].push(value);
+        } else {
+            this.filters[field] = this.filters[field].filter(function(v) { return v !== value; });
+        }
+        this.applyFilters();
+    },
+
+    getDistinctValues(field) {
+        var valuesSet = {};
+        this.records.forEach(function(r) {
+            var v = r[field];
+            if (v !== undefined && v !== null && v !== '') valuesSet[String(v)] = true;
+        });
+        return Object.keys(valuesSet).sort();
+    },
+
+    renderMobileCards() {
+        var list = document.getElementById('m-data-list');
+        if (!list) return;
+
+        var self = this;
+        var canEdit = window.permissions?.canEdit;
+        var canDelete = window.permissions?.canDelete;
+
+        if (this.filteredRecords.length === 0) {
+            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No se encontraron resultados.</div></div>';
+        } else {
+            list.innerHTML = this.filteredRecords.map(function(r) {
+                var empresaBadge = r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : '');
+                var html = '<div class="m-data-card" onclick="Interlogic.showMobileDetail(\'' + r.id + '\')">';
+                html += '<div class="m-card-header"><span class="m-card-title">#' + (r.guia || r.id.substring(0,6).toUpperCase()) + '</span>';
+                if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + r.empresa + '</span>';
+                html += '</div><div class="m-card-rows">';
+                html += '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
+                html += '</div>';
+                if (canEdit || canDelete) {
+                    html += '<div class="m-card-actions" onclick="event.stopPropagation()">';
+                    if (canEdit) html += '<button class="m-card-action" onclick="Interlogic.showMobileForm(\'' + r.id + '\')" title="Editar">✏️</button><button class="m-card-action" onclick="Interlogic.duplicateRecord(\'' + r.id + '\')" title="Duplicar">📋</button>';
+                    if (canDelete) html += '<button class="m-card-action delete" onclick="Interlogic.deleteRecord(\'' + r.id + '\')" title="Eliminar">🗑️</button>';
+                    html += '</div>';
+                }
+                html += '</div>';
+                return html;
+            }).join('');
+        }
+
+        var totalVenta = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
+        var totalBultos = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.bultos) || 0); }, 0);
+        var totalEnvio = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.costoEnvio) || 0); }, 0);
+        var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
+
+        var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+        setText('ms-venta', '$' + formatNumber(totalVenta, 0));
+        setText('ms-bultos', formatNumber(totalBultos));
+        setText('ms-envio', '$' + formatNumber(totalEnvio, 0));
+        setText('ms-pct', formatNumber(totalPct, 2) + '%');
+        setText('ms-count', this.filteredRecords.length);
+    },
+
+    showMobileDetail(id) {
+        var r = this.filteredRecords.find(function(x) { return x.id === id; }) || this.records.find(function(x) { return x.id === id; });
+        if (!r) return;
+
+        var sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + (r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + (r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + (r.doc || '') + (r.docNum ? ' #' + r.docNum : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">$' + formatNumber(r.venta || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(r.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(r.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (r.condicionPago || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobrador</span><div style="font-weight:500;">' + sanitizeHTML(r.cobrador || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Costo Envío</span><div style="font-weight:500;">$' + formatNumber(r.costoEnvio || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">% Costo</span><div style="font-weight:500;">' + formatNumber(r.costoPorcentaje || 0, 2) + '%</div></div></div>' + (r.observations ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Observaciones</span><div style="font-weight:500;background:#f2f2f7;padding:10px;border-radius:10px;margin-top:4px;">' + sanitizeHTML(r.observations) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.showMobileForm(\'' + r.id + '\')">✏️ Editar</button><button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.deleteRecord(\'' + r.id + '\')">🗑️ Eliminar</button></div></div>';
+        document.body.appendChild(sheet);
+    },
+
+    showMobileForm(id) {
+        var record = id ? (this.filteredRecords.find(function(x) { return x.id === id; }) || this.records.find(function(x) { return x.id === id; })) : null;
+        var isEdit = !!record;
+        var self = this;
+
+        var sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + (record?.guia || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="Interlogic"' + (record?.empresa === 'Interlogic' ? ' selected' : '') + '>Interlogic</option><option value="Cargo Express"' + (record?.empresa === 'Cargo Express' ? ' selected' : '') + '>Cargo Express</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? record.fecha.split('T')[0] : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + (record?.docNum || '') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + (record?.cliente || '') + '"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cobrador</label><input type="text" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
+        document.body.appendChild(sheet);
+
+        document.getElementById('mf-submit').addEventListener('click', async function() {
+            var btn = document.getElementById('mf-submit');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            var data = {
+                guia: document.getElementById('mf-guia').value,
+                empresa: document.getElementById('mf-empresa').value,
+                fecha: document.getElementById('mf-fecha').value,
+                doc: document.getElementById('mf-doc').value,
+                docNum: document.getElementById('mf-docNum').value,
+                cliente: document.getElementById('mf-cliente').value,
+                direccion: document.getElementById('mf-direccion').value,
+                zona: document.getElementById('mf-zona').value,
+                vendedor: document.getElementById('mf-vendedor').value,
+                condicionPago: document.getElementById('mf-condicionPago').value,
+                cobrador: document.getElementById('mf-cobrador').value,
+                venta: parseFloat(document.getElementById('mf-venta').value) || 0,
+                bultos: parseInt(document.getElementById('mf-bultos').value) || 0,
+                costoEnvio: parseFloat(document.getElementById('mf-costoEnvio').value) || 0,
+                costoPorcentaje: parseFloat(document.getElementById('mf-costoPorcentaje').value) || 0,
+                observations: document.getElementById('mf-observations').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                if (isEdit) {
+                    await firebase.firestore().collection('interlogic').doc(id).update(data);
+                    showToast('Registro actualizado', 'success');
+                } else {
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await firebase.firestore().collection('interlogic').add(data);
+                    showToast('Registro creado', 'success');
+                }
+                document.getElementById('m-form-sheet').remove();
+                document.getElementById('m-form-backdrop').remove();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = isEdit ? 'Guardar Cambios' : 'Crear Registro';
+            }
+        });
+    },
+
+    mobileExportExcel() {
+        if (typeof XLSX === 'undefined') {
+            showToast('Librería Excel no disponible', 'error');
+            return;
+        }
+        if (this.filteredRecords.length === 0) {
+            showToast('No hay datos', 'warning');
+            return;
+        }
+        var data = this.filteredRecords.map(function(r) { return {'Guía': r.guia||'','Empresa': r.empresa||'','Fecha': r.fecha||'','Doc': r.doc||'','N° Doc': r.docNum||'','Cliente': r.cliente||'','Dirección': r.direccion||'','Zona': r.zona||'','Vendedor': r.vendedor||'','Cond. Pago': r.condicionPago||'','Cobrador': r.cobrador||'','Venta': r.venta||0,'Bultos': r.bultos||0,'Costo Envío': r.costoEnvio||0,'% Costo': r.costoPorcentaje||0,'Observaciones': r.observations||''}; });
+        var ws = XLSX.utils.json_to_sheet(data);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+        XLSX.writeFile(wb, 'Interlogic_' + new Date().toISOString().split('T')[0] + '.xlsx');
+        showToast('Excel exportado');
+    },
+
     // Export filtered data to Excel
     exportToExcel() {
         if (typeof XLSX === 'undefined') {
@@ -582,14 +809,15 @@ const Interlogic = {
         });
 
         // Apply Sorting
-        this.applySorting();
+        this.sortRecords();
 
-        const hasActiveFilters = Object.values(this.filters).some(f => Array.isArray(f) ? f.length > 0 : f);
-        const clearBtn = document.getElementById('btn-clear-all-filters');
-        if (clearBtn) clearBtn.style.display = hasActiveFilters ? 'block' : 'none';
-
-        this.renderTable();
-        this.updateStats();
+        // Update table
+        if (this.isMobile) {
+            this.renderMobileCards();
+        } else {
+            this.renderTable();
+            this.updateStats();
+        }
     },
 
     applySorting() {
