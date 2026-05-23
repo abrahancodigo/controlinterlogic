@@ -12,6 +12,13 @@ const Clientes = {
 
     // Render the module
     async render() {
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
+        return this.renderDesktop();
+    },
+
+    async renderDesktop() {
         const content = document.getElementById('content-area');
         if (!content) return;
 
@@ -192,8 +199,12 @@ const Clientes = {
         }
 
         this.filteredRecords = filtered;
-        this.renderTable();
-        this.updateStats();
+        if (this.isMobile) {
+            this.renderMobileCards();
+        } else {
+            this.renderTable();
+            this.updateStats();
+        }
     },
 
     setSort(field) {
@@ -704,6 +715,114 @@ const Clientes = {
     // Get all clients for autocomplete (cached from real-time listener)
     getAll() {
         return this.records || [];
+    },
+
+    // ============= MOBILE RENDER =============
+    async renderMobile() {
+        const content = document.getElementById('content-area');
+        this.isMobile = true;
+
+        content.innerHTML = `
+            <div style="padding:0 0 8px 0;">
+                <h1 style="font-size:1.35rem;font-weight:800;margin-bottom:2px;">👥 Clientes</h1>
+                <p style="font-size:0.78rem;color:#8e8e93;">Directorio de clientes</p>
+            </div>
+            <div class="m-search-bar">
+                <span class="search-icon-m">🔍</span>
+                <input type="text" id="mc-search" placeholder="Buscar por nombre, dirección, teléfono..." value="${this.searchQuery || ''}">
+            </div>
+            <div class="m-stats-row" id="mc-stats">
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Total</div><div class="m-stat-chip-value" id="mc-total">0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Con Teléfono</div><div class="m-stat-chip-value" id="mc-phone">0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Con Dirección</div><div class="m-stat-chip-value" id="mc-addr">0</div></div>
+            </div>
+            <div class="m-actions-bar">
+                <button class="btn btn-primary" id="mc-btn-add" style="border-radius:20px;">➕ Nuevo</button>
+                <button class="btn" id="mc-btn-export" style="border-radius:20px;">📥 Excel</button>
+            </div>
+            <div class="m-data-list" id="mc-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando...</div>
+            </div>
+        `;
+
+        await this.loadRecords();
+
+        document.getElementById('mc-search').addEventListener('input', e => {
+            this.searchQuery = e.target.value;
+            this.applyFilters();
+        });
+        document.getElementById('mc-btn-add').addEventListener('click', () => this.showMobileForm());
+        document.getElementById('mc-btn-export').addEventListener('click', () => this.mobileExportExcel());
+    },
+
+    renderMobileCards() {
+        var list = document.getElementById('mc-data-list');
+        if (!list) return;
+        var self = this;
+
+        if (this.filteredRecords.length === 0) {
+            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin clientes</div><div class="m-empty-text">No hay registros.</div></div>';
+        } else {
+            list.innerHTML = this.filteredRecords.map(function(c) {
+                return '<div class="m-data-card" onclick="Clientes.showMobileDetail(\'' + c.id + '\')">' +
+                    '<div class="m-card-header"><span class="m-card-title">' + sanitizeHTML(c.nombre || 'Sin nombre') + '</span>' +
+                    '<span class="m-card-badge primary">' + sanitizeHTML(c.empresa || 'Cliente') + '</span></div>' +
+                    '<div class="m-card-rows">' +
+                    '<div class="m-card-row"><span class="m-card-label">Teléfono</span><span class="m-card-value">' + (c.telefono ? '<a href="tel:' + c.telefono + '" onclick="event.stopPropagation()" style="color:#7c3aed;">' + c.telefono + '</a>' : '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Dirección</span><span class="m-card-value">' + sanitizeHTML(c.direccion || '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Zona</span><span class="m-card-value">' + sanitizeHTML(c.zona || '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Vendedor</span><span class="m-card-value">' + sanitizeHTML(c.vendedor || '-') + '</span></div>' +
+                    '</div>' +
+                    (window.permissions?.canEdit ? '<div class="m-card-actions" onclick="event.stopPropagation()"><button class="m-card-action" onclick="Clientes.showMobileForm(\'' + c.id + '\')">✏️</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="Clientes.deleteRecord(\'' + c.id + '\')">🗑️</button>' : '') + '</div>' : '') +
+                    '</div>';
+            }).join('');
+        }
+
+        var total = this.filteredRecords.length;
+        var conPhone = this.filteredRecords.filter(function(c) { return c.telefono; }).length;
+        var conAddr = this.filteredRecords.filter(function(c) { return c.direccion; }).length;
+        var s = function(id,v) { var e=document.getElementById(id); if(e) e.textContent=v; };
+        s('mc-total', total); s('mc-phone', conPhone); s('mc-addr', conAddr);
+    },
+
+    showMobileDetail(id) {
+        var c = this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;});
+        if (!c) return;
+        var sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + sanitizeHTML(c.nombre || 'Cliente') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(c.empresa || '-') + '</div></div>' + (c.telefono ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Teléfono</span><div style="font-weight:500;"><a href="tel:' + c.telefono + '" style="color:#7c3aed;text-decoration:none;">' + c.telefono + '</a></div></div>' : '') + '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(c.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(c.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(c.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (c.condicionPago || '-') + '</div></div></div></div></div>' + (window.permissions?.canEdit ? '<div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Clientes.showMobileForm(\'' + c.id + '\')">✏️ Editar</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Clientes.deleteRecord(\'' + c.id + '\')">🗑️ Eliminar</button>' : '') + '</div>' : '') + '</div>';
+        document.body.appendChild(sheet);
+    },
+
+    showMobileForm(id) {
+        var c = id ? (this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;})) : null;
+        var isEdit = !!c;
+        var sheet = document.createElement('div');
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + (c?.nombre || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + (c?.telefono || '') + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + (c?.empresa || '') + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + (c?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + (c?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + (c?.vendedor || '') + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        document.body.appendChild(sheet);
+
+        document.getElementById('mcf-submit').addEventListener('click', async function() {
+            var btn = document.getElementById('mcf-submit'); btn.disabled = true; btn.textContent = 'Guardando...';
+            try {
+                var data = { nombre: document.getElementById('mcf-nombre').value, telefono: document.getElementById('mcf-telefono').value, empresa: document.getElementById('mcf-empresa').value, direccion: document.getElementById('mcf-direccion').value, zona: document.getElementById('mcf-zona').value, vendedor: document.getElementById('mcf-vendedor').value, condicionPago: document.getElementById('mcf-condicion').value };
+                var db = firebase.firestore();
+                if (isEdit) { await db.collection('clientes').doc(id).update(data); }
+                else { await db.collection('clientes').add(data); }
+                showToast(isEdit ? 'Actualizado' : 'Creado', 'success');
+                document.getElementById('mcf-sheet').remove();
+                document.getElementById('mcf-backdrop').remove();
+            } catch(err) { showToast('Error: '+err.message,'error'); btn.disabled=false; btn.textContent=isEdit?'Guardar':'Crear'; }
+        });
+    },
+
+    mobileExportExcel() {
+        if (typeof XLSX === 'undefined') { showToast('Excel no disponible','error'); return; }
+        if (!this.filteredRecords.length) { showToast('No hay datos','warning'); return; }
+        var data = this.filteredRecords.map(function(c){return {Nombre:c.nombre||'',Teléfono:c.telefono||'',Empresa:c.empresa||'',Dirección:c.direccion||'',Zona:c.zona||'',Vendedor:c.vendedor||'',CondPago:c.condicionPago||''};});
+        var ws = XLSX.utils.json_to_sheet(data);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+        XLSX.writeFile(wb, 'Clientes_'+new Date().toISOString().split('T')[0]+'.xlsx');
+        showToast('Excel exportado');
     }
 };
 
