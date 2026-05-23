@@ -5,32 +5,21 @@
 const App = {
     currentModule: null,
 
-    // Initialize the application
     init() {
         console.log('📱 Initializing App module...');
-
-        // Setup navigation
         this.setupNavigation();
-
-        // Setup sidebar toggle for mobile
         this.setupSidebarToggle();
-
-        // Load initial module
+        this.setupMobileNav();
         this.loadModule('interlogic');
     },
 
-    // Initialize Firebase
     initFirebase() {
-        // Check if Firebase is available
         if (typeof firebase === 'undefined') {
             console.error('Firebase SDK not loaded!');
             setTimeout(() => this.initFirebase(), 500);
             return;
         }
-
         console.log('Initializing Firebase...');
-
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDRgqpevJMpXqyez3uWpgyFZmy7SwrgNEk",
             authDomain: "dalse-e7b96.firebaseapp.com",
@@ -39,21 +28,15 @@ const App = {
             messagingSenderId: "817518560330",
             appId: "1:817518560330:web:3801a8c2aae41ff2abd2b3"
         };
-
         try {
-            // Check if Firebase is already initialized
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
                 console.log('✅ Firebase initialized successfully');
             } else {
                 console.log('✅ Firebase already initialized');
             }
-
-            // Enable Firestore offline persistence
             firebase.firestore().enablePersistence()
-                .then(() => {
-                    console.log('✅ Firestore persistence enabled');
-                })
+                .then(() => console.log('✅ Firestore persistence enabled'))
                 .catch((err) => {
                     if (err.code === 'failed-precondition') {
                         console.warn('Persistence failed: Multiple tabs open');
@@ -69,23 +52,16 @@ const App = {
         }
     },
 
-    // Setup navigation
     setupNavigation() {
         const navItems = document.querySelectorAll('.nav-item');
-
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
-
                 const module = item.dataset.module;
                 if (module) {
                     this.loadModule(module);
-
-                    // Update active state
                     navItems.forEach(nav => nav.classList.remove('active'));
                     item.classList.add('active');
-
-                    // Close sidebar on mobile
                     if (window.innerWidth <= 768) {
                         document.getElementById('sidebar').classList.remove('open');
                     }
@@ -94,7 +70,6 @@ const App = {
         });
     },
 
-    // Setup sidebar toggle
     setupSidebarToggle() {
         const toggleBtn = document.getElementById('sidebar-toggle');
         const mobileToggleBtn = document.getElementById('mobile-toggle');
@@ -105,7 +80,6 @@ const App = {
 
         const toggleSidebar = () => {
             const isMobile = window.innerWidth <= 768;
-
             if (isMobile) {
                 const isOpen = sidebar.classList.toggle('open');
                 if (overlay) {
@@ -118,40 +92,22 @@ const App = {
                     if (isCollapsed) mainContent.classList.add('expanded');
                     else mainContent.classList.remove('expanded');
                 }
-
-                // Show/hide floating toggle based on collapse state
                 if (floatingToggleBtn) {
                     if (isCollapsed) floatingToggleBtn.classList.add('show');
                     else floatingToggleBtn.classList.remove('show');
                 }
             }
         };
-
         const closeSidebar = () => {
             if (sidebar) sidebar.classList.remove('open');
             if (overlay) overlay.classList.remove('show');
         };
-
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', toggleSidebar);
-        }
-
-        if (mobileToggleBtn) {
-            mobileToggleBtn.addEventListener('click', toggleSidebar);
-        }
-
-        if (floatingToggleBtn) {
-            floatingToggleBtn.addEventListener('click', toggleSidebar);
-        }
-
-        if (overlay) {
-            overlay.addEventListener('click', closeSidebar);
-        }
-
-        // Close sidebar when clicking outside on mobile
+        if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
+        if (mobileToggleBtn) mobileToggleBtn.addEventListener('click', toggleSidebar);
+        if (floatingToggleBtn) floatingToggleBtn.addEventListener('click', toggleSidebar);
+        if (overlay) overlay.addEventListener('click', closeSidebar);
         document.addEventListener('click', (e) => {
             if (window.innerWidth <= 768) {
-                // If sidebar is open and we click outside of it AND outside the toggle buttons
                 if (sidebar && sidebar.classList.contains('open') &&
                     !sidebar.contains(e.target) &&
                     !toggleBtn?.contains(e.target) &&
@@ -162,34 +118,130 @@ const App = {
         });
     },
 
-    // Load a module
+    // ---------- Mobile Bottom Navigation ----------
+    setupMobileNav() {
+        const bnItems = document.querySelectorAll('.bn-item[data-module]');
+        const moreBtn = document.getElementById('bn-more-btn');
+        const moreMenu = document.getElementById('more-menu');
+        const moreOverlay = document.getElementById('more-overlay');
+        const moreClose = document.getElementById('more-menu-close');
+        const moreList = document.getElementById('more-menu-list');
+
+        // Bottom nav clicks
+        bnItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const module = item.dataset.module;
+                this.loadModule(module);
+                this.updateBottomNavActive(module);
+                if (moreMenu) moreMenu.classList.remove('show');
+                if (moreOverlay) moreOverlay.classList.remove('show');
+            });
+        });
+
+        // More menu toggle
+        if (moreBtn) {
+            moreBtn.addEventListener('click', () => {
+                this.populateMoreMenu();
+                moreMenu?.classList.toggle('show');
+                moreOverlay?.classList.toggle('show');
+            });
+        }
+
+        // Close more menu
+        if (moreClose) {
+            moreClose.addEventListener('click', () => {
+                moreMenu?.classList.remove('show');
+                moreOverlay?.classList.remove('show');
+            });
+        }
+        if (moreOverlay) {
+            moreOverlay.addEventListener('click', () => {
+                moreMenu?.classList.remove('show');
+                moreOverlay?.classList.remove('show');
+            });
+        }
+
+        // Handle more menu items
+        if (moreList) {
+            moreList.addEventListener('click', (e) => {
+                const item = e.target.closest('.more-item');
+                if (item) {
+                    const module = item.dataset.module;
+                    this.loadModule(module);
+                    this.updateBottomNavActive(module);
+                    moreMenu?.classList.remove('show');
+                    moreOverlay?.classList.remove('show');
+                }
+            });
+        }
+    },
+
+    populateMoreMenu() {
+        const list = document.getElementById('more-menu-list');
+        if (!list || list.children.length > 0) return;
+
+        const items = [
+            { icon: '🚨', label: 'Problemas', module: 'problemas' },
+            { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
+            { icon: '📅', label: 'Asistencia', module: 'asistencia' },
+            { icon: '💵', label: 'Liquidación Contado', module: 'liquidacion-contado' },
+            { icon: '💳', label: 'Liquidación Crédito', module: 'liquidacion-credito' },
+            { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
+            { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
+        ];
+
+        items.forEach(item => {
+            const div = document.createElement('button');
+            div.className = 'more-item';
+            div.dataset.module = item.module;
+            div.innerHTML = `<span class="more-item-icon">${item.icon}</span><span class="more-item-label">${item.label}</span>`;
+            list.appendChild(div);
+        });
+    },
+
+    updateBottomNavActive(moduleName) {
+        document.querySelectorAll('.bn-item').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        // Map module to bottom nav item
+        const mainModules = ['interlogic', 'despacho', 'deliveries', 'clientes'];
+        const bnItem = document.querySelector(`.bn-item[data-module="${moduleName}"]`);
+        if (bnItem) {
+            bnItem.classList.add('active');
+        } else if (moduleName === 'liquidacion-contado' || moduleName === 'liquidacion-credito') {
+            const despachoBtn = document.querySelector('.bn-item[data-module="despacho"]');
+            if (despachoBtn) despachoBtn.classList.add('active');
+        } else {
+            // Highlight "Más" for other modules
+            const moreBtn = document.getElementById('bn-more-btn');
+            if (moreBtn) moreBtn.classList.add('active');
+        }
+        // Also update sidebar nav
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        const sidebarItem = document.querySelector(`.nav-item[data-module="${moduleName}"]`);
+        if (sidebarItem) sidebarItem.classList.add('active');
+    },
+
     async loadModule(moduleName) {
         if (this.currentModule === moduleName) return;
 
-        // Cleanup previous module
         if (this.currentModule === 'interlogic' && window.Interlogic && window.Interlogic.unsubscribe) {
-            window.Interlogic.unsubscribe();
-            window.Interlogic.unsubscribe = null;
+            window.Interlogic.unsubscribe(); window.Interlogic.unsubscribe = null;
         }
         if (this.currentModule === 'despacho' && window.Despacho && window.Despacho.unsubscribe) {
-            window.Despacho.unsubscribe();
-            window.Despacho.unsubscribe = null;
+            window.Despacho.unsubscribe(); window.Despacho.unsubscribe = null;
         }
         if ((this.currentModule === 'liquidacion-contado' || this.currentModule === 'liquidacion-credito') && window.Liquidacion && window.Liquidacion.unsubscribe) {
-            window.Liquidacion.unsubscribe();
-            window.Liquidacion.unsubscribe = null;
+            window.Liquidacion.unsubscribe(); window.Liquidacion.unsubscribe = null;
         }
         if (this.currentModule === 'kpi' && window.KpiEvaluation && window.KpiEvaluation.unsubscribe) {
-            window.KpiEvaluation.unsubscribe();
-            window.KpiEvaluation.unsubscribe = null;
+            window.KpiEvaluation.unsubscribe(); window.KpiEvaluation.unsubscribe = null;
         }
         if (this.currentModule === 'clientes' && window.Clientes && window.Clientes.unsubscribe) {
-            window.Clientes.unsubscribe();
-            window.Clientes.unsubscribe = null;
+            window.Clientes.unsubscribe(); window.Clientes.unsubscribe = null;
         }
         if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {
-            window.Problemas.unsubscribe();
-            window.Problemas.unsubscribe = null;
+            window.Problemas.unsubscribe(); window.Problemas.unsubscribe = null;
         }
 
         this.currentModule = moduleName;
@@ -197,87 +249,46 @@ const App = {
         try {
             switch (moduleName) {
                 case 'deliveries':
-                    if (window.Deliveries && window.Deliveries.render) {
-                        await window.Deliveries.render();
-                    }
+                    if (window.Deliveries && window.Deliveries.render) await window.Deliveries.render();
                     break;
-
                 case 'interlogic':
-                    if (window.Interlogic && window.Interlogic.render) {
-                        await window.Interlogic.render();
-                    }
+                    if (window.Interlogic && window.Interlogic.render) await window.Interlogic.render();
                     break;
-
                 case 'despacho':
-                    if (window.Despacho && window.Despacho.render) {
-                        await window.Despacho.render();
-                    }
+                    if (window.Despacho && window.Despacho.render) await window.Despacho.render();
                     break;
-
                 case 'settings':
-                    // Check if user is admin
-                    const settingsUserIsAdmin = await isAdmin();
-                    if (!settingsUserIsAdmin) {
+                    if (!(await isAdmin())) {
                         showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('deliveries');
-                        return;
+                        this.loadModule('interlogic'); return;
                     }
-
-                    if (window.Settings && window.Settings.init) {
-                        await window.Settings.init();
-                    }
+                    if (window.Settings && window.Settings.init) await window.Settings.init();
                     break;
-
                 case 'users':
-                    // Check if user is admin
-                    const userIsAdmin = await isAdmin();
-                    if (!userIsAdmin) {
+                    if (!(await isAdmin())) {
                         showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('deliveries');
-                        return;
+                        this.loadModule('interlogic'); return;
                     }
-
-                    if (window.Users && window.Users.render) {
-                        await window.Users.render();
-                    }
+                    if (window.Users && window.Users.render) await window.Users.render();
                     break;
-
                 case 'liquidacion-contado':
-                    if (window.Liquidacion && window.Liquidacion.renderContado) {
-                        await window.Liquidacion.renderContado();
-                    }
+                    if (window.Liquidacion && window.Liquidacion.renderContado) await window.Liquidacion.renderContado();
                     break;
-
                 case 'liquidacion-credito':
-                    if (window.Liquidacion && window.Liquidacion.renderCredito) {
-                        await window.Liquidacion.renderCredito();
-                    }
+                    if (window.Liquidacion && window.Liquidacion.renderCredito) await window.Liquidacion.renderCredito();
                     break;
-
                 case 'kpi':
-                    if (window.KpiEvaluation && window.KpiEvaluation.render) {
-                        await window.KpiEvaluation.render();
-                    }
+                    if (window.KpiEvaluation && window.KpiEvaluation.render) await window.KpiEvaluation.render();
                     break;
-
                 case 'asistencia':
-                    if (window.Asistencia && window.Asistencia.render) {
-                        await window.Asistencia.render();
-                    }
+                    if (window.Asistencia && window.Asistencia.render) await window.Asistencia.render();
                     break;
-
                 case 'clientes':
-                    if (window.Clientes && window.Clientes.render) {
-                        await window.Clientes.render();
-                    }
+                    if (window.Clientes && window.Clientes.render) await window.Clientes.render();
                     break;
-
                 case 'problemas':
-                    if (window.Problemas && window.Problemas.render) {
-                        await window.Problemas.render();
-                    }
+                    if (window.Problemas && window.Problemas.render) await window.Problemas.render();
                     break;
-
                 default:
                     console.warn(`Unknown module: ${moduleName}`);
             }
@@ -287,7 +298,6 @@ const App = {
         }
     },
 
-    // Load company branding from settings
     async loadBranding() {
         try {
             if (window.Settings && window.Settings.loadSettings) {
@@ -299,7 +309,4 @@ const App = {
     }
 };
 
-// Make App available globally
 window.App = App;
-
-// Note: App.init() will be called by auth.js after successful login

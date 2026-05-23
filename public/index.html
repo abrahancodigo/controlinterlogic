@@ -148,8 +148,39 @@
         </main>
     </div>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
+    <!-- Bottom Navigation (mobile) -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <button class="bn-item active" data-module="interlogic">
+            <span class="bn-icon">📊</span>
+            <span class="bn-label">Interlogic</span>
+        </button>
+        <button class="bn-item" data-module="despacho">
+            <span class="bn-icon">🚚</span>
+            <span class="bn-label">Despacho</span>
+        </button>
+        <button class="bn-item" data-module="deliveries">
+            <span class="bn-icon">📋</span>
+            <span class="bn-label">Entregas</span>
+        </button>
+        <button class="bn-item" data-module="clientes">
+            <span class="bn-icon">👥</span>
+            <span class="bn-label">Clientes</span>
+        </button>
+        <button class="bn-item" id="bn-more-btn">
+            <span class="bn-icon">⋯</span>
+            <span class="bn-label">Más</span>
+        </button>
+    </nav>
+
+    <!-- More Menu Overlay (mobile) -->
+    <div class="more-overlay" id="more-overlay"></div>
+    <div class="more-menu" id="more-menu">
+        <div class="more-menu-header">
+            <span class="more-menu-title">Más opciones</span>
+            <button class="more-menu-close" id="more-menu-close">✕</button>
+        </div>
+        <div class="more-menu-list" id="more-menu-list"></div>
+    </div>
 
     <!-- Hidden Print Area -->
     <div id="print-area" class="print-only"></div>

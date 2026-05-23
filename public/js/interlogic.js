@@ -829,20 +829,20 @@ const Interlogic = {
         tableBody.innerHTML = this.filteredRecords.map(record => `
             <tr>
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
-                <td><strong>${record.guia || ''}</strong></td>
-                <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
-                <td>${record.fecha ? formatDateShort(record.fecha) : ''}</td>
-                <td>${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
-                <td>${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.7rem; color: #000;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
-                <td>${sanitizeHTML(record.zona || '')}</td>
-                <td>${sanitizeHTML(record.vendedor || '')}</td>
-                <td>${record.condicionPago || ''}</td>
-                <td>$${formatNumber(record.venta || 0, 2)}</td>
-                <td>${formatNumber(record.bultos || 0)}</td>
-                <td>${sanitizeHTML(record.cobrador || '')}</td>
-                <td>$${formatNumber(record.costoEnvio || 0, 2)}</td>
-                <td>${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
-                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
+                <td data-label="Guía"><strong>${record.guia || ''}</strong></td>
+                <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
+                <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
+                <td data-label="Doc">${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
+                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.7rem; color: #000;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
+                <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
+                <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
+                <td data-label="Cond. Pago">${record.condicionPago || ''}</td>
+                <td data-label="Venta">$${formatNumber(record.venta || 0, 2)}</td>
+                <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
+                <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
+                <td data-label="Costo Envío">$${formatNumber(record.costoEnvio || 0, 2)}</td>
+                <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
+                <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
                 <td class="actions-cell">
                     <button class="btn-icon btn-secondary btn-edit-record ${!canEdit ? 'btn-disabled' : ''}" 
                             data-id="${record.id}"

@@ -385,12 +385,12 @@ const Deliveries = {
                     <tbody>
                         ${this.deliveries.map(delivery => `
                             <tr>
-                                <td><strong>${delivery.folio || delivery.id.substring(0, 8).toUpperCase()}</strong></td>
-                                <td>${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</td>
-                                <td>${sanitizeHTML(delivery.cliente)}</td>
-                                <td>${sanitizeHTML(delivery.tienda)}</td>
-                                <td>${sanitizeHTML(delivery.tipoMueble)}</td>
-                                <td>
+                                <td data-label="Folio"><strong>${delivery.folio || delivery.id.substring(0, 8).toUpperCase()}</strong></td>
+                                <td data-label="Fecha">${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</td>
+                                <td data-label="Cliente">${sanitizeHTML(delivery.cliente)}</td>
+                                <td data-label="Tienda">${sanitizeHTML(delivery.tienda)}</td>
+                                <td data-label="Mueble">${sanitizeHTML(delivery.tipoMueble)}</td>
+                                <td class="actions-cell">
                                     <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                                         <button 
                                             class="btn btn-sm btn-secondary" 
