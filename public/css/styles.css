@@ -101,6 +101,11 @@ html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+}
+
+input, button, select, textarea {
+    touch-action: manipulation;
 }
 
 body {
@@ -165,6 +170,9 @@ body {
     align-items: center;
     justify-content: center;
     padding: var(--spacing-md);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 5000;
 }
 
 .auth-container {

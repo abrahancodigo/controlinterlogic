@@ -14,9 +14,9 @@
     function initApp() {
         console.log('📄 DOM ready');
 
-        // Wait for Firebase SDK to load
+        // Wait for Firebase SDK to load (increased timeout for mobile)
         let attempts = 0;
-        const maxAttempts = 20;
+        const maxAttempts = 50;
 
         const checkFirebase = setInterval(() => {
             attempts++;
@@ -32,7 +32,7 @@
             } else {
                 console.log('⏳ Waiting for Firebase SDK... attempt', attempts);
             }
-        }, 200);
+        }, 500);
     }
 
     function initializeFirebase() {
@@ -51,10 +51,13 @@
                 console.log('✅ Firebase initialized');
             }
 
-            // Enable Firestore persistence
+            // Enable Firestore persistence (catch all errors for mobile Safari)
             firebase.firestore().enablePersistence()
                 .then(() => console.log('✅ Firestore persistence enabled'))
-                .catch(err => console.warn('Persistence warning:', err.code));
+                .catch(err => {
+                    console.warn('Persistence warning:', err.code, err.message);
+                    // Non-fatal: app works without persistence
+                });
 
             // Now initialize the app
             if (window.App && typeof window.App.init === 'function') {

@@ -464,6 +464,20 @@ const Auth = {
     }
 };
 
+// Fallback: force show login screen after timeout (for slow mobile connections)
+function forceShowLoginScreen() {
+    const loadingScreen = document.getElementById('loading-screen');
+    const loginScreen = document.getElementById('login-screen');
+    if (loginScreen && loadingScreen && 
+        loadingScreen.style.display !== 'none' && 
+        loginScreen.style.display !== 'flex') {
+        console.log('⏰ Fallback: forcing login screen after timeout');
+        loadingScreen.style.display = 'none';
+        loginScreen.style.display = 'flex';
+    }
+}
+setTimeout(forceShowLoginScreen, 10000);
+
 // Initialize auth when Firebase is ready
 function initAuthWhenReady() {
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
@@ -471,7 +485,7 @@ function initAuthWhenReady() {
         Auth.init();
     } else {
         console.log('⏳ Waiting for Firebase before initializing Auth...');
-        setTimeout(initAuthWhenReady, 100);
+        setTimeout(initAuthWhenReady, 200);
     }
 }
 
