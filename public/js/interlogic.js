@@ -809,7 +809,7 @@ const Interlogic = {
         });
 
         // Apply Sorting
-        this.sortRecords();
+        this.applySorting();
 
         // Update table
         if (this.isMobile) {
