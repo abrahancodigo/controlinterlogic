@@ -477,6 +477,39 @@ table {
 /* ---- Hide old filter popups ---- */
 .filter-popup { display: none !important; }
 
+/* ---- Login Screen Mobile ---- */
+.auth-screen {
+    padding: 0 !important;
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #6366f1 100%) !important;
+}
+.auth-container {
+    margin: 16px;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+    animation: mFadeIn 0.4s ease-out;
+}
+.auth-header h1 {
+    font-size: 1.5rem !important;
+}
+.auth-header p {
+    font-size: 0.8rem !important;
+}
+.auth-form .form-group label {
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.auth-form .form-group input {
+    border-radius: 12px !important;
+    min-height: 48px !important;
+}
+#login-submit-btn {
+    min-height: 48px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
 /* ---- Page transition ---- */
 #content-area > div {
     animation: mFadeIn 0.25s ease-out;

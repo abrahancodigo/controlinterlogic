@@ -27,50 +27,55 @@ const Asistencia = {
         this.db = firebase.firestore();
         this.storage = firebase.storage();
         const contentArea = document.getElementById('content-area');
-        
+        const isMobile = window.innerWidth <= 768;
+        this.isMobile = isMobile;
+
         contentArea.innerHTML = `
-            <div class="module-header">
-                <h1>📅 Control de Asistencia Pro</h1>
-                <p>Gestiona horas, colores y adjuntos. Pasa el ratón sobre las fotos para borrarlas.</p>
+            <div class="module-header" style="${isMobile ? 'flex-direction:column;align-items:stretch;gap:0.5rem;' : ''}">
+                <div>
+                    <h1 style="${isMobile ? 'font-size:1.35rem;font-weight:800;' : ''}">📅 Control de Asistencia Pro</h1>
+                    <p style="${isMobile ? 'font-size:0.78rem;' : ''}">Gestiona horas, colores y adjuntos.</p>
+                </div>
+                ${isMobile ? '' : ''}
             </div>
 
-            <div class="filters-card">
-                <div class="filters-grid">
-                    <div class="filter-group">
-                        <label>Buscar Empleado</label>
-                        <input type="text" id="asis-search" placeholder="Filtrar por nombre..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 5px;">
+            <div class="filters-card" style="${isMobile ? 'padding:0.75rem;border-radius:var(--m-radius);background:white;margin-bottom:0.75rem;' : ''}">
+                <div class="filters-grid" style="${isMobile ? 'display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;' : ''}">
+                    <div class="filter-group" style="${isMobile ? 'grid-column:1/-1;' : ''}">
+                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Buscar Empleado</label>
+                        <input type="text" id="asis-search" placeholder="Filtrar por nombre..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 5px;${isMobile ? 'min-height:40px;font-size:0.9rem;' : ''}">
                     </div>
                     <div class="filter-group">
-                        <label>Ancho de Días (<span id="width-val">${this.dayWidth}</span>px)</label>
+                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Ancho (<span id="width-val">${this.dayWidth}</span>px)</label>
                         <input type="range" id="asis-width-slider" min="20" max="80" value="${this.dayWidth}" style="width: 100%;">
                     </div>
                     <div class="filter-group">
-                        <label>Periodo</label>
+                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Periodo</label>
                         <div style="display: flex; gap: 5px;">
-                            <select id="asis-month">${this.getMonthsOptions()}</select>
-                            <select id="asis-fortnight">
+                            <select id="asis-month" style="${isMobile ? 'min-height:40px;font-size:0.85rem;flex:1;' : ''}">${this.getMonthsOptions()}</select>
+                            <select id="asis-fortnight" style="${isMobile ? 'min-height:40px;font-size:0.85rem;flex:1;' : ''}">
                                 <option value="1" ${this.currentFortnight === 1 ? 'selected' : ''}>Q1</option>
                                 <option value="2" ${this.currentFortnight === 2 ? 'selected' : ''}>Q2</option>
                             </select>
                         </div>
                     </div>
                     <div class="filter-group">
-                        <label>Color</label>
+                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Color</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="color" id="asis-color-picker" value="${this.selectedColor}" style="width: 40px; height: 35px; border: none; padding: 0;">
-                            <button id="apply-color-btn" class="btn btn-primary" style="display:none; padding: 8px 12px;">Pintar</button>
-                            <button id="clear-color-btn" class="btn btn-outline" style="display:none; padding: 8px 12px;">Borrar</button>
+                            <button id="apply-color-btn" class="btn btn-primary" style="display:none; padding: 8px 12px; ${isMobile ? 'min-height:36px;font-size:0.75rem;' : ''}">Pintar</button>
+                            <button id="clear-color-btn" class="btn btn-outline" style="display:none; padding: 8px 12px; ${isMobile ? 'min-height:36px;font-size:0.75rem;' : ''}">Borrar</button>
                         </div>
                     </div>
                 </div>
-                <div class="filter-actions" style="margin-top: 15px; display: flex; gap: 10px;">
-                    <button id="add-employee-btn" class="btn btn-secondary">+ Nuevo Empleado</button>
-                    <button id="export-excel-btn" class="btn btn-outline">📊 Exportar Excel Premium</button>
+                <div class="filter-actions" style="margin-top: 15px; display: flex; gap: 10px; ${isMobile ? 'flex-wrap:wrap;' : ''}">
+                    <button id="add-employee-btn" class="btn btn-secondary" style="${isMobile ? 'flex:1;min-height:40px;font-size:0.8rem;border-radius:10px;' : ''}">+ Nuevo Empleado</button>
+                    <button id="export-excel-btn" class="btn btn-outline" style="${isMobile ? 'flex:1;min-height:40px;font-size:0.8rem;border-radius:10px;' : ''}">📊 Excel</button>
                 </div>
             </div>
 
-            <div class="card table-container-asis" style="overflow: auto; margin-top: 15px; padding: 0; max-height: 70vh; border: 1px solid #cbd5e1;">
-                <table class="excel-table" id="attendance-table">
+            <div class="card table-container-asis" style="overflow: auto; margin-top: 15px; padding: 0; max-height: ${isMobile ? '60vh' : '70vh'}; border: 1px solid #cbd5e1; ${isMobile ? 'border-radius:var(--m-radius);box-shadow:none;' : ''}">
+                <table class="excel-table" id="attendance-table" style="${isMobile ? 'font-size:0.7rem;' : ''}">
                     <thead><tr id="table-header-days"></tr></thead>
                     <tbody id="table-body-employees"></tbody>
                 </table>
@@ -98,6 +103,22 @@ const Asistencia = {
                 .cell-selected { background-color: rgba(59, 130, 246, 0.3) !important; box-shadow: inset 0 0 0 2px #2563eb; }
                 .row-total { font-weight: bold; background: #f8fafc; min-width: 50px; padding: 0 5px; cursor: cell; }
                 .day-weekend { background: #fee2e2 !important; }
+                ${this.isMobile ? `
+                .excel-table { font-size: 0.65rem !important; }
+                .excel-table th, .excel-table td { height: 30px !important; }
+                .day-col { width: var(--col-width, 28px) !important; min-width: var(--col-width, 28px) !important; max-width: var(--col-width, 28px) !important; }
+                .emp-name-col { min-width: 110px !important; padding: 0 8px !important; font-size: 0.7rem !important; }
+                .excel-table th.emp-name-col { height: 80px !important; }
+                .day-name-vert { font-size: 0.55rem !important; }
+                .day-number { font-size: 0.75rem !important; }
+                .row-total { min-width: 35px !important; font-size: 0.65rem !important; }
+                .asis-input, .obs-input { font-size: 0.7rem !important; }
+                .obs-input { min-width: 120px !important; font-size: 0.65rem !important; }
+                ` : ''}
+                @media (hover: none) {
+                    .excel-table { -webkit-overflow-scrolling: touch; }
+                    .asis-input:focus, .obs-input:focus { pointer-events: auto !important; }
+                }
                 .col-obs { width: auto; min-width: 200px; padding: 0 !important; cursor: cell; }
                 
                 /* IMÁGENES Y BORRADO */

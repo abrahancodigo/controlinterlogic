@@ -51,87 +51,88 @@ const Settings = {
     render() {
         const contentArea = document.getElementById('content-area');
         if (!contentArea) return;
+        const isMobile = window.innerWidth <= 768;
 
         contentArea.innerHTML = `
-            <div class="content-header">
-                <h1>⚙️ Configuraciones</h1>
-                <p>Personaliza tu sistema y gestiona usuarios</p>
+            <div class="content-header" style="${isMobile ? 'padding:0;' : ''}">
+                <h1 style="${isMobile ? 'font-size:1.35rem;font-weight:800;' : ''}">⚙️ Configuraciones</h1>
+                <p style="${isMobile ? 'font-size:0.78rem;color:var(--m-text-secondary);' : ''}">Personaliza tu sistema y gestiona usuarios</p>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>🏢 Información de la Empresa</h2>
+            <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
+                <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
+                    <h2 style="${isMobile ? 'font-size:1rem;' : ''}">🏢 Información de la Empresa</h2>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
                     <form id="settings-form">
                         <div class="form-group">
-                            <label for="company-name">Nombre de la Empresa</label>
-                            <input type="text" id="company-name" value="${sanitizeHTML(this.settings?.companyName || 'Dalse')}" placeholder="Nombre de tu empresa">
+                            <label for="company-name" style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Nombre de la Empresa</label>
+                            <input type="text" id="company-name" value="${sanitizeHTML(this.settings?.companyName || 'Dalse')}" placeholder="Nombre de tu empresa" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
                         </div>
 
-                        <div class="form-row">
+                        <div class="form-row" style="${isMobile ? 'grid-template-columns:1fr;gap:0.75rem;' : ''}">
                             <div class="form-group">
-                                <label>Logo Principal (Se muestra en el sistema)</label>
-                                <div class="logo-upload-area" id="logo1-upload">
+                                <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Principal</label>
+                                <div class="logo-upload-area" id="logo1-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
                                     ${this.settings?.logo1
-                ? `<img src="${this.settings.logo1}" alt="Logo 1" style="max-height: 100px; max-width: 200px; object-fit: contain;">`
-                : '<p style="color: var(--text-tertiary);">Haz clic para subir Logo 1</p>'
+                ? `<img src="${this.settings.logo1}" alt="Logo 1" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
+                : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 1</p>'
             }
                                     <input type="file" id="logo1-input" accept="image/*" style="display: none;">
                                 </div>
-                                ${this.settings?.logo1 ? '<button type="button" class="btn btn-sm btn-secondary" onclick="Settings.removeLogo(1)">Eliminar Logo 1</button>' : ''}
+                                ${this.settings?.logo1 ? '<button type="button" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(1)">Eliminar Logo 1</button>' : ''}
                             </div>
 
                             <div class="form-group">
-                                <label>Logo Secundario (Para impresión)</label>
-                                <div class="logo-upload-area" id="logo2-upload">
+                                <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Secundario (Impresión)</label>
+                                <div class="logo-upload-area" id="logo2-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
                                     ${this.settings?.logo2
-                ? `<img src="${this.settings.logo2}" alt="Logo 2" style="max-height: 100px; max-width: 200px; object-fit: contain;">`
-                : '<p style="color: var(--text-tertiary);">Haz clic para subir Logo 2</p>'
+                ? `<img src="${this.settings.logo2}" alt="Logo 2" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
+                : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 2</p>'
             }
                                     <input type="file" id="logo2-input" accept="image/*" style="display: none;">
                                 </div>
-                                ${this.settings?.logo2 ? '<button type="button" class="btn btn-sm btn-secondary" onclick="Settings.removeLogo(2)">Eliminar Logo 2</button>' : ''}
+                                ${this.settings?.logo2 ? '<button type="button" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(2)">Eliminar Logo 2</button>' : ''}
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="source-zip-url">URL de Descarga del Código Fuente (GitHub .zip)</label>
-                            <input type="text" id="source-zip-url" value="${sanitizeHTML(this.settings?.sourceZipUrl || '')}" placeholder="https://github.com/TU_USUARIO/dalse/archive/refs/heads/main.zip">
-                            <small style="color: var(--text-tertiary);">URL del archivo .zip del repositorio GitHub para descargar el código completo.</small>
+                            <label for="source-zip-url" style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">URL del Código Fuente</label>
+                            <input type="text" id="source-zip-url" value="${sanitizeHTML(this.settings?.sourceZipUrl || '')}" placeholder="https://github.com/TU_USUARIO/..." style="${isMobile ? 'min-height:44px;font-size:0.9rem;border-radius:10px;' : ''}">
+                            <small style="color: var(--text-tertiary); font-size:0.7rem;">URL del archivo .zip del repositorio GitHub.</small>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">💾 Guardar Configuración</button>
+                        <button type="submit" class="btn btn-primary btn-block" style="${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.95rem;margin-top:0.5rem;' : ''}">💾 Guardar Configuración</button>
                     </form>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>👥 Gestión de Usuarios</h2>
+            <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
+                <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
+                    <h2 style="${isMobile ? 'font-size:1rem;' : ''}">👥 Gestión de Usuarios</h2>
                 </div>
-                <div class="card-body">
-                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">Administra los usuarios del sistema, cambia roles y activa/desactiva cuentas.</p>
-                    <button class="btn btn-primary" onclick="Settings.showUserManagement()">
+                <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary); ${isMobile ? 'font-size:0.85rem;' : ''}">Administra los usuarios del sistema, cambia roles y activa/desactiva cuentas.</p>
+                    <button class="btn btn-primary btn-block" onclick="Settings.showUserManagement()" style="${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.9rem;' : ''}">
                         👥 Abrir Gestión de Usuarios
                     </button>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>📦 Descargar Código Fuente</h2>
+            <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
+                <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
+                    <h2 style="${isMobile ? 'font-size:1rem;' : ''}">📦 Descargar Código Fuente</h2>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
                     ${this.settings?.sourceZipUrl
                         ? `
-                        <p>Descarga el código completo del proyecto para respaldo o desarrollo local.</p>
-                        <a href="${this.settings.sourceZipUrl}" class="btn btn-primary" target="_blank">
+                        <p style="${isMobile ? 'font-size:0.85rem;margin-bottom:1rem;' : ''}">Descarga el código completo del proyecto.</p>
+                        <a href="${this.settings.sourceZipUrl}" class="btn btn-primary btn-block" target="_blank" style="${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.9rem;' : ''}">
                             ⬇️ Descargar Código (.zip)
                         </a>
                         `
                         : `
-                        <p style="color: var(--text-tertiary);">Configura la URL del repositorio GitHub en el formulario de arriba para habilitar la descarga.</p>
+                        <p style="color: var(--text-tertiary); ${isMobile ? 'font-size:0.85rem;' : ''}">Configura la URL del repositorio GitHub en el formulario de arriba.</p>
                         `
                     }
                 </div>

@@ -26,6 +26,10 @@ const KpiEvaluation = {
         const contentArea = document.getElementById('content-area');
         if (!contentArea) return;
 
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
+
         const canCreate = window.permissions?.canCreate;
         const canDelete = window.permissions?.canDelete;
 
@@ -152,8 +156,12 @@ const KpiEvaluation = {
             return true;
         });
 
-        this.updateTable();
-        this.updateStats();
+        if (this.isMobile) {
+            this.renderMobileCards();
+        } else {
+            this.updateTable();
+            this.updateStats();
+        }
     },
 
     updateTable() {
@@ -469,6 +477,108 @@ const KpiEvaluation = {
         const dateNow = new Date().toISOString().split('T')[0];
         XLSX.writeFile(workbook, `Evaluacion_KPI_${dateNow}.xlsx`);
         showToast('Reporte KPI exportado.');
+    },
+    // ============= MOBILE RENDER =============
+    async renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        this.isMobile = true;
+        const canCreate = window.permissions?.canCreate;
+
+        contentArea.innerHTML = `
+            <div style="padding:0 0 8px 0;">
+                <h1 style="font-size:1.35rem;font-weight:800;margin-bottom:2px;color:var(--m-text);">📋 Evaluación KPI</h1>
+                <p style="font-size:0.78rem;color:var(--m-text-secondary);">Desempeño del personal</p>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="date" id="mkpi-start" value="${this.filters.startDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
+                <input type="date" id="mkpi-end" value="${this.filters.endDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
+            </div>
+            <div class="m-stats-row" id="mkpi-stats">
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Evaluaciones</div><div class="m-stat-chip-value" id="mkpi-total">0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Promedio</div><div class="m-stat-chip-value" id="mkpi-avg">0.0</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Mejor Aspecto</div><div class="m-stat-chip-value" id="mkpi-best" style="font-size:0.85rem;">-</div></div>
+                <div class="m-stat-chip"><div class="m-stat-chip-label">A Mejorar</div><div class="m-stat-chip-value" id="mkpi-worst" style="font-size:0.85rem;">-</div></div>
+            </div>
+            <div class="m-actions-bar">
+                <button class="btn btn-primary" id="mkpi-btn-add" style="border-radius:20px;">➕ Nueva Evaluación</button>
+                <button class="btn" id="mkpi-btn-export" style="border-radius:20px;">📥 Excel</button>
+            </div>
+            <div class="m-data-list" id="mkpi-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando evaluaciones...</div>
+            </div>
+        `;
+
+        document.getElementById('mkpi-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mkpi-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mkpi-btn-add').addEventListener('click', () => { if (canCreate) this.showForm(); });
+        document.getElementById('mkpi-btn-export').addEventListener('click', () => this.exportToExcel());
+
+        await this.loadRecords();
+    },
+
+    renderMobileCards() {
+        var list = document.getElementById('mkpi-data-list');
+        if (!list) return;
+
+        var canEdit = window.permissions?.canEdit;
+        var canDelete = window.permissions?.canDelete;
+
+        if (this.filteredRecords.length === 0) {
+            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📊</div><div class="m-empty-title">Sin evaluaciones</div><div class="m-empty-text">No hay evaluaciones para este período.</div></div>';
+        } else {
+            var sorted = this.filteredRecords.map(function(r) {
+                var scores = this.kpiAspects.map(function(a) { return Number(r[a.key] || 0); });
+                var avg = scores.reduce(function(s, v) { return s + v; }, 0) / scores.length;
+                return { ...r, _avg: avg, _scores: scores };
+            }, this).sort(function(a, b) { return b._avg - a._avg; });
+
+            list.innerHTML = sorted.map(function(record, index) {
+                var avgColor = record._avg >= 8 ? '#10b981' : record._avg >= 6 ? '#f59e0b' : '#f43f5e';
+                var scoresHtml = '';
+                this.kpiAspects.forEach(function(a, i) {
+                    var score = record._scores[i];
+                    var sc = score >= 8 ? '#10b981' : score >= 6 ? '#f59e0b' : '#f43f5e';
+                    scoresHtml += '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:' + sc + '15;font-size:0.72rem;font-weight:600;color:' + sc + ';">' + a.icon + ' ' + score + '</span>';
+                });
+
+                return '<div class="m-data-card">' +
+                    '<div class="m-card-header"><span class="m-card-title">#' + (index + 1) + ' ' + sanitizeHTML(record.empleado || '') + '</span>' +
+                    '<span class="m-card-badge" style="background:' + avgColor + '15;color:' + avgColor + ';">' + record._avg.toFixed(1) + '</span></div>' +
+                    '<div style="margin-bottom:10px;font-size:0.75rem;color:#8e8e93;">' + sanitizeHTML(record.cargo || '') + '</div>' +
+                    '<div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (record.fecha ? formatDateShort(record.fecha) : '-') + '</span></div></div>' +
+                    '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">' + scoresHtml + '</div>' +
+                    (record.observaciones ? '<div style="font-size:0.78rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#f9f9fb;border-radius:10px;">' + sanitizeHTML(record.observaciones) + '</div>' : '') +
+                    ((canEdit || canDelete) ? '<div class="m-card-actions" onclick="event.stopPropagation()">' +
+                        (canEdit ? '<button class="m-card-action" onclick="KpiEvaluation.showForm(\'' + record.id + '\')" title="Editar">✏️</button>' : '') +
+                        (canDelete ? '<button class="m-card-action delete" onclick="KpiEvaluation.deleteRecord(\'' + record.id + '\')" title="Eliminar">🗑️</button>' : '') +
+                    '</div>' : '') +
+                '</div>';
+            }, this).join('');
+        }
+
+        // Update stats
+        var total = this.filteredRecords.length;
+        var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+        set('mkpi-total', total);
+
+        if (total > 0) {
+            var aspectAvgs = this.kpiAspects.map(function(a) {
+                var sum = this.filteredRecords.reduce(function(s, r) { return s + Number(r[a.key] || 0); }, 0);
+                return { label: a.label, icon: a.icon, avg: sum / total };
+            }, this);
+            var generalAvg = aspectAvgs.reduce(function(s, a) { return s + a.avg; }, 0) / aspectAvgs.length;
+            var best = aspectAvgs.reduce(function(a, b) { return a.avg > b.avg ? a : b; });
+            var worst = aspectAvgs.reduce(function(a, b) { return a.avg < b.avg ? a : b; });
+
+            var avgEl = document.getElementById('mkpi-avg');
+            if (avgEl) { avgEl.textContent = generalAvg.toFixed(1); avgEl.style.color = generalAvg >= 8 ? '#10b981' : generalAvg >= 6 ? '#f59e0b' : '#f43f5e'; }
+            set('mkpi-best', best.icon + ' ' + best.label + ' (' + best.avg.toFixed(1) + ')');
+            set('mkpi-worst', worst.icon + ' ' + worst.label + ' (' + worst.avg.toFixed(1) + ')');
+        } else {
+            set('mkpi-avg', '0.0');
+            set('mkpi-best', '-');
+            set('mkpi-worst', '-');
+        }
     }
 };
 

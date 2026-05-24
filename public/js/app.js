@@ -135,6 +135,8 @@ const App = {
                 this.updateBottomNavActive(module);
                 if (moreMenu) moreMenu.classList.remove('show');
                 if (moreOverlay) moreOverlay.classList.remove('show');
+                // Reset more button active state
+                if (moreBtn) moreBtn.classList.remove('active');
             });
         });
 
@@ -203,8 +205,11 @@ const App = {
         document.querySelectorAll('.bn-item').forEach(btn => {
             btn.classList.remove('active');
         });
+        // Also remove "Más" active state
+        const moreBtn = document.getElementById('bn-more-btn');
+        if (moreBtn) moreBtn.classList.remove('active');
+        
         // Map module to bottom nav item
-        const mainModules = ['interlogic', 'despacho', 'deliveries', 'clientes'];
         const bnItem = document.querySelector(`.bn-item[data-module="${moduleName}"]`);
         if (bnItem) {
             bnItem.classList.add('active');
@@ -213,7 +218,6 @@ const App = {
             if (despachoBtn) despachoBtn.classList.add('active');
         } else {
             // Highlight "Más" for other modules
-            const moreBtn = document.getElementById('bn-more-btn');
             if (moreBtn) moreBtn.classList.add('active');
         }
         // Also update sidebar nav

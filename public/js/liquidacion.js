@@ -26,6 +26,9 @@ const Liquidacion = {
 
     // Main render
     async render() {
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
         const contentArea = document.getElementById('content-area');
         const isContado = this.currentView === 'contado';
         const title = isContado ? '💵 Liquidación Contado' : '💳 Liquidación Crédito';
@@ -161,8 +164,12 @@ const Liquidacion = {
             return true;
         });
 
-        this.renderTable();
-        this.updateStats();
+        if (this.isMobile) {
+            this.renderMobileCards();
+        } else {
+            this.renderTable();
+            this.updateStats();
+        }
     },
 
     renderTable() {
@@ -315,6 +322,102 @@ const Liquidacion = {
             .badge-warning { background: #f97316; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
         `;
         document.head.appendChild(style);
+    },
+
+    // ============= MOBILE RENDER =============
+    async renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        this.isMobile = true;
+        const isContado = this.currentView === 'contado';
+
+        contentArea.innerHTML = `
+            <div style="padding:0 0 8px 0;">
+                <h1 style="font-size:1.35rem;font-weight:800;margin-bottom:2px;color:var(--m-text);">${isContado ? '💵 Contado' : '💳 Crédito'}</h1>
+                <p style="font-size:0.78rem;color:var(--m-text-secondary);">${isContado ? 'Entregas al contado' : 'Control de cobros'}</p>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="date" id="mliq-start" value="${this.filters.startDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
+                <input type="date" id="mliq-end" value="${this.filters.endDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
+            </div>
+            <div class="m-stats-row" id="mliq-stats">
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Entregado</div><div class="m-stat-chip-value" id="mliq-entregado">$0</div></div>
+                ${isContado ? '' : '<div class="m-stat-chip"><div class="m-stat-chip-label">Cobrado</div><div class="m-stat-chip-value" id="mliq-cobrado" style="color:#10b981;">$0</div></div>'}
+                ${isContado ? '' : '<div class="m-stat-chip"><div class="m-stat-chip-label">Pendiente</div><div class="m-stat-chip-value" id="mliq-pendiente" style="color:#f97316;">$0</div></div>'}
+                <div class="m-stat-chip"><div class="m-stat-chip-label">Registros</div><div class="m-stat-chip-value" id="mliq-count">0</div></div>
+            </div>
+            <div class="m-actions-bar">
+                <button class="btn" id="mliq-btn-export" style="border-radius:20px;">📥 Excel</button>
+            </div>
+            <div class="m-data-list" id="mliq-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando...</div>
+            </div>
+        `;
+
+        await this.loadRecords();
+
+        document.getElementById('mliq-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mliq-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mliq-btn-export').addEventListener('click', () => this.mobileExportExcel());
+    },
+
+    renderMobileCards() {
+        var list = document.getElementById('mliq-data-list');
+        if (!list) return;
+        var isContado = this.currentView === 'contado';
+
+        if (this.filteredRecords.length === 0) {
+            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No hay resultados para este período.</div></div>';
+        } else {
+            list.innerHTML = this.filteredRecords.map(function(r) {
+                var cobrado = r.cobrado === true;
+                return '<div class="m-data-card">' +
+                    '<div class="m-card-header"><span class="m-card-title">#' + (r.guia || 'N/A') + '</span>' +
+                    '<span class="m-card-badge ' + (r.empresa === 'DALSE' ? 'primary' : 'warning') + '">' + (r.empresa || '') + '</span></div>' +
+                    '<div class="m-card-rows">' +
+                    '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>' +
+                    (isContado ? '' : '<div class="m-card-row"><span class="m-card-label">Cobrado</span><span class="m-card-value" style="color:' + (cobrado ? '#10b981' : '#f97316') + ';font-weight:700;">' + (cobrado ? '✓ Sí' : '⏳ No') + '</span></div>') +
+                    '</div>' +
+                    (isContado ? '' : '<div class="m-card-actions" onclick="event.stopPropagation()">' +
+                        '<button class="m-card-action" onclick="Liquidacion.toggleCobradoMobile(\'' + r.id + '\',' + cobrado + ')" title="' + (cobrado ? 'Desmarcar cobro' : 'Marcar cobrado') + '" style="color:' + (cobrado ? '#f97316' : '#10b981') + ';">' + (cobrado ? '↩️' : '✅') + '</button>' +
+                    '</div>') +
+                '</div>';
+            }, this).join('');
+        }
+
+        var totalEntregado = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
+        var totalCobrado = this.filteredRecords.filter(function(r) { return r.cobrado === true; }).reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
+        var pendiente = totalEntregado - totalCobrado;
+
+        var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+        set('mliq-entregado', '$' + formatNumber(totalEntregado, 0));
+        set('mliq-count', this.filteredRecords.length);
+        if (!isContado) {
+            set('mliq-cobrado', '$' + formatNumber(totalCobrado, 0));
+            set('mliq-pendiente', '$' + formatNumber(pendiente, 0));
+        }
+    },
+
+    toggleCobradoMobile(id, currentState) {
+        this.toggleCobrado(id, !currentState);
+    },
+
+    mobileExportExcel() {
+        if (typeof XLSX === 'undefined') { showToast('Librería Excel no disponible', 'error'); return; }
+        if (this.filteredRecords.length === 0) { showToast('No hay datos', 'warning'); return; }
+        var isContado = this.currentView === 'contado';
+        var data = this.filteredRecords.map(function(r) {
+            var row = {'Guía': r.guia||'', 'Empresa': r.empresa||'', 'Fecha': r.fecha?formatDateShort(r.fecha):'', 'Cliente': r.cliente||'', 'Venta': r.venta||0};
+            if (!isContado) { row['Cobrado'] = r.cobrado ? 'Sí' : 'No'; }
+            return row;
+        });
+        var ws = XLSX.utils.json_to_sheet(data);
+        var wb = XLSX.utils.book_new();
+        var name = isContado ? 'Liquidacion_Contado' : 'Liquidacion_Credito';
+        XLSX.utils.book_append_sheet(wb, ws, name);
+        XLSX.writeFile(wb, name + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
+        showToast('Excel exportado');
     }
 };
 

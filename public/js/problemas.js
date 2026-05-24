@@ -13,6 +13,9 @@ const Problemas = {
     existingImages: [],
 
     async render() {
+        if (window.innerWidth <= 768) {
+            return this.renderMobile();
+        }
         const contentArea = document.getElementById('content-area');
         const canCreate = window.permissions?.canCreate;
 
@@ -43,6 +46,34 @@ const Problemas = {
         await this.loadProblemas();
     },
 
+    async renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        const canCreate = window.permissions?.canCreate;
+        this.isMobile = true;
+
+        contentArea.innerHTML = `
+            <div style="padding:0 0 8px 0;">
+                <h1 style="font-size:1.35rem;font-weight:800;margin-bottom:2px;color:var(--m-text);">🚨 Problemas</h1>
+                <p style="font-size:0.78rem;color:var(--m-text-secondary);">Control de incidencias</p>
+            </div>
+            <div class="m-actions-bar">
+                <button class="btn btn-primary" id="mprob-btn-add" style="border-radius:20px;">➕ Nuevo Problema</button>
+            </div>
+            <div id="mprob-list" class="m-data-list">
+                <div style="text-align:center;padding:40px;color:#8e8e93;">
+                    <div class="spinner-ring" style="margin:0 auto 12px;"></div>
+                    <p>Cargando problemas...</p>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('mprob-btn-add').addEventListener('click', () => {
+            if (canCreate) this.showForm();
+        });
+
+        await this.loadProblemas();
+    },
+
     async loadProblemas() {
         if (this.unsubscribe) this.unsubscribe();
 
@@ -55,7 +86,11 @@ const Problemas = {
                     ...doc.data()
                 }));
                 this.filteredRecords = [...this.records];
-                this.renderCards();
+                if (this.isMobile) {
+                    this.renderMobileCards();
+                } else {
+                    this.renderCards();
+                }
             }, error => {
                 console.error('Error loading problemas:', error);
                 showToast('Error al cargar problemas: ' + error.message, 'error');
@@ -196,6 +231,38 @@ const Problemas = {
                 return;
             }
         });
+    },
+
+    renderMobileCards() {
+        const container = document.getElementById('mprob-list');
+        if (!container) return;
+        const canDelete = window.permissions?.canDelete;
+
+        if (this.filteredRecords.length === 0) {
+            container.innerHTML = '<div class="m-empty"><div class="m-empty-icon">✅</div><div class="m-empty-title">Todo en orden</div><div class="m-empty-text">No hay problemas registrados.</div></div>';
+            return;
+        }
+
+        container.innerHTML = this.filteredRecords.map(function(record) {
+            var observacion = record.observacion || '';
+            var imgCount = record.imagenes && Array.isArray(record.imagenes) ? record.imagenes.length : 0;
+            var fechaFactura = record.fecha ? formatDateShort(record.fecha) : '';
+            return '<div class="m-data-card" style="border-left:3px solid #ef4444;">' +
+                '<div class="m-card-header"><span class="m-card-title">' + sanitizeHTML(record.cliente || '—') + '</span>' +
+                '<span class="m-card-badge danger">$' + formatNumber(record.monto || 0, 0) + '</span></div>' +
+                '<div class="m-card-rows">' +
+                '<div class="m-card-row"><span class="m-card-label">Doc</span><span class="m-card-value">' + (record.doc || '') + (record.docNum ? ' #' + record.docNum : '') + '</span></div>' +
+                '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + fechaFactura + '</span></div>' +
+                '</div>' +
+                (observacion ? '<div style="font-size:0.8rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#fef2f2;border-radius:10px;">' + sanitizeHTML(observacion.length > 120 ? observacion.substring(0, 120) + '...' : observacion) + '</div>' : '') +
+                (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;">' + record.imagenes.slice(0, 3).map(function(url) {
+                    return '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>';
+                }).join('') + (imgCount > 3 ? '<div style="width:60px;height:60px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#8e8e93;flex-shrink:0;">+' + (imgCount - 3) + '</div>' : '') + '</div>' : '') +
+                (canDelete ? '<div class="m-card-actions" onclick="event.stopPropagation()">' +
+                    '<button class="m-card-action delete" onclick="Problemas.deleteProblema(\'' + record.id + '\')" title="Eliminar">🗑️</button>' +
+                '</div>' : '') +
+            '</div>';
+        }, this).join('');
     },
 
     getTimeAgo(date) {
