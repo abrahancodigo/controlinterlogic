@@ -471,12 +471,6 @@ table {
     max-width: 100% !important;
 }
 
-/* ---- Keep old modal styles hidden ---- */
-.modal-backdrop { display: none !important; }
-
-/* ---- Hide old filter popups ---- */
-.filter-popup { display: none !important; }
-
 /* ---- Login Screen Mobile ---- */
 .auth-screen {
     padding: 0 !important;
