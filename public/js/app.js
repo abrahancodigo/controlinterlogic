@@ -187,7 +187,7 @@ const App = {
             { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
             { icon: '📅', label: 'Asistencia', module: 'asistencia' },
             { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
-            { icon: '💵', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
+            { icon: '🧾', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
             { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
             { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
@@ -215,8 +215,8 @@ const App = {
         if (bnItem) {
             bnItem.classList.add('active');
         } else if (moduleName === 'liquidacion-ruta' || moduleName === 'liquidacion-contado' || moduleName === 'liquidacion-credito') {
-            const despachoBtn = document.querySelector('.bn-item[data-module="despacho"]');
-            if (despachoBtn) despachoBtn.classList.add('active');
+            const liquidacionBtn = document.querySelector('.bn-item[data-module="liquidacion-ruta"]');
+            if (liquidacionBtn) liquidacionBtn.classList.add('active');
         } else {
             // Highlight "Más" for other modules
             if (moreBtn) moreBtn.classList.add('active');
@@ -233,9 +233,6 @@ const App = {
         if (this.currentModule === 'interlogic' && window.Interlogic && window.Interlogic.unsubscribe) {
             window.Interlogic.unsubscribe(); window.Interlogic.unsubscribe = null;
             window.Interlogic.selectedRecords.clear();
-        }
-        if (this.currentModule === 'despacho' && window.Despacho && window.Despacho.unsubscribe) {
-            window.Despacho.unsubscribe(); window.Despacho.unsubscribe = null;
         }
         if ((this.currentModule === 'liquidacion-ruta' || this.currentModule === 'liquidacion-contado' || this.currentModule === 'liquidacion-credito') && window.Liquidacion) {
             if (window.Liquidacion.unsubscribeRoutes) { window.Liquidacion.unsubscribeRoutes(); window.Liquidacion.unsubscribeRoutes = null; }
@@ -270,9 +267,6 @@ const App = {
                     break;
                 case 'interlogic':
                     if (window.Interlogic && window.Interlogic.render) await window.Interlogic.render();
-                    break;
-                case 'despacho':
-                    if (window.Despacho && window.Despacho.render) await window.Despacho.render();
                     break;
                 case 'settings':
                     if (!(await isAdmin())) {

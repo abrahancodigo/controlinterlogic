@@ -145,15 +145,11 @@ const Liquidacion = {
         const route = this.routes.find(r => r.id === this.currentRouteId);
         if (!route) return;
 
-        const repartidor = this.repartidores.find(r => r.id === route.repartidorId);
-        const comisionPct = repartidor ? (repartidor.comisionPct ?? 70) : 70;
-
         const delivers = this.routeDeliveries;
         const entregados = delivers.filter(d => d.entregado === true);
         const totalFacturado = entregados.reduce((s, d) => s + (Number(d.venta) || 0), 0);
         const codEsperado = entregados.filter(d => d.condicionPago === 'Contado').reduce((s, d) => s + (Number(d.venta) || 0), 0);
         const totalFletes = entregados.reduce((s, d) => s + (Number(d.costoEnvio) || 0), 0);
-        const comisionRep = Math.round(totalFletes * comisionPct) / 100;
         const routeDate = route.fecha && route.fecha.toDate ? route.fecha.toDate().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : '-';
         const isLiquidado = route.estado === 'liquidado';
         const existingLiq = !isLiquidado ? null : this.liquidaciones.find(l => l.rutaId === this.currentRouteId);
@@ -184,14 +180,22 @@ const Liquidacion = {
                                 ${delivers.map((d, i) => {
                                     const montoCobrado = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
                                     const pctAbonado = d.venta > 0 ? Math.round((montoCobrado / Number(d.venta)) * 100) : 0;
+                                    const isDelivered = d.entregado === true;
                                     return `
-                                    <tr style="${d.entregado ? 'background:#f0fdf4;' : 'background:#fef2f2;'}">
+                                    <tr style="${isDelivered ? 'background:#f0fdf4;' : 'background:#fef2f2;'}">
                                         <td>${i+1}</td>
                                         <td><strong>${d.guia || ''}</strong></td>
                                         <td>${sanitizeHTML(d.cliente || '')}</td>
                                         <td style="text-align:right;font-weight:700;">$${Number(d.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                                         <td><span class="badge ${d.condicionPago==='Contado'?'badge-primary':'badge-accent'}">${d.condicionPago||''}</span></td>
-                                        <td style="text-align:center;">${d.entregado ? '✅' : '❌'}</td>
+                                        <td style="text-align:center;">
+                                            ${isLiquidado ? (isDelivered ? '✅' : '❌') : `
+                                                <label class="ds-switch" style="width:30px;height:16px;">
+                                                    <input type="checkbox" ${isDelivered ? 'checked' : ''} onchange="Liquidacion.toggleDelivered('${d.interlogicId}','${d.id}',this.checked)">
+                                                    <span class="ds-slider" style="width:30px;height:16px;border-radius:16px;"></span>
+                                                </label>
+                                            `}
+                                        </td>
                                         <td style="text-align:center;font-size:0.75rem;">
                                             ${montoCobrado > 0 ? '<span style="color:#22c55e;">$' + formatNumber(montoCobrado,0) + ' (' + pctAbonado + '%)</span>' : '<span style="color:#ccc;">-</span>'}
                                             ${d.planPagos && d.planPagos.length > 0 ? '<br><span style="color:#7c3aed;font-size:0.65rem;">📅 ' + d.planPagos.length + ' pgos prog.</span>' : ''}
@@ -199,7 +203,7 @@ const Liquidacion = {
                                         <td style="text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                                         <td style="text-align:center;">
                                             ${!isLiquidado ? `
-                                                ${!d.entregado ? `<button class="btn-icon btn-danger btn-sm" onclick="Liquidacion.removeDeliveryFromRoute('${d.id}','${d.interlogicId}')" title="Quitar de ruta" style="font-size:0.7rem;padding:2px 6px;">✕</button>` : 
+                                                ${!isDelivered ? `<button class="btn-icon btn-danger btn-sm" onclick="Liquidacion.removeDeliveryFromRoute('${d.id}','${d.interlogicId}')" title="Quitar de ruta" style="font-size:0.7rem;padding:2px 6px;">✕</button>` : 
                                                 (d.condicionPago==='Contado' && montoCobrado < Number(d.venta||0) ? `<button class="btn-icon btn-primary btn-sm" onclick="Liquidacion.showDeliveryAbonoModal('${d.interlogicId}','${d.id}')" title="Registrar abono" style="font-size:0.7rem;padding:2px 6px;">💰</button>` : '')}
                                             ` : ''}
                                         </td>
@@ -220,7 +224,6 @@ const Liquidacion = {
                                 <tr><td style="padding:6px;border-bottom:1px solid #eee;">Entregas realizadas</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;font-weight:bold;">${entregados.length} / ${delivers.length}</td></tr>
                                 <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Facturado</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;font-weight:bold;">$${totalFacturado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
                                 <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Fletes (costo envío)</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;">$${totalFletes.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                                <tr><td style="padding:6px;border-bottom:1px solid #eee;">Comisión Repartidor (${comisionPct}%)</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;color:#7c3aed;font-weight:bold;">$${comisionRep.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
                             </table>
                         </div>
                         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;">
@@ -256,7 +259,7 @@ const Liquidacion = {
                 const updateCalc = () => {
                     const recibido = parseFloat(codInput.value) || 0;
                     const diff = codEsperado - recibido;
-                    const efectivoDepositar = Math.max(0, recibido - comisionRep);
+                    const efectivoDepositar = recibido;
                     const diffEl = document.getElementById('liq-diferencia');
                     if (diffEl) { diffEl.textContent = '$' + formatNumber(Math.abs(diff), 2); diffEl.style.color = diff === 0 ? '#22c55e' : '#ef4444'; }
                     const efectivoEl = document.getElementById('liq-efectivo-depositar');
@@ -267,14 +270,14 @@ const Liquidacion = {
                 updateCalc();
             }
 
-            document.getElementById('liq-btn-aprobar').addEventListener('click', () => this.aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado, comisionPct, comisionRep));
+            document.getElementById('liq-btn-aprobar').addEventListener('click', () => this.aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado));
         }
     },
 
-    async aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado, comisionPct, comisionRep) {
+    async aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado) {
         const codRecibido = parseFloat(document.getElementById('liq-cod-recibido').value) || 0;
         const diferencia = codEsperado - codRecibido;
-        const efectivoDepositar = Math.max(0, codRecibido - comisionRep);
+        const efectivoDepositar = codRecibido;
         const observaciones = document.getElementById('liq-observaciones') ? document.getElementById('liq-observaciones').value.trim() : '';
 
         if (diferencia !== 0) {
@@ -298,8 +301,6 @@ const Liquidacion = {
                 totalCOD_recibido: codRecibido,
                 diferencia,
                 totalFletes,
-                comisionPct,
-                comisionRepartidor: comisionRep,
                 efectivoDepositado: efectivoDepositar,
                 estado: diferencia === 0 ? 'aprobado' : 'disputado',
                 observaciones,
@@ -400,6 +401,26 @@ const Liquidacion = {
     },
 
     // ==================== ROUTE DELIVERY ACTIONS ====================
+    async toggleDelivered(interlogicId, deliveryId, checked) {
+        try {
+            const db = firebase.firestore();
+            const batch = db.batch();
+            batch.update(db.collection('interlogic').doc(interlogicId), {
+                entregado: checked,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            batch.update(db.collection('rutaEntregas').doc(deliveryId), {
+                entregado: checked,
+                horaEntrega: checked ? new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : ''
+            });
+            await batch.commit();
+            const d = this.routeDeliveries.find(d => d.id === deliveryId);
+            if (d) d.entregado = checked;
+            this.renderRouteDetail();
+            showToast(checked ? '✅ Marcado como entregado' : '↩️ Marcado como pendiente', 'success');
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    },
+
     async removeDeliveryFromRoute(deliveryId, interlogicId) {
         if (!await showConfirm('¿Quitar esta entrega de la ruta?', 'La factura volverá a estar sin ruta asignada.')) return;
         try {
@@ -571,17 +592,15 @@ const Liquidacion = {
         if (!printArea) return;
 
         const repartidor = this.repartidores.find(r => r.id === route.repartidorId);
-        const comisionPct = repartidor ? (repartidor.comisionPct ?? 70) : 70;
         const delivers = this.routeDeliveries;
         const entregados = delivers.filter(d => d.entregado === true);
         const totalFacturado = entregados.reduce((s, d) => s + (Number(d.venta) || 0), 0);
         const codEsperado = entregados.filter(d => d.condicionPago === 'Contado').reduce((s, d) => s + (Number(d.venta) || 0), 0);
         const totalFletes = entregados.reduce((s, d) => s + (Number(d.costoEnvio) || 0), 0);
-        const comisionRep = Math.round(totalFletes * comisionPct) / 100;
         const existingLiq = this.liquidaciones.find(l => l.rutaId === routeId);
         const codRecibido = existingLiq ? (existingLiq.totalCOD_recibido || 0) : 0;
         const diferencia = existingLiq ? (existingLiq.diferencia || 0) : (codEsperado - codRecibido);
-        const efectivoDep = existingLiq ? (existingLiq.efectivoDepositado || 0) : Math.max(0, codRecibido - comisionRep);
+        const efectivoDep = existingLiq ? (existingLiq.efectivoDepositado || 0) : codRecibido;
         const routeDate = route.fecha && route.fecha.toDate ? route.fecha.toDate().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : '-';
 
         printArea.innerHTML = `
@@ -622,7 +641,6 @@ const Liquidacion = {
                         <tr><td style="padding:4px 0;">Entregas realizadas</td><td style="text-align:right;">${entregados.length} / ${delivers.length}</td></tr>
                         <tr><td style="padding:4px 0;">Total Facturado</td><td style="text-align:right;font-weight:bold;">$${totalFacturado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
                         <tr><td style="padding:4px 0;">Total Fletes</td><td style="text-align:right;">$${totalFletes.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                        <tr><td style="padding:4px 0;">Comisión Repartidor (${comisionPct}%)</td><td style="text-align:right;color:#7c3aed;font-weight:bold;">$${comisionRep.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
                         <tr><td colspan="2"><hr style="border:0;border-top:1px dashed #ccc;"></td></tr>
                         <tr><td style="padding:4px 0;">COD Esperado</td><td style="text-align:right;">$${codEsperado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
                         <tr><td style="padding:4px 0;">COD Recibido</td><td style="text-align:right;">$${codRecibido.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
@@ -688,25 +706,22 @@ const Liquidacion = {
         const route = this.routes.find(r => r.id === routeId);
         if (!route) return;
         const isLiquidado = route.estado === 'liquidado';
-        const repartidor = this.repartidores.find(r => r.id === route.repartidorId);
-        const comisionPct = repartidor ? (repartidor.comisionPct ?? 70) : 70;
         const delivers = this.routeDeliveries;
         const entregados = delivers.filter(d => d.entregado === true);
         const totalFacturado = entregados.reduce((s,d)=>s+(Number(d.venta)||0),0);
         const codEsperado = entregados.filter(d=>d.condicionPago==='Contado').reduce((s,d)=>s+(Number(d.venta)||0),0);
         const totalFletes = entregados.reduce((s,d)=>s+(Number(d.costoEnvio)||0),0);
-        const comisionRep = Math.round(totalFletes * comisionPct) / 100;
         const existingLiq = this.liquidaciones.find(l=>l.rutaId===routeId);
 
         const sheet = document.createElement('div');
-        sheet.innerHTML = `<div class="m-sheet-backdrop show" id="mliq-backdrop" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show" id="mliq-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Ruta #${route.id.substring(0,6)}</span><button class="m-sheet-close" onclick="document.getElementById('mliq-sheet').remove();document.getElementById('mliq-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Repartidor</span><div>${sanitizeHTML(route.repartidorNombre||'-')} · ${sanitizeHTML(route.vehiculo||'')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div class="m-stat-chip"><div class="m-stat-chip-label">Entregas</div><div class="m-stat-chip-value">${entregados.length}/${delivers.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Facturado</div><div class="m-stat-chip-value">$${formatNumber(totalFacturado,0)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">COD</div><div class="m-stat-chip-value">$${formatNumber(codEsperado,0)}</div></div></div>${delivers.map(d=>`<div class="m-data-card" style="background:${d.entregado?'#f0fdf4':'#fef2f2'}"><div class="m-card-header"><span>#${d.guia||'N/A'} ${sanitizeHTML(d.cliente||'')}</span><span>${d.entregado?'✅':'❌'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value">$${formatNumber(d.venta||0,2)}</span></div><div class="m-card-row"><span class="m-card-label">Flete</span><span class="m-card-value">$${formatNumber(d.costoEnvio||0,2)}</span></div></div></div>`).join('')}</div></div>${isLiquidado?`<div class="m-sheet-footer"><button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${routeId}');">🖨️ Imprimir</button></div>`:`<div class="m-sheet-footer"><button class="btn btn-primary" onclick="Liquidacion.aprobarLiquidacionMobile('${routeId}',${codEsperado},${totalFletes},${totalFacturado},${comisionPct},${comisionRep})">✅ Aprobar</button><button class="btn" onclick="Liquidacion.printRouteSettlement('${routeId}')">🖨️</button></div>`}</div></div>`;
+        sheet.innerHTML = `<div class="m-sheet-backdrop show" id="mliq-backdrop" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show" id="mliq-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Ruta #${route.id.substring(0,6)}</span><button class="m-sheet-close" onclick="document.getElementById('mliq-sheet').remove();document.getElementById('mliq-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Repartidor</span><div>${sanitizeHTML(route.repartidorNombre||'-')} · ${sanitizeHTML(route.vehiculo||'')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div class="m-stat-chip"><div class="m-stat-chip-label">Entregas</div><div class="m-stat-chip-value">${entregados.length}/${delivers.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Facturado</div><div class="m-stat-chip-value">$${formatNumber(totalFacturado,0)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">COD</div><div class="m-stat-chip-value">$${formatNumber(codEsperado,0)}</div></div></div>${delivers.map(d=>`<div class="m-data-card" style="background:${d.entregado?'#f0fdf4':'#fef2f2'}"><div class="m-card-header"><span>#${d.guia||'N/A'} ${sanitizeHTML(d.cliente||'')}</span><span>${d.entregado?'✅':'❌'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value">$${formatNumber(d.venta||0,2)}</span></div><div class="m-card-row"><span class="m-card-label">Flete</span><span class="m-card-value">$${formatNumber(d.costoEnvio||0,2)}</span></div></div></div>`).join('')}</div></div>${isLiquidado?`<div class="m-sheet-footer"><button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${routeId}');">🖨️ Imprimir</button></div>`:`<div class="m-sheet-footer"><button class="btn btn-primary" onclick="Liquidacion.aprobarLiquidacionMobile('${routeId}',${codEsperado},${totalFletes},${totalFacturado})">✅ Aprobar</button><button class="btn" onclick="Liquidacion.printRouteSettlement('${routeId}')">🖨️</button></div>`}</div></div>`;
         document.body.appendChild(sheet);
     },
 
-    async aprobarLiquidacionMobile(routeId, codEsperado, totalFletes, totalFacturado, comisionPct, comisionRep) {
+    async aprobarLiquidacionMobile(routeId, codEsperado, totalFletes, totalFacturado) {
         const route = this.routes.find(r => r.id === routeId);
         if (!route) return;
-        await this.aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado, comisionPct, comisionRep);
+        await this.aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado);
         const sheet = document.getElementById('mliq-sheet');
         const backdrop = document.getElementById('mliq-backdrop');
         if (sheet) sheet.remove();
