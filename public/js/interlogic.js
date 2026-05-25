@@ -14,7 +14,7 @@ const Interlogic = {
     selectedRecords: new Set(),
     filters: {
         search: '',
-        startDate: '2025-01-01',
+        startDate: getLocalDateString(),
         endDate: getLocalDateString(),
         guia: [],
         empresa: [],
@@ -821,7 +821,7 @@ const Interlogic = {
         this.applySorting();
 
         const hasActiveFilters = this.currentSort.field || Object.entries(this.filters).some(([k, v]) => {
-            if (k === 'startDate' && v !== '2025-01-01') return true;
+            if (k === 'startDate' && v !== getLocalDateString()) return true;
             if (k === 'endDate' && v !== getLocalDateString()) return true;
             if (k === 'search' && v) return true;
             return Array.isArray(v) && v.length > 0;
@@ -988,7 +988,7 @@ const Interlogic = {
         const today = getLocalDateString();
         this.filters = {
             search: '',
-            startDate: '2025-01-01',
+            startDate: today,
             endDate: today,
             empresa: [],
             zona: [],
@@ -1001,7 +1001,7 @@ const Interlogic = {
 
         const startInput = document.getElementById('filter-start-date');
         const endInput = document.getElementById('filter-end-date');
-        if (startInput) startInput.value = '2025-01-01';
+        if (startInput) startInput.value = today;
         if (endInput) endInput.value = today;
         const searchInput = document.getElementById('global-search');
         if (searchInput) searchInput.value = '';

@@ -8,7 +8,7 @@ const Despacho = {
     loading: false,
     filters: {
         search: '',
-        startDate: '2025-01-01',
+        startDate: getLocalDateString().substring(0, 8) + '01',
         endDate: getLocalDateString(),
         guia: [],
         empresa: [],
@@ -715,7 +715,7 @@ const Despacho = {
 
     clearAllFilters() {
         for (var f in this.filters) {
-            if (f === 'startDate') { this.filters[f] = '2025-01-01'; }
+            if (f === 'startDate') { this.filters[f] = getLocalDateString().substring(0, 8) + '01'; }
             else if (f === 'endDate') { this.filters[f] = getLocalDateString(); }
             else if (f === 'search') { this.filters[f] = ''; }
             else if (f === 'status') { this.filters[f] = 'all'; }
