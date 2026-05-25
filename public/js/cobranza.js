@@ -430,14 +430,23 @@ const Cobranza = {
     },
 
     showGestionModal(records) {
-        const clientNames = [...new Set(records.map(r => (r.cliente || '').trim()).filter(Boolean))].sort();
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
             <div class="modal-content" style="max-width:500px;">
                 <h2 style="margin-bottom:1rem;">📝 Nueva Gestión de Cobranza</h2>
                 <form id="gestion-form">
-                    <div class="form-group"><label>Cliente</label><select id="ges-cliente" style="width:100%;">${clientNames.map(n=>`<option>${sanitizeHTML(n)}</option>`).join('')}</select></div>
+                    <div class="form-group">
+                        <label>Cliente</label>
+                        <div class="search-container">
+                            <div class="search-box" style="position:relative;">
+                                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="ges-cliente-search" class="search-input" placeholder="Escribe para buscar cliente..." autocomplete="off">
+                                <input type="hidden" id="ges-cliente" value="">
+                            </div>
+                            <div id="ges-cliente-dropdown" class="premium-dropdown" style="display:none;"></div>
+                        </div>
+                    </div>
                     <div class="form-group" style="margin-top:1rem;"><label>Tipo de Gestión</label><select id="ges-tipo" style="width:100%;"><option>llamada</option><option>email</option><option>whatsapp</option><option>visita</option><option>carta</option><option>otro</option></select></div>
                     <div class="form-group" style="margin-top:1rem;"><label>Descripción</label><textarea id="ges-descripcion" rows="3" style="width:100%;" placeholder="Detalle de la gestión..."></textarea></div>
                     <div class="form-group" style="margin-top:1rem;"><label>Resultado / Acuerdo</label><input type="text" id="ges-resultado" style="width:100%;" placeholder="Ej: Prometió pagar el viernes"></div>
@@ -452,16 +461,66 @@ const Cobranza = {
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target===modal) modal.remove(); };
 
+        const searchInput = document.getElementById('ges-cliente-search');
+        const dropdown = document.getElementById('ges-cliente-dropdown');
+        const hiddenClient = document.getElementById('ges-cliente');
+
+        const filterClients = (query) => {
+            const q = query.toLowerCase().trim();
+            if (!q || q.length < 1) { dropdown.style.display = 'none'; return; }
+            const matches = records.filter(r => {
+                const cliente = String(r.cliente || '').toLowerCase();
+                const guia = String(r.guia || '').toLowerCase();
+                const empresa = String(r.empresa || '').toLowerCase();
+                return cliente.includes(q) || guia.includes(q) || empresa.includes(q);
+            });
+            const unique = [];
+            const seen = new Set();
+            for (const r of matches) {
+                const name = (r.cliente || '').trim();
+                if (!name || seen.has(name)) continue;
+                seen.add(name);
+                unique.push(r);
+                if (unique.length >= 20) break;
+            }
+            if (unique.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-empty"><p style="padding:1rem;color:#8e8e93;">Sin coincidencias</p></div>';
+            } else {
+                dropdown.innerHTML = unique.map(r => `
+                    <div class="dropdown-item" onclick="document.getElementById('ges-cliente-search').value='${sanitizeHTML(r.cliente||'').replace(/'/g,"\\'")}';document.getElementById('ges-cliente').value='${sanitizeHTML(r.cliente||'').replace(/'/g,"\\'")}';document.getElementById('ges-cliente-dropdown').style.display='none';">
+                        <div class="dropdown-item-left">
+                            <div class="dropdown-item-doc">${sanitizeHTML(r.cliente||'')}</div>
+                            <div class="dropdown-item-cliente">Guía: ${sanitizeHTML(r.guia||'N/A')} · ${sanitizeHTML(r.empresa||'')}</div>
+                        </div>
+                        <div class="dropdown-item-right">
+                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            dropdown.style.display = 'block';
+        };
+
+        searchInput.addEventListener('input', (e) => filterClients(e.target.value));
+        searchInput.addEventListener('focus', () => { if (searchInput.value) filterClients(searchInput.value); });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#ges-cliente-search') && !e.target.closest('#ges-cliente-dropdown')) {
+                dropdown.style.display = 'none';
+            }
+        });
+
         document.getElementById('gestion-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-ges-save');
+            const clienteVal = hiddenClient.value || searchInput.value.trim();
+            if (!clienteVal) { showToast('Selecciona o escribe un cliente', 'error'); return; }
             setButtonLoading(btn, true);
             try {
                 const proxVal = document.getElementById('ges-proxima').value;
                 let proxDate = null;
                 if (proxVal) { const [y,m,d] = proxVal.split('-').map(Number); proxDate = firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d,12,0,0)); }
                 await firebase.firestore().collection('gestiones').add({
-                    cliente: document.getElementById('ges-cliente').value,
+                    cliente: clienteVal,
                     tipo: document.getElementById('ges-tipo').value,
                     descripcion: document.getElementById('ges-descripcion').value,
                     resultado: document.getElementById('ges-resultado').value,
@@ -496,16 +555,35 @@ const Cobranza = {
     },
 
     showAjusteModal(records) {
-        const clientNames = [...new Set(records.map(r => (r.cliente || '').trim()).filter(Boolean))].sort();
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
             <div class="modal-content" style="max-width:500px;">
                 <h2 style="margin-bottom:1rem;">💡 Nuevo Ajuste / Nota de Crédito</h2>
                 <form id="ajuste-form">
-                    <div class="form-group"><label>Cliente</label><select id="aj-cliente" style="width:100%;">${clientNames.map(n=>`<option>${sanitizeHTML(n)}</option>`).join('')}</select></div>
+                    <div class="form-group">
+                        <label>Cliente</label>
+                        <div class="search-container">
+                            <div class="search-box" style="position:relative;">
+                                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="aj-cliente-search" class="search-input" placeholder="Escribe para buscar cliente..." autocomplete="off">
+                                <input type="hidden" id="aj-cliente" value="">
+                            </div>
+                            <div id="aj-cliente-dropdown" class="premium-dropdown" style="display:none;"></div>
+                        </div>
+                    </div>
                     <div class="form-group" style="margin-top:1rem;"><label>Tipo de Ajuste</label><select id="aj-tipo" style="width:100%;"><option value="notaCredito">Nota de Crédito (reduce deuda)</option><option value="descuento">Descuento</option><option value="devolucion">Devolución</option><option value="cargoExtra">Cargo Extra (aumenta deuda)</option><option value="castigo">Castigo por Incobrable</option></select></div>
-                    <div class="form-group" style="margin-top:1rem;"><label>Guía Relacionada</label><select id="aj-guia" style="width:100%;"><option value="">-- General (sin guía) --</option>${records.map(r=>`<option value="${r.guia||''}">${r.guia||'N/A'} - ${sanitizeHTML(r.cliente||'')}</option>`).join('')}</select></div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Guía Relacionada</label>
+                        <div class="search-container">
+                            <div class="search-box" style="position:relative;">
+                                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="aj-guia-search" class="search-input" placeholder="Buscar guía o dejar vacío para general..." autocomplete="off">
+                                <input type="hidden" id="aj-guia" value="">
+                            </div>
+                            <div id="aj-guia-dropdown" class="premium-dropdown" style="display:none;"></div>
+                        </div>
+                    </div>
                     <div class="form-group" style="margin-top:1rem;"><label>Monto ($) — Negativo para reducir deuda</label><input type="number" id="aj-monto" step="0.01" style="width:100%;" placeholder="Ej: -50 para nota de crédito"></div>
                     <div class="form-group" style="margin-top:1rem;"><label>Motivo</label><input type="text" id="aj-motivo" style="width:100%;" placeholder="Razón del ajuste..."></div>
                     <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
@@ -518,14 +596,103 @@ const Cobranza = {
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target===modal) modal.remove(); };
 
+        // Cliente search
+        const clienteSearch = document.getElementById('aj-cliente-search');
+        const clienteDropdown = document.getElementById('aj-cliente-dropdown');
+        const hiddenCliente = document.getElementById('aj-cliente');
+
+        const filterClientes = (query) => {
+            const q = query.toLowerCase().trim();
+            if (!q || q.length < 1) { clienteDropdown.style.display = 'none'; return; }
+            const matches = records.filter(r => {
+                const cliente = String(r.cliente || '').toLowerCase();
+                const guia = String(r.guia || '').toLowerCase();
+                const empresa = String(r.empresa || '').toLowerCase();
+                return cliente.includes(q) || guia.includes(q) || empresa.includes(q);
+            });
+            const unique = [];
+            const seen = new Set();
+            for (const r of matches) {
+                const name = (r.cliente || '').trim();
+                if (!name || seen.has(name)) continue;
+                seen.add(name);
+                unique.push(r);
+                if (unique.length >= 20) break;
+            }
+            if (unique.length === 0) {
+                clienteDropdown.innerHTML = '<div class="dropdown-empty"><p style="padding:1rem;color:#8e8e93;">Sin coincidencias</p></div>';
+            } else {
+                clienteDropdown.innerHTML = unique.map(r => `
+                    <div class="dropdown-item" onclick="document.getElementById('aj-cliente-search').value='${sanitizeHTML(r.cliente||'').replace(/'/g,"\\'")}';document.getElementById('aj-cliente').value='${sanitizeHTML(r.cliente||'').replace(/'/g,"\\'")}';document.getElementById('aj-cliente-dropdown').style.display='none';">
+                        <div class="dropdown-item-left">
+                            <div class="dropdown-item-doc">${sanitizeHTML(r.cliente||'')}</div>
+                            <div class="dropdown-item-cliente">Guía: ${sanitizeHTML(r.guia||'N/A')} · ${sanitizeHTML(r.empresa||'')}</div>
+                        </div>
+                        <div class="dropdown-item-right">
+                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            clienteDropdown.style.display = 'block';
+        };
+
+        clienteSearch.addEventListener('input', (e) => filterClientes(e.target.value));
+        clienteSearch.addEventListener('focus', () => { if (clienteSearch.value) filterClientes(clienteSearch.value); });
+
+        // Guía search
+        const guiaSearch = document.getElementById('aj-guia-search');
+        const guiaDropdown = document.getElementById('aj-guia-dropdown');
+        const hiddenGuia = document.getElementById('aj-guia');
+
+        const filterGuias = (query) => {
+            const q = query.toLowerCase().trim();
+            if (!q || q.length < 1) { guiaDropdown.style.display = 'none'; return; }
+            const matches = records.filter(r => {
+                const guia = String(r.guia || '').toLowerCase();
+                const cliente = String(r.cliente || '').toLowerCase();
+                const doc = String(r.doc || '').toLowerCase();
+                return guia.includes(q) || cliente.includes(q) || doc.includes(q);
+            }).slice(0, 20);
+            if (matches.length === 0) {
+                guiaDropdown.innerHTML = '<div class="dropdown-empty"><p style="padding:1rem;color:#8e8e93;">Sin coincidencias</p></div>';
+            } else {
+                guiaDropdown.innerHTML = matches.map(r => `
+                    <div class="dropdown-item" onclick="document.getElementById('aj-guia-search').value='${sanitizeHTML((r.guia||'N/A')+' - '+ (r.cliente||'')).replace(/'/g,"\\'")}';document.getElementById('aj-guia').value='${sanitizeHTML(r.guia||'').replace(/'/g,"\\'")}';document.getElementById('aj-guia-dropdown').style.display='none';">
+                        <div class="dropdown-item-left">
+                            <div class="dropdown-item-doc">${sanitizeHTML(r.guia||'N/A')} <span class="dropdown-item-num">${sanitizeHTML(r.doc||'')}</span></div>
+                            <div class="dropdown-item-cliente">${sanitizeHTML(r.cliente||'')}</div>
+                        </div>
+                        <div class="dropdown-item-right">
+                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            guiaDropdown.style.display = 'block';
+        };
+
+        guiaSearch.addEventListener('input', (e) => filterGuias(e.target.value));
+        guiaSearch.addEventListener('focus', () => { if (guiaSearch.value) filterGuias(guiaSearch.value); });
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#aj-cliente-search') && !e.target.closest('#aj-cliente-dropdown')) {
+                clienteDropdown.style.display = 'none';
+            }
+            if (!e.target.closest('#aj-guia-search') && !e.target.closest('#aj-guia-dropdown')) {
+                guiaDropdown.style.display = 'none';
+            }
+        });
+
         document.getElementById('ajuste-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-aj-save');
             setButtonLoading(btn, true);
             try {
                 const monto = parseFloat(document.getElementById('aj-monto').value) || 0;
-                const guiaSel = document.getElementById('aj-guia').value;
-                const clienteVal = document.getElementById('aj-cliente').value;
+                const guiaSel = hiddenGuia.value;
+                const clienteVal = hiddenCliente.value || clienteSearch.value.trim();
                 const tipo = document.getElementById('aj-tipo').value;
                 const motivo = document.getElementById('aj-motivo').value;
                 if (monto === 0) { showToast('El monto no puede ser 0','error'); setButtonLoading(btn,false); return; }
@@ -576,38 +743,50 @@ const Cobranza = {
         const container = document.getElementById('cobranza-content');
         if (!container) return;
         const records = this.getCreditRecords();
-        const clientNames = [...new Set(records.map(r => (r.cliente || '').trim()).filter(Boolean))].sort();
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:1rem;">
                 <div class="card-body">
-                    <div class="form-group">
-                        <label>Seleccionar Cliente</label>
-                        <select id="cob-cliente-select" style="width:100%;padding:0.6rem;">
-                            <option value="">-- Todos los clientes --</option>
-                            ${clientNames.map(n => `<option value="${sanitizeHTML(n)}">${sanitizeHTML(n)}</option>`).join('')}
-                        </select>
+                    <div class="search-container" style="margin-bottom:1rem;">
+                        <div class="search-box" style="position:relative;">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="cob-cliente-search" class="search-input" placeholder="Buscar por cliente, guía, empresa, doc..." autocomplete="off">
+                        </div>
+                        <p class="search-hint">Escribe cualquier palabra para filtrar resultados al instante</p>
                     </div>
                     <div id="cob-estado-cuenta-result" style="margin-top:1rem;">
-                        <p style="color:#8e8e93;">Selecciona un cliente para ver su estado de cuenta</p>
+                        <p style="color:#8e8e93;">Escribe arriba para buscar o deja vacío para ver todos</p>
                     </div>
                 </div>
             </div>
         `;
 
-        document.getElementById('cob-cliente-select').addEventListener('change', (e) => {
-            this.showEstadoCuentaDetail(e.target.value, records);
+        const searchInput = document.getElementById('cob-cliente-search');
+        searchInput.addEventListener('input', () => {
+            this.showEstadoCuentaDetail(searchInput.value, records);
         });
-        if (clientNames.length > 0) this.showEstadoCuentaDetail('', records);
+        this.showEstadoCuentaDetail('', records);
     },
 
-    showEstadoCuentaDetail(clienteFiltro, records) {
+    showEstadoCuentaDetail(query, records) {
         const resultDiv = document.getElementById('cob-estado-cuenta-result');
         if (!resultDiv) return;
 
+        const q = query.toLowerCase().trim();
         let filtered = records;
-        if (clienteFiltro) filtered = records.filter(r => (r.cliente || '').trim() === clienteFiltro);
-        if (filtered.length === 0) { resultDiv.innerHTML = '<p style="color:#8e8e93;">Sin registros</p>'; return; }
+        if (q) {
+            filtered = records.filter(r => {
+                const guia = String(r.guia || '').toLowerCase();
+                const cliente = String(r.cliente || '').toLowerCase();
+                const empresa = String(r.empresa || '').toLowerCase();
+                const doc = String(r.doc || '').toLowerCase();
+                const vendedor = String(r.vendedor || '').toLowerCase();
+                const cobrador = String(r.cobrador || '').toLowerCase();
+                const fecha = r.fecha ? formatDateShort(r.fecha).toLowerCase() : '';
+                return guia.includes(q) || cliente.includes(q) || empresa.includes(q) || doc.includes(q) || vendedor.includes(q) || cobrador.includes(q) || fecha.includes(q);
+            });
+        }
+        if (filtered.length === 0) { resultDiv.innerHTML = `<p style="color:#8e8e93;text-align:center;padding:2rem;">Sin resultados para "<strong>${sanitizeHTML(query)}</strong>"</p>`; return; }
 
         const totalVenta = filtered.reduce((s, r) => s + Number(r.venta || 0), 0);
         const totalCobrado = filtered.reduce((s, r) => s + Number(r.montoCobrado || (r.cobrado===true?r.venta:0)), 0);
@@ -616,7 +795,7 @@ const Cobranza = {
         const ajustesRel = this.ajustes.filter(a => {
             const match = filtered.some(r => r.guia === a.guia);
             if (match) return true;
-            return clienteFiltro && a.cliente === clienteFiltro;
+            return q && a.cliente && a.cliente.toLowerCase().includes(q);
         });
         const ajusteNeto = ajustesRel.reduce((s, a) => s + (Number(a.monto) || 0), 0);
 
@@ -662,7 +841,7 @@ const Cobranza = {
                 </tr></tfoot>
             </table>
             ${ajustesRel.length>0 ? `<div style="margin-top:1rem;"><h4 style="font-size:0.85rem;color:#666;margin-bottom:4px;">Ajustes Relacionados (${ajustesRel.length})</h4><table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#fefce8;"><th style="padding:4px;">Tipo</th><th style="padding:4px;text-align:right;">Monto</th><th style="padding:4px;">Motivo</th><th style="padding:4px;">Fecha</th></tr></thead><tbody>${ajustesRel.map(a=>`<tr style="background:#fffbeb;"><td style="padding:4px;">${a.tipo||''}</td><td style="text-align:right;padding:4px;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:4px;">${sanitizeHTML(a.motivo||'')}</td><td style="padding:4px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td></tr>`).join('')}</tbody></table></div>`:''}
-            <button class="btn btn-secondary" onclick="Cobranza.printEstadoCuenta('${clienteFiltro||''}')" style="margin-top:1rem;">🖨️ Imprimir Estado de Cuenta</button>
+            <button class="btn btn-secondary" onclick="Cobranza.printEstadoCuenta('${q||''}')" style="margin-top:1rem;">🖨️ Imprimir Estado de Cuenta</button>
         `;
     },
 
@@ -706,14 +885,23 @@ const Cobranza = {
         showToast('Reporte exportado','success');
     },
 
-    printEstadoCuenta(clienteFiltro) {
+    printEstadoCuenta(query) {
         const records = this.getCreditRecords();
         let filtered = records;
-        if (clienteFiltro) filtered = records.filter(r => (r.cliente||'').trim()===clienteFiltro);
+        if (query) {
+            const q = query.toLowerCase().trim();
+            filtered = records.filter(r => {
+                const guia = String(r.guia || '').toLowerCase();
+                const cliente = String(r.cliente || '').toLowerCase();
+                const empresa = String(r.empresa || '').toLowerCase();
+                const doc = String(r.doc || '').toLowerCase();
+                return guia.includes(q) || cliente.includes(q) || empresa.includes(q) || doc.includes(q);
+            });
+        }
         const printArea = document.getElementById('print-area'); if (!printArea) return;
         const tv=filtered.reduce((s,r)=>s+Number(r.venta||0),0), tc=filtered.reduce((s,r)=>s+Number(r.montoCobrado||(r.cobrado===true?r.venta:0)),0), tp=tv-tc;
         const today=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
-        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${clienteFiltro?'Cliente: '+sanitizeHTML(clienteFiltro):'Todos los clientes'} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Math.max(0,Number(r.venta||0)-c).toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tv.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tc.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tp.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
+        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${query?'Búsqueda: '+sanitizeHTML(query):'Todos los clientes'} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Math.max(0,Number(r.venta||0)-c).toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tv.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tc.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tp.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
         setTimeout(()=>window.print(),100);
     },
 
