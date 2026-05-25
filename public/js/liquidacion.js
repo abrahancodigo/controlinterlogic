@@ -49,6 +49,9 @@ const Liquidacion = {
                         <label for="liq-filter-end-date" style="margin-bottom: 0; white-space: nowrap;">Hasta:</label>
                         <input type="date" id="liq-filter-end-date" class="form-control" value="${this.filters.endDate}" style="padding: 0.4rem; font-size: 0.8rem;">
                     </div>
+                    <button id="liq-btn-print" class="btn btn-primary">
+                        🖨️ Imprimir
+                    </button>
                     <button id="liq-btn-export-excel" class="btn btn-secondary">
                         📥 Exportar Excel
                     </button>
@@ -114,6 +117,8 @@ const Liquidacion = {
             this.filters.endDate = e.target.value;
             this.applyFilters();
         });
+        const printBtn = document.getElementById('liq-btn-print');
+        if (printBtn) printBtn.addEventListener('click', () => this.printReport());
         const exportBtn = document.getElementById('liq-btn-export-excel');
         if (exportBtn) exportBtn.addEventListener('click', () => this.exportToExcel());
 
@@ -279,6 +284,140 @@ const Liquidacion = {
         }
     },
 
+    async printReport() {
+        const printArea = document.getElementById('print-area');
+        if (!printArea) return;
+        const isContado = this.currentView === 'contado';
+        const title = isContado ? 'Liquidación Contado' : 'Liquidación Crédito';
+
+        if (window.Settings && window.Settings.loadSettings) {
+            await window.Settings.loadSettings();
+        }
+        const settings = window.Settings?.settings || {};
+        const companyName = settings.companyName || 'DALSE';
+        const printLogo = settings.logo2 || settings.logo1 || '';
+
+        const today = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+        const startStr = this.filters.startDate ? new Date(this.filters.startDate + 'T12:00:00').toLocaleDateString('es-ES') : '';
+        const endStr = this.filters.endDate ? new Date(this.filters.endDate + 'T12:00:00').toLocaleDateString('es-ES') : '';
+
+        let logoHTML = '';
+        if (printLogo) {
+            logoHTML = `<img src="${printLogo}" alt="Logo" style="max-height: 60px; max-width: 150px; object-fit: contain;">`;
+        }
+
+        const total = this.filteredRecords.reduce((acc, r) => acc + Number(r.venta || 0), 0);
+
+        printArea.innerHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; color: #000;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        ${logoHTML}
+                        <div>
+                            <h1 style="font-size: 1.8rem; margin: 0; color: #000;">${sanitizeHTML(companyName)}</h1>
+                            <p style="margin: 5px 0 0 0; color: #555; font-size: 1rem;">${title}</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="margin: 0; font-weight: bold;">${startStr} — ${endStr}</p>
+                        <p style="margin: 5px 0 0 0; color: #666; font-size: 0.85rem;">Generado: ${today}</p>
+                    </div>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="background: #f0f0f0;">
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Guía</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Empresa</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Fecha</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Cliente</th>
+                            <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Venta</th>
+                            ${isContado ? '' : '<th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Cobrado</th><th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Fecha Cobro</th>'}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${this.filteredRecords.map(r => {
+                            const cobrado = r.cobrado === true;
+                            const fechaCobro = r.fechaCobro ? (r.fechaCobro.toDate ? formatDateShort(r.fechaCobro) : r.fechaCobro) : '';
+                            return `
+                                <tr${cobrado ? ' style="background: #f0fdf4;"' : ''}>
+                                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${r.guia || ''}</td>
+                                    <td style="border: 1px solid #ccc; padding: 8px;">${sanitizeHTML(r.empresa || '')}</td>
+                                    <td style="border: 1px solid #ccc; padding: 8px;">${r.fecha ? formatDateShort(r.fecha) : ''}</td>
+                                    <td style="border: 1px solid #ccc; padding: 8px;">${sanitizeHTML(r.cliente || '')}</td>
+                                    <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">$${Number(r.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    ${isContado ? '' : `
+                                        <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cobrado ? '✓ Sí' : '✗ No'}</td>
+                                        <td style="border: 1px solid #ccc; padding: 8px;">${fechaCobro}</td>
+                                    `}
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #e5e5e5; font-weight: bold;">
+                            <td colspan="${isContado ? 4 : 6}" style="border: 1px solid #ccc; padding: 8px; text-align: right;">TOTAL:</td>
+                            <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                            ${isContado ? '' : '<td colspan="2" style="border: 1px solid #ccc; padding: 8px;"></td>'}
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div style="margin-top: 30px; text-align: center; color: #888; font-size: 0.75rem; border-top: 1px dashed #eee; padding-top: 15px;">
+                    ${this.filteredRecords.length} registro(s) · Generado el ${today}
+                </div>
+            </div>
+        `;
+
+        const previewModal = document.createElement('div');
+        previewModal.id = 'print-preview-modal';
+        previewModal.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; z-index: 10002; padding: 1rem;
+        `;
+
+        previewModal.innerHTML = `
+            <div style="background: white; border-radius: 1rem; max-width: 1100px; width: 100%; max-height: 95vh; display: flex; flex-direction: column; position: relative;">
+                <button id="close-print-preview" style="
+                    position: absolute; top: 10px; right: 10px;
+                    background: #ef4444; color: white; border: none;
+                    border-radius: 50%; width: 36px; height: 36px;
+                    font-size: 1.2rem; cursor: pointer; display: flex;
+                    align-items: center; justify-content: center; z-index: 10;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                ">✕</button>
+                <div style="padding: 1rem 2rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">📄 Vista Previa — ${title}</h3>
+                    <div style="display: flex; gap: 0.5rem; margin-right: 50px;">
+                        <button id="btn-do-print" class="btn btn-primary">🖨️ Imprimir</button>
+                    </div>
+                </div>
+                <div style="flex: 1; overflow-y: auto; overflow-x: auto; padding: 1.5rem; background: #e5e5e5;">
+                    <div style="background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin: 0 auto; width: 100%; max-width: 1000px; padding: 0.5in; box-sizing: border-box;">
+                        ${printArea.innerHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(previewModal);
+
+        document.getElementById('close-print-preview').onclick = () => {
+            previewModal.remove();
+            printArea.innerHTML = '';
+        };
+
+        document.getElementById('btn-do-print').onclick = () => {
+            previewModal.style.display = 'none';
+            setTimeout(() => window.print(), 100);
+            setTimeout(() => {
+                previewModal.remove();
+                printArea.innerHTML = '';
+            }, 1000);
+        };
+    },
+
     exportToExcel() {
         if (typeof XLSX === 'undefined') {
             showToast('Error: XLSX no cargado', 'error');
@@ -346,6 +485,7 @@ const Liquidacion = {
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Registros</div><div class="m-stat-chip-value" id="mliq-count">0</div></div>
             </div>
             <div class="m-actions-bar">
+                <button class="btn btn-primary" id="mliq-btn-print" style="border-radius:20px;">🖨️ Imprimir</button>
                 <button class="btn" id="mliq-btn-export" style="border-radius:20px;">📥 Excel</button>
             </div>
             <div class="m-data-list" id="mliq-data-list">
@@ -357,6 +497,7 @@ const Liquidacion = {
 
         document.getElementById('mliq-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
         document.getElementById('mliq-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mliq-btn-print').addEventListener('click', () => this.printReport());
         document.getElementById('mliq-btn-export').addEventListener('click', () => this.mobileExportExcel());
     },
 
