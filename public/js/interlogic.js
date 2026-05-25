@@ -594,6 +594,10 @@ const Interlogic = {
         sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + (record?.guia || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="Interlogic"' + (record?.empresa === 'Interlogic' ? ' selected' : '') + '>Interlogic</option><option value="Cargo Express"' + (record?.empresa === 'Cargo Express' ? ' selected' : '') + '>Cargo Express</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + (record?.docNum || '') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + (record?.cliente || '') + '"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cobrador</label><input type="text" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
         document.body.appendChild(sheet);
 
+        // Hide cobrador field in mobile form
+        var mfCobrador = document.getElementById('mf-cobrador');
+        if (mfCobrador) mfCobrador.closest('.m-form-group').style.display = 'none';
+
         document.getElementById('mf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mf-submit');
             btn.disabled = true;
@@ -1570,7 +1574,7 @@ const Interlogic = {
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
+                        <div class="form-group" id="il-cobrador-group" style="display:none;">
                             <label>Cobrador</label>
                             <select id="il-cobrador">
                                 <option value="">Seleccionar...</option>
@@ -1624,9 +1628,15 @@ const Interlogic = {
         loadCobradorUsers();
 
         var plazoGroup = document.getElementById('il-plazo-group');
-        document.getElementById('il-condicionPago').addEventListener('change', function() {
-            if (plazoGroup) plazoGroup.style.display = this.value === 'Crédito' ? 'block' : 'none';
-        });
+        var plazoInput = document.getElementById('il-plazo');
+        var condicionSelect = document.getElementById('il-condicionPago');
+        var togglePlazo = function() {
+            var isCredito = condicionSelect.value === 'Crédito';
+            if (plazoGroup) plazoGroup.style.display = isCredito ? 'block' : 'none';
+            if (plazoInput) plazoInput.disabled = !isCredito;
+        };
+        condicionSelect.addEventListener('change', togglePlazo);
+        togglePlazo();
 
         // Setup client autocomplete
         const clienteInput = document.getElementById('il-cliente');
