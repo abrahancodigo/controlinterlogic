@@ -177,11 +177,14 @@ const Liquidacion = {
                             <thead>
                                 <tr>
                                     <th>#</th><th>Guía</th><th>Cliente</th><th>Venta</th><th>Pago</th>
-                                    <th>Entregado</th><th>Hora</th><th>Flete</th>
+                                    <th>Entregado</th><th>Abonado</th><th>Flete</th><th>Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${delivers.map((d, i) => `
+                                ${delivers.map((d, i) => {
+                                    const montoCobrado = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
+                                    const pctAbonado = d.venta > 0 ? Math.round((montoCobrado / Number(d.venta)) * 100) : 0;
+                                    return `
                                     <tr style="${d.entregado ? 'background:#f0fdf4;' : 'background:#fef2f2;'}">
                                         <td>${i+1}</td>
                                         <td><strong>${d.guia || ''}</strong></td>
@@ -189,10 +192,18 @@ const Liquidacion = {
                                         <td style="text-align:right;font-weight:700;">$${Number(d.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                                         <td><span class="badge ${d.condicionPago==='Contado'?'badge-primary':'badge-accent'}">${d.condicionPago||''}</span></td>
                                         <td style="text-align:center;">${d.entregado ? '✅' : '❌'}</td>
-                                        <td>${d.horaEntrega || '--:--'}</td>
+                                        <td style="text-align:center;font-size:0.75rem;">
+                                            ${montoCobrado > 0 ? '<span style="color:#22c55e;">$' + formatNumber(montoCobrado,0) + ' (' + pctAbonado + '%)</span>' : '<span style="color:#ccc;">-</span>'}
+                                        </td>
                                         <td style="text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                                        <td style="text-align:center;">
+                                            ${!isLiquidado ? `
+                                                ${!d.entregado ? `<button class="btn-icon btn-danger btn-sm" onclick="Liquidacion.removeDeliveryFromRoute('${d.id}','${d.interlogicId}')" title="Quitar de ruta" style="font-size:0.7rem;padding:2px 6px;">✕</button>` : 
+                                                (d.condicionPago==='Contado' && montoCobrado < Number(d.venta||0) ? `<button class="btn-icon btn-primary btn-sm" onclick="Liquidacion.showDeliveryAbonoModal('${d.interlogicId}','${d.id}')" title="Registrar abono" style="font-size:0.7rem;padding:2px 6px;">💰</button>` : '')}
+                                            ` : ''}
+                                        </td>
                                     </tr>
-                                `).join('')}
+                                `}).join('')}
                             </tbody>
                         </table>
                     </div>`}
@@ -387,31 +398,185 @@ const Liquidacion = {
         });
     },
 
+    // ==================== ROUTE DELIVERY ACTIONS ====================
+    async removeDeliveryFromRoute(deliveryId, interlogicId) {
+        if (!await showConfirm('¿Quitar esta entrega de la ruta?', 'La factura volverá a estar sin ruta asignada.')) return;
+        try {
+            const db = firebase.firestore();
+            const batch = db.batch();
+            batch.delete(db.collection('rutaEntregas').doc(deliveryId));
+            batch.update(db.collection('interlogic').doc(interlogicId), {
+                rutaId: firebase.firestore.FieldValue.delete(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await batch.commit();
+            showToast('✅ Entrega removida de la ruta', 'success');
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    },
+
+    showDeliveryAbonoModal(interlogicId, deliveryId) {
+        const record = this.routeDeliveries.find(d => d.interlogicId === interlogicId);
+        if (!record) return;
+        const montoPendiente = Math.max(0, Number(record.venta || 0) - Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0)));
+        const settings = window.Settings?.settings || {};
+        const descPP = parseFloat(settings.descuentoProntoPago) || 0;
+        const diasPP = parseInt(settings.diasProntoPago) || 10;
+        let prontoPagoInfo = '';
+        let descuentoPosible = 0;
+        if (descPP > 0 && montoPendiente > 0) {
+            descuentoPosible = Math.round(montoPendiente * descPP) / 100;
+            prontoPagoInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:1rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#166534;"><input type="checkbox" id="rdl-ab-pp" onchange="document.getElementById('rdl-ab-monto').value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';">⚡ Aplicar descuento por pronto pago (${descPP}% = $${descuentoPosible.toFixed(2)})</label></div>`;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:450px;">
+                <h2>💰 Registrar Abono — Guía #${record.guia||'N/A'}</h2>
+                <div style="margin:0.5rem 0;font-size:0.85rem;">
+                    <div>Cliente: <strong>${sanitizeHTML(record.cliente||'-')}</strong></div>
+                    <div>Total: <strong>$${Number(record.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong> | Pendiente: <strong style="color:#f97316;">$${montoPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+                </div>
+                <form id="rdl-abono-form">
+                    <div class="form-group"><label>Monto</label><input type="number" id="rdl-ab-monto" step="0.01" min="0.01" max="${montoPendiente}" value="${montoPendiente}" required></div>
+                    ${prontoPagoInfo}
+                    <div class="form-group" style="margin-top:0.5rem;"><label>Método</label><select id="rdl-ab-metodo"><option>efectivo</option><option>transferencia</option><option>deposito</option><option>tarjeta</option></select></div>
+                    <div class="form-group" style="margin-top:0.5rem;"><label>Referencia</label><input type="text" id="rdl-ab-ref" placeholder="N° operación..."></div>
+                    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+        document.getElementById('rdl-abono-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(btn, true);
+            try {
+                const monto = parseFloat(document.getElementById('rdl-ab-monto').value) || 0;
+                const metodo = document.getElementById('rdl-ab-metodo').value;
+                const ref = document.getElementById('rdl-ab-ref').value.trim();
+                if (monto <= 0) { showToast('Monto requerido', 'error'); setButtonLoading(btn, false); return; }
+
+                const db = firebase.firestore();
+                const montoPrev = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
+                const nuevoMonto = montoPrev + monto;
+                const estado = nuevoMonto >= Number(record.venta || 0) ? 'pagado' : 'parcial';
+
+                const batch = db.batch();
+                batch.set(db.collection('cobros').doc(), {
+                    interlogicId, cliente: record.cliente||'', monto, metodo, referencia: ref,
+                    cobrador: firebase.auth().currentUser?.uid || '',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                batch.update(db.collection('interlogic').doc(interlogicId), {
+                    montoCobrado: nuevoMonto, estadoCobro: estado,
+                    cobrado: estado === 'pagado',
+                    fechaCobro: estado === 'pagado' ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                    metodoPago: metodo,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await batch.commit();
+
+                record.montoCobrado = nuevoMonto;
+                record.estadoCobro = estado;
+                record.cobrado = estado === 'pagado';
+                modal.remove();
+                this.renderRouteDetail();
+                showToast('✅ Abono de $' + formatNumber(monto, 2) + ' registrado', 'success');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
+        });
+    },
+
     // ==================== PRINT ====================
     printRouteSettlement(routeId) {
         const route = this.routes.find(r => r.id === routeId);
         if (!route) return;
 
-        this.renderRouteDetail();
-        setTimeout(() => {
-            const printArea = document.getElementById('print-area');
-            if (!printArea) return;
-            const container = document.getElementById('liq-route-detail');
-            if (!container) return;
+        const printArea = document.getElementById('print-area');
+        if (!printArea) return;
 
-            printArea.innerHTML = `
-                <div style="font-family:Arial,sans-serif;padding:20px;max-width:900px;margin:0 auto;color:#000;">
-                    <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:15px;">
-                        <h1 style="margin:0;font-size:1.4rem;">LIQUIDACIÓN DE RUTA</h1>
-                        <p style="margin:5px 0 0;font-size:0.85rem;color:#555;">Ruta #${route.id.substring(0,8).toUpperCase()} · ${new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'})}</p>
-                    </div>
-                    ${container.querySelector('.card') ? container.querySelector('.card').innerHTML : ''}
-                    <div style="margin-top:30px;text-align:center;color:#888;font-size:0.7rem;">Documento generado electrónicamente</div>
+        const repartidor = this.repartidores.find(r => r.id === route.repartidorId);
+        const comisionPct = repartidor ? (repartidor.comisionPct ?? 70) : 70;
+        const delivers = this.routeDeliveries;
+        const entregados = delivers.filter(d => d.entregado === true);
+        const totalFacturado = entregados.reduce((s, d) => s + (Number(d.venta) || 0), 0);
+        const codEsperado = entregados.filter(d => d.condicionPago === 'Contado').reduce((s, d) => s + (Number(d.venta) || 0), 0);
+        const totalFletes = entregados.reduce((s, d) => s + (Number(d.costoEnvio) || 0), 0);
+        const comisionRep = Math.round(totalFletes * comisionPct) / 100;
+        const existingLiq = this.liquidaciones.find(l => l.rutaId === routeId);
+        const codRecibido = existingLiq ? (existingLiq.totalCOD_recibido || 0) : 0;
+        const diferencia = existingLiq ? (existingLiq.diferencia || 0) : (codEsperado - codRecibido);
+        const efectivoDep = existingLiq ? (existingLiq.efectivoDepositado || 0) : Math.max(0, codRecibido - comisionRep);
+        const routeDate = route.fecha && route.fecha.toDate ? route.fecha.toDate().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) : '-';
+
+        printArea.innerHTML = `
+            <div style="font-family:Arial,sans-serif;padding:20px;max-width:900px;margin:0 auto;color:#000;">
+                <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:15px;">
+                    <h1 style="margin:0;font-size:1.4rem;">LIQUIDACIÓN DE RUTA</h1>
+                    <p style="margin:5px 0 0;font-size:0.85rem;color:#555;">Ruta #${route.id.substring(0,8).toUpperCase()} · ${routeDate}</p>
+                    <p style="margin:2px 0 0;font-size:0.8rem;">Repartidor: ${sanitizeHTML(route.repartidorNombre||'-')} · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')} · Comisión: ${comisionPct}%</p>
                 </div>
-            `;
 
-            setTimeout(() => window.print(), 100);
-        }, 300);
+                <h3 style="font-size:0.9rem;margin-bottom:8px;">Detalle de Entregas</h3>
+                <table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:20px;">
+                    <thead><tr style="background:#f0f0f0;">
+                        <th style="border:1px solid #ccc;padding:5px;">#</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:left;">Guía</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:left;">Cliente</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:right;">Venta</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:center;">Pago</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:center;">E</th>
+                        <th style="border:1px solid #ccc;padding:5px;text-align:right;">Flete</th>
+                    </tr></thead>
+                    <tbody>${delivers.map((d, i) => `
+                        <tr style="background:${d.entregado?'#f9fef9':'#fef9f9'}">
+                            <td style="border:1px solid #ccc;padding:5px;text-align:center;">${i+1}</td>
+                            <td style="border:1px solid #ccc;padding:5px;">${d.guia||''}</td>
+                            <td style="border:1px solid #ccc;padding:5px;">${sanitizeHTML(d.cliente||'')}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">$${Number(d.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:center;">${d.condicionPago||''}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:center;">${d.entregado?'✓':'✗'}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+
+                <div style="border-top:2px solid #333;padding-top:10px;">
+                    <h3 style="font-size:0.9rem;margin-bottom:8px;">Resumen de Liquidación</h3>
+                    <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
+                        <tr><td style="padding:4px 0;">Entregas realizadas</td><td style="text-align:right;">${entregados.length} / ${delivers.length}</td></tr>
+                        <tr><td style="padding:4px 0;">Total Facturado</td><td style="text-align:right;font-weight:bold;">$${totalFacturado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td style="padding:4px 0;">Total Fletes</td><td style="text-align:right;">$${totalFletes.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td style="padding:4px 0;">Comisión Repartidor (${comisionPct}%)</td><td style="text-align:right;color:#7c3aed;font-weight:bold;">$${comisionRep.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td colspan="2"><hr style="border:0;border-top:1px dashed #ccc;"></td></tr>
+                        <tr><td style="padding:4px 0;">COD Esperado</td><td style="text-align:right;">$${codEsperado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td style="padding:4px 0;">COD Recibido</td><td style="text-align:right;">$${codRecibido.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr style="font-weight:bold;"><td style="padding:4px 0;">Diferencia</td><td style="text-align:right;color:${diferencia!==0?'#ef4444':'#22c55e'};">$${Math.abs(diferencia).toLocaleString('en-US',{minimumFractionDigits:2})}${diferencia!==0?' (FALTANTE)':''}</td></tr>
+                        <tr style="font-size:0.95rem;font-weight:bold;border-top:2px solid #333;"><td style="padding:6px 0;">Efectivo a Depositar</td><td style="text-align:right;">$${efectivoDep.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                    </table>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:40px;">
+                    <div style="text-align:center;width:45%;">
+                        <div style="height:60px;"></div>
+                        <div style="border-top:1.5px solid #000;padding-top:5px;font-size:0.75rem;">Firma Repartidor</div>
+                    </div>
+                    <div style="text-align:center;width:45%;">
+                        <div style="height:60px;"></div>
+                        <div style="border-top:1.5px solid #000;padding-top:5px;font-size:0.75rem;">Firma Cajero / Recibido por</div>
+                    </div>
+                </div>
+                <div style="margin-top:20px;text-align:center;color:#888;font-size:0.65rem;">${existingLiq ? 'Liquidación ' + existingLiq.estado : 'Pendiente de aprobar'} · Generado ${new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'})}</div>
+            </div>
+        `;
+
+        setTimeout(() => window.print(), 300);
     },
 
     // ==================== MOBILE ====================

@@ -1365,6 +1365,8 @@ const Interlogic = {
                         venta: Number(r.venta) || 0,
                         condicionPago: r.condicionPago || '',
                         costoEnvio: Number(r.costoEnvio) || 0,
+                        montoCobrado: Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0)) || 0,
+                        estadoCobro: r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente'),
                         entregado: r.entregado === true,
                         horaEntrega: r.horaEntrega || '',
                         telefono: r.telefono || '',
