@@ -737,6 +737,117 @@ const Cobranza = {
         });
     },
 
+    // ==================== REGISTRAR PAGO ====================
+    showPaymentModal(recordId) {
+        const records = this.getCreditRecords();
+        const r = records.find(rec => rec.id === recordId);
+        if (!r) { showToast('Registro no encontrado', 'error'); return; }
+
+        const cobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
+        const pendiente = Math.max(0, Number(r.venta || 0) - cobrado);
+        if (pendiente <= 0) { showToast('Esta factura ya está pagada', 'error'); return; }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:450px;">
+                <h2 style="margin-bottom:1rem;">💰 Registrar Pago</h2>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;">
+                        <div><span style="color:#8e8e93;">Guía:</span> <strong>${sanitizeHTML(r.guia||'N/A')}</strong></div>
+                        <div><span style="color:#8e8e93;">Cliente:</span> <strong>${sanitizeHTML(r.cliente||'')}</strong></div>
+                        <div><span style="color:#8e8e93;">Venta:</span> <strong>$${formatNumber(r.venta||0,2)}</strong></div>
+                        <div><span style="color:#8e8e93;">Cobrado:</span> <strong style="color:#22c55e;">$${formatNumber(cobrado,2)}</strong></div>
+                        <div style="grid-column:span 2;"><span style="color:#8e8e93;">Pendiente:</span> <strong style="color:#ef4444;font-size:1.1rem;">$${formatNumber(pendiente,2)}</strong></div>
+                    </div>
+                    ${(r.planPagos||[]).length > 0 ? `
+                    <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px dashed #e2e8f0;">
+                        <div style="font-size:0.75rem;color:#7c3aed;font-weight:600;margin-bottom:4px;">📅 Pagos programados:</div>
+                        ${r.planPagos.map((pp,i) => `<div style="font-size:0.75rem;color:#555;">${i+1}. ${pp.fecha} — $${formatNumber(pp.monto,2)}</div>`).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+                <form id="payment-form">
+                    <div class="form-group">
+                        <label>Monto a cobrar</label>
+                        <input type="number" id="pay-monto" step="0.01" min="0.01" max="${pendiente}" value="${pendiente}" style="width:100%;" required>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Método de pago</label>
+                        <select id="pay-metodo" style="width:100%;">
+                            <option value="efectivo">💵 Efectivo</option>
+                            <option value="transferencia">🏦 Transferencia</option>
+                            <option value="deposito">🏧 Depósito</option>
+                            <option value="tarjeta">💳 Tarjeta</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Referencia / No. Operación</label>
+                        <input type="text" id="pay-referencia" style="width:100%;" placeholder="Opcional">
+                    </div>
+                    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-pay-save">💰 Registrar Pago</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+        document.getElementById('payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-pay-save');
+            const monto = parseFloat(document.getElementById('pay-monto').value) || 0;
+            if (monto <= 0) { showToast('Ingresa un monto válido', 'error'); return; }
+            if (monto > pendiente) { showToast('El monto excede el saldo pendiente', 'error'); return; }
+            setButtonLoading(btn, true);
+            try {
+                const metodo = document.getElementById('pay-metodo').value;
+                const ref = document.getElementById('pay-referencia').value.trim();
+                const db = firebase.firestore();
+                const batch = db.batch();
+
+                batch.set(db.collection('cobros').doc(), {
+                    interlogicId: recordId,
+                    cliente: r.cliente || '',
+                    monto: monto,
+                    metodo: metodo,
+                    estado: 'pagado',
+                    referencia: ref || '',
+                    cobrador: firebase.auth().currentUser?.uid || '',
+                    fecha: firebase.firestore.Timestamp.now(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const nuevoCobrado = cobrado + monto;
+                const ventaTotal = Number(r.venta || 0);
+                const nuevoEstado = nuevoCobrado >= ventaTotal ? 'pagado' : 'parcial';
+                const update = {
+                    montoCobrado: nuevoCobrado,
+                    montoPendiente: Math.max(0, ventaTotal - nuevoCobrado),
+                    estadoCobro: nuevoEstado,
+                    cobrado: nuevoEstado === 'pagado',
+                    fechaCobro: nuevoEstado === 'pagado' ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                    metodoPago: metodo,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // If fully paid, remove planPagos
+                if (nuevoEstado === 'pagado') {
+                    update.planPagos = firebase.firestore.FieldValue.delete();
+                }
+
+                batch.update(db.collection('interlogic').doc(recordId), update);
+                await batch.commit();
+
+                modal.remove();
+                this.renderCurrentView();
+                showToast(`✅ Pago de $${formatNumber(monto,2)} registrado`, 'success');
+            } catch(err) { showToast('Error: '+err.message, 'error'); setButtonLoading(btn, false); }
+        });
+    },
+
     // ==================== ESTADO DE CUENTA ====================
     renderEstadoCuenta() {
         const container = document.getElementById('cobranza-content');
@@ -853,6 +964,7 @@ const Cobranza = {
                     <th style="text-align:right;padding:8px;">Venta</th><th style="text-align:right;padding:8px;">Cobrado</th>
                     <th style="text-align:right;padding:8px;">Programado</th><th style="text-align:right;padding:8px;">Pendiente</th>
                     <th style="text-align:center;padding:8px;">Estado</th><th style="padding:8px;">Ruta</th>
+                    <th style="text-align:center;padding:8px;">Acción</th>
                 </tr></thead>
                 <tbody>${filtered.map(r => {
                     const c = Number(r.montoCobrado||(r.cobrado===true?r.venta:0));
@@ -862,6 +974,7 @@ const Cobranza = {
                     const ec = e==='pagado'?'#22c55e':e==='parcial'?'#f97316':'#ef4444';
                     const ruta = this.routes.find(rt => rt.id === r.rutaId);
                     const rutaLabel = ruta ? '#' + (ruta.correlativo || ruta.id.substring(0,6)) + ' ' + (ruta.repartidorNombre||'') : '-';
+                    const showPayBtn = p > 0 || e !== 'pagado';
                     return `<tr>
                         <td style="padding:8px;font-weight:bold;">${r.guia||''}</td>
                         <td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td>
@@ -871,6 +984,7 @@ const Cobranza = {
                         <td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                         <td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td>
                         <td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td>
+                        <td style="text-align:center;padding:8px;">${showPayBtn ? `<button class="btn btn-primary btn-sm" onclick="Cobranza.showPaymentModal('${r.id}')" title="Registrar pago" style="font-size:0.75rem;padding:3px 8px;">💰</button>` : '✅'}</td>
                     </tr>`;
                 }).join('')}</tbody>
                 <tfoot><tr style="background:#e5e5e5;font-weight:bold;">
