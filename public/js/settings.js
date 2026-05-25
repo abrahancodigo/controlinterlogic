@@ -123,6 +123,16 @@ const Settings = {
                                 <input type="number" id="fin-dias-recordatorio" min="0" max="30" value="${this.settings?.diasRecordatorio || '3'}" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
                             </div>
                         </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top:1rem;">
+                            <div class="form-group">
+                                <label for="fin-descuento-pp">Descuento Pronto Pago (%)</label>
+                                <input type="number" id="fin-descuento-pp" step="0.1" min="0" max="50" value="${this.settings?.descuentoProntoPago || '0'}" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="fin-dias-pp">Días para Pronto Pago</label>
+                                <input type="number" id="fin-dias-pp" min="1" max="30" value="${this.settings?.diasProntoPago || '10'}" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
+                            </div>
+                        </div>
                         <button type="submit" class="btn btn-primary btn-block" style="margin-top:1rem;${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.95rem;' : ''}">💾 Guardar Configuración Financiera</button>
                     </form>
                 </div>
@@ -282,6 +292,8 @@ const Settings = {
             const finData = {
                 tasaInteresMoratorio: parseFloat(document.getElementById('fin-tasa-mora').value) || 0,
                 diasRecordatorio: parseInt(document.getElementById('fin-dias-recordatorio').value) || 3,
+                descuentoProntoPago: parseFloat(document.getElementById('fin-descuento-pp').value) || 0,
+                diasProntoPago: parseInt(document.getElementById('fin-dias-pp').value) || 10,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await firebase.firestore().collection('config').doc('settings').set(finData, { merge: true });

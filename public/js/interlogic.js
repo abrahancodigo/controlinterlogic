@@ -1704,6 +1704,33 @@ const Interlogic = {
                         empresa: data.empresa,
                         condicionPago: data.condicionPago
                     });
+
+                    if (data.condicionPago === 'Crédito') {
+                        setTimeout(async () => {
+                            try {
+                                const eqNombre = data.cliente.toLowerCase().trim();
+                                const cliSnap = await firebase.firestore().collection('clientes')
+                                    .where('nombreNorm', '==', eqNombre).limit(1).get();
+                                if (!cliSnap.empty) {
+                                    const cliData = cliSnap.docs[0].data();
+                                    const limite = parseFloat(cliData.limiteCredito) || 0;
+                                    if (limite > 0) {
+                                        const crSnap = await firebase.firestore().collection('interlogic')
+                                            .where('cliente', '==', data.cliente)
+                                            .where('condicionPago', '==', 'Crédito').get();
+                                        const deudaTotal = crSnap.docs.reduce((s, doc) => {
+                                            const d = doc.data();
+                                            const cob = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
+                                            return s + Math.max(0, Number(d.venta || 0) - cob);
+                                        }, 0);
+                                        if (deudaTotal > limite) {
+                                            showToast('⚠️ ATENCIÓN: La deuda total de ' + data.cliente + ' ($' + formatNumber(deudaTotal, 2) + ') excede su límite de crédito ($' + formatNumber(limite, 2) + ')', 'warning');
+                                        }
+                                    }
+                                }
+                            } catch(e) { console.warn('Credit limit check error:', e.message); }
+                        }, 1000);
+                    }
                 }
                 // Invalidar caché de búsqueda para que recoja el nuevo cliente
                 Interlogic._invalidateClientCache();

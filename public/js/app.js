@@ -253,6 +253,8 @@ const App = {
         if (this.currentModule === 'cobranza' && window.Cobranza) {
             if (window.Cobranza.unsubscribeRecords) { window.Cobranza.unsubscribeRecords(); window.Cobranza.unsubscribeRecords = null; }
             if (window.Cobranza.unsubscribeCobros) { window.Cobranza.unsubscribeCobros(); window.Cobranza.unsubscribeCobros = null; }
+            if (window.Cobranza.unsubscribeGestiones) { window.Cobranza.unsubscribeGestiones(); window.Cobranza.unsubscribeGestiones = null; }
+            if (window.Cobranza.unsubscribeAjustes) { window.Cobranza.unsubscribeAjustes(); window.Cobranza.unsubscribeAjustes = null; }
         }
 
         var bulkContainer = document.getElementById('bulk-actions-container');

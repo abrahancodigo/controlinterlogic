@@ -282,6 +282,29 @@ const Liquidacion = {
 
         const montoPendiente = Number(record.venta || 0) - Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
 
+        const settings = window.Settings?.settings || {};
+        const descPP = parseFloat(settings.descuentoProntoPago) || 0;
+        const diasPP = parseInt(settings.diasProntoPago) || 10;
+        let prontoPagoInfo = '';
+        let descuentoPosible = 0;
+        if (descPP > 0 && record.fecha) {
+            const fechaRecord = record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha);
+            const diasDesde = Math.floor((new Date() - fechaRecord) / (86400000));
+            if (diasDesde <= diasPP && montoPendiente > 0) {
+                descuentoPosible = Math.round(montoPendiente * descPP) / 100;
+                prontoPagoInfo = `
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:1rem;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#166534;">
+                            <input type="checkbox" id="ab-pronto-pago" onchange="document.getElementById('ab-monto').value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';document.getElementById('ab-descuento-label').style.display=this.checked?'block':'none';">
+                            ⚡ Aplicar descuento por pronto pago (${descPP}% = $${descuentoPosible.toFixed(2)})
+                        </label>
+                        <div id="ab-descuento-label" style="display:none;margin-top:4px;font-size:0.75rem;color:#166534;">
+                            Total a pagar con descuento: $${(montoPendiente - descuentoPosible).toFixed(2)}
+                        </div>
+                    </div>`;
+            }
+        }
+
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 450px;">
                 <h2 style="margin-bottom: 1rem;">💰 Registrar Abono</h2>
@@ -301,6 +324,8 @@ const Liquidacion = {
                         <label>Monto del Abono *</label>
                         <input type="number" id="ab-monto" step="0.01" min="0.01" max="${montoPendiente}" value="${montoPendiente}" required style="width:100%;">
                     </div>
+
+                    ${prontoPagoInfo}
 
                     <div class="form-group" style="margin-top:1rem;">
                         <label>Método de Pago</label>
