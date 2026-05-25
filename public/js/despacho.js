@@ -61,7 +61,7 @@ const Despacho = {
                     <select id="ds-filter-ruta" style="padding:0.4rem;font-size:0.8rem;border:1px solid var(--border-color);border-radius:4px;max-width:160px;">
                         <option value="">Todas las rutas</option>
                     </select>
-                    <button id="ds-btn-asignar-ruta" class="btn btn-primary" style="display:none;font-size:0.75rem;">📦 Asignar a Ruta</button>
+                    <button id="ds-btn-asignar-ruta" class="btn btn-primary" style="display:none;">📦 Asignar Registros a Ruta</button>
                     <button id="ds-btn-clear-all-filters" class="btn btn-secondary" style="display: none;">
                         🧹 Quitar Filtros
                     </button>
@@ -254,6 +254,8 @@ const Despacho = {
         const rutaFilter = document.getElementById('ds-filter-ruta');
         if (rutaFilter) rutaFilter.addEventListener('change', (e) => {
             this.filters.routeId = e.target.value || null;
+            const asignarBtn = document.getElementById('ds-btn-asignar-ruta');
+            if (asignarBtn) asignarBtn.style.display = (e.target.value && this.filteredRecords.length > 0) ? 'inline-flex' : 'none';
             this.applyFilters();
         });
         const asignarRutaBtn = document.getElementById('ds-btn-asignar-ruta');
@@ -314,6 +316,11 @@ const Despacho = {
                 });
                 if (cur) select.value = cur;
             }
+            const asignarBtn = document.getElementById('ds-btn-asignar-ruta');
+            const rutaFilterEl = document.getElementById('ds-filter-ruta');
+            if (asignarBtn && rutaFilterEl && rutaFilterEl.value && this.filteredRecords.length > 0) {
+                asignarBtn.style.display = 'inline-flex';
+            }
             this.applyFilters();
         }, err => console.error('Error loading routes:', err));
     },
@@ -324,9 +331,13 @@ const Despacho = {
         const route = this.routes.find(r => r.id === routeId);
         if (!route) { showToast('Ruta no encontrada', 'error'); return; }
 
-        const recordsToAssign = this.filteredRecords.filter(r => !r.rutaId || r.rutaId !== routeId);
-        if (recordsToAssign.length === 0) { showToast('No hay registros para asignar', 'warning'); return; }
-        if (!await showConfirm('¿Asignar ' + recordsToAssign.length + ' registros a esta ruta?', 'Ruta: ' + sanitizeHTML(route.repartidorNombre||'') + ' - ' + sanitizeHTML(route.vehiculo||''))) return;
+        const recordsToAssign = this.filteredRecords.filter(r => !r.rutaId);
+        if (recordsToAssign.length === 0) { showToast('Todos los registros visibles ya están asignados a una ruta', 'warning'); return; }
+
+        const yaAsignados = this.filteredRecords.filter(r => r.rutaId && r.rutaId === routeId).length;
+        const msg = '¿Asignar ' + recordsToAssign.length + ' registros a la ruta de ' + sanitizeHTML(route.repartidorNombre||'sin repartidor') + '?' +
+            (yaAsignados > 0 ? '\n(' + yaAsignados + ' ya están en esta ruta, se omiten)' : '');
+        if (!await showConfirm(msg, '')) return;
 
         try {
             const db = firebase.firestore();
@@ -566,6 +577,12 @@ const Despacho = {
         const hasFilters = Object.values(this.filters).some(f => Array.isArray(f) ? f.length > 0 : false);
         const clearBtn = document.getElementById('ds-btn-clear-all-filters');
         if (clearBtn) clearBtn.style.display = hasFilters ? 'block' : 'none';
+
+        const asignarBtn = document.getElementById('ds-btn-asignar-ruta');
+        const rutaFilter = document.getElementById('ds-filter-ruta');
+        if (asignarBtn && rutaFilter) {
+            asignarBtn.style.display = (rutaFilter.value && this.filteredRecords.length > 0) ? 'inline-flex' : 'none';
+        }
 
         if (this.isMobile) {
             this.renderMobileCards();
