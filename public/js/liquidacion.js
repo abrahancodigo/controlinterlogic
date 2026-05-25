@@ -194,6 +194,7 @@ const Liquidacion = {
                                         <td style="text-align:center;">${d.entregado ? '✅' : '❌'}</td>
                                         <td style="text-align:center;font-size:0.75rem;">
                                             ${montoCobrado > 0 ? '<span style="color:#22c55e;">$' + formatNumber(montoCobrado,0) + ' (' + pctAbonado + '%)</span>' : '<span style="color:#ccc;">-</span>'}
+                                            ${d.planPagos && d.planPagos.length > 0 ? '<br><span style="color:#7c3aed;font-size:0.65rem;">📅 ' + d.planPagos.length + ' pgos prog.</span>' : ''}
                                         </td>
                                         <td style="text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                                         <td style="text-align:center;">
@@ -425,26 +426,43 @@ const Liquidacion = {
         let descuentoPosible = 0;
         if (descPP > 0 && montoPendiente > 0) {
             descuentoPosible = Math.round(montoPendiente * descPP) / 100;
-            prontoPagoInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:1rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;color:#166534;"><input type="checkbox" id="rdl-ab-pp" onchange="document.getElementById('rdl-ab-monto').value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';">⚡ Aplicar descuento por pronto pago (${descPP}% = $${descuentoPosible.toFixed(2)})</label></div>`;
+            prontoPagoInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:0.5rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8rem;color:#166534;"><input type="checkbox" id="rdl-ab-pp" onchange="var m=document.getElementById('rdl-ab-monto');m.value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';Liquidacion._recalcPlanTotal();">⚡ Descuento pronto pago (${descPP}% = $${descuentoPosible.toFixed(2)})</label></div>`;
         }
 
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width:450px;">
-                <h2>💰 Registrar Abono — Guía #${record.guia||'N/A'}</h2>
-                <div style="margin:0.5rem 0;font-size:0.85rem;">
-                    <div>Cliente: <strong>${sanitizeHTML(record.cliente||'-')}</strong></div>
-                    <div>Total: <strong>$${Number(record.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong> | Pendiente: <strong style="color:#f97316;">$${montoPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+            <div class="modal-content" style="max-width:550px;">
+                <h2>💰 Abono — Guía #${record.guia||'N/A'}</h2>
+                <div style="margin:0.5rem 0;font-size:0.8rem;">
+                    <div>Cliente: <strong>${sanitizeHTML(record.cliente||'-')}</strong> · Total: <strong>$${Number(record.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+                    <div>Pendiente: <strong style="color:#f97316;">$${montoPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
                 </div>
                 <form id="rdl-abono-form">
-                    <div class="form-group"><label>Monto</label><input type="number" id="rdl-ab-monto" step="0.01" min="0.01" max="${montoPendiente}" value="${montoPendiente}" required></div>
-                    ${prontoPagoInfo}
-                    <div class="form-group" style="margin-top:0.5rem;"><label>Método</label><select id="rdl-ab-metodo"><option>efectivo</option><option>transferencia</option><option>deposito</option><option>tarjeta</option></select></div>
-                    <div class="form-group" style="margin-top:0.5rem;"><label>Referencia</label><input type="text" id="rdl-ab-ref" placeholder="N° operación..."></div>
+                    <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:0.5rem;">
+                        <strong style="font-size:0.85rem;">Pago de HOY</strong>
+                        <div class="form-group" style="margin-top:6px;"><label>Monto</label><input type="number" id="rdl-ab-monto" step="0.01" min="0" max="${montoPendiente}" value="${montoPendiente}" oninput="Liquidacion._recalcPlanTotal()"></div>
+                        ${prontoPagoInfo}
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">
+                            <div class="form-group"><label>Método</label><select id="rdl-ab-metodo"><option>efectivo</option><option>transferencia</option><option>deposito</option><option>tarjeta</option></select></div>
+                            <div class="form-group"><label>Referencia</label><input type="text" id="rdl-ab-ref" placeholder="N° operación..."></div>
+                        </div>
+                    </div>
+
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0.75rem 0;font-weight:600;font-size:0.85rem;">
+                        <input type="checkbox" id="rdl-ab-plan" onchange="document.getElementById('rdl-ab-plan-section').style.display=this.checked?'block':'none';Liquidacion._recalcPlanTotal();">
+                        📅 Programar plan de pagos futuro
+                    </label>
+
+                    <div id="rdl-ab-plan-section" style="display:none;">
+                        <div id="rdl-ab-plan-list"></div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="Liquidacion._addPlanRow()" style="font-size:0.75rem;margin-top:4px;">➕ Agregar pago programado</button>
+                        <div style="font-size:0.7rem;color:#666;margin-top:2px;">Total programado: $<span id="rdl-ab-plan-total">0.00</span> | Restante: $<span id="rdl-ab-plan-restante">0.00</span></div>
+                    </div>
+
                     <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;">
                         <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                        <button type="submit" class="btn btn-primary">💾 Guardar Todo</button>
                     </div>
                 </form>
             </div>
@@ -452,43 +470,94 @@ const Liquidacion = {
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
+        this._pendingAmount = montoPendiente;
+        this._planRows = 0;
+        this._recalcPlanTotal = () => {
+            const hoyMonto = parseFloat(document.getElementById('rdl-ab-monto').value) || 0;
+            let planTotal = 0;
+            for (let i = 0; i < this._planRows; i++) {
+                planTotal += parseFloat(document.getElementById('rdl-ab-plan-monto-' + i)?.value) || 0;
+            }
+            document.getElementById('rdl-ab-plan-total').textContent = formatNumber(planTotal, 2);
+            document.getElementById('rdl-ab-plan-restante').textContent = formatNumber(Math.max(0, montoPendiente - hoyMonto - planTotal), 2);
+        };
+        this._addPlanRow = () => {
+            const i = this._planRows++;
+            const d = new Date(); d.setDate(d.getDate() + 7 * (i + 1));
+            const fechaDefault = d.toISOString().split('T')[0];
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px;';
+            row.innerHTML = `<input type="date" id="rdl-ab-plan-fecha-${i}" value="${fechaDefault}" style="flex:1;padding:4px;font-size:0.8rem;border:1px solid #e2e8f0;border-radius:4px;"><input type="number" id="rdl-ab-plan-monto-${i}" step="0.01" min="0.01" style="width:100px;padding:4px;font-size:0.8rem;border:1px solid #e2e8f0;border-radius:4px;" placeholder="$" oninput="Liquidacion._recalcPlanTotal()"><button type="button" class="btn-icon btn-sm btn-danger" style="font-size:0.6rem;padding:2px 4px;" onclick="this.parentElement.remove();Liquidacion._recalcPlanTotal();">✕</button>`;
+            document.getElementById('rdl-ab-plan-list').appendChild(row);
+            this._recalcPlanTotal();
+        };
+
         document.getElementById('rdl-abono-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             setButtonLoading(btn, true);
             try {
-                const monto = parseFloat(document.getElementById('rdl-ab-monto').value) || 0;
+                const hoyMonto = parseFloat(document.getElementById('rdl-ab-monto').value) || 0;
                 const metodo = document.getElementById('rdl-ab-metodo').value;
                 const ref = document.getElementById('rdl-ab-ref').value.trim();
-                if (monto <= 0) { showToast('Monto requerido', 'error'); setButtonLoading(btn, false); return; }
-
                 const db = firebase.firestore();
-                const montoPrev = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
-                const nuevoMonto = montoPrev + monto;
-                const estado = nuevoMonto >= Number(record.venta || 0) ? 'pagado' : 'parcial';
-
                 const batch = db.batch();
-                batch.set(db.collection('cobros').doc(), {
-                    interlogicId, cliente: record.cliente||'', monto, metodo, referencia: ref,
-                    cobrador: firebase.auth().currentUser?.uid || '',
-                    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+
+                let totalCobradoHoy = hoyMonto;
+                const montoPrev = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
+
+                if (hoyMonto > 0) {
+                    batch.set(db.collection('cobros').doc(), {
+                        interlogicId, cliente: record.cliente||'', monto: hoyMonto, metodo, referencia: ref,
+                        estado: 'pagado', cobrador: firebase.auth().currentUser?.uid || '',
+                        fecha: firebase.firestore.Timestamp.now(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                const planPayments = [];
+                for (let i = 0; i < this._planRows; i++) {
+                    const planFecha = document.getElementById('rdl-ab-plan-fecha-' + i)?.value;
+                    const planMonto = parseFloat(document.getElementById('rdl-ab-plan-monto-' + i)?.value) || 0;
+                    if (planMonto > 0 && planFecha) {
+                        let fbDate = firebase.firestore.Timestamp.now();
+                        const [y,m,d] = planFecha.split('-').map(Number);
+                        fbDate = firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d,12,0,0));
+                        batch.set(db.collection('cobros').doc(), {
+                            interlogicId, cliente: record.cliente||'', monto: planMonto, metodo: 'programado',
+                            estado: 'programado', referencia: 'Plan de pagos',
+                            fecha: fbDate,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        planPayments.push({ fecha: planFecha, monto: planMonto });
+                    }
+                }
+
+                const nuevoMonto = montoPrev + totalCobradoHoy;
+                const ventaTotal = Number(record.venta || 0);
+                const totalProgramado = planPayments.reduce((s, p) => s + p.monto, 0);
+                const estado = (nuevoMonto + totalProgramado) >= ventaTotal ? 'pagado' : (nuevoMonto > 0 || totalProgramado > 0 ? 'parcial' : 'pendiente');
+
                 batch.update(db.collection('interlogic').doc(interlogicId), {
                     montoCobrado: nuevoMonto, estadoCobro: estado,
                     cobrado: estado === 'pagado',
                     fechaCobro: estado === 'pagado' ? firebase.firestore.FieldValue.serverTimestamp() : null,
                     metodoPago: metodo,
+                    planPagos: planPayments.length > 0 ? planPayments : firebase.firestore.FieldValue.delete(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
                 await batch.commit();
 
                 record.montoCobrado = nuevoMonto;
                 record.estadoCobro = estado;
                 record.cobrado = estado === 'pagado';
+                record.planPagos = planPayments.length > 0 ? planPayments : null;
                 modal.remove();
                 this.renderRouteDetail();
-                showToast('✅ Abono de $' + formatNumber(monto, 2) + ' registrado', 'success');
+                const msg = hoyMonto > 0 ? '✅ Abono de $' + formatNumber(hoyMonto,2) + ' registrado' : '';
+                const msgPlan = planPayments.length > 0 ? ' + ' + planPayments.length + ' pagos programados' : '';
+                showToast(msg + msgPlan, 'success');
             } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
         });
     },

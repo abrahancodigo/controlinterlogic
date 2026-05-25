@@ -129,7 +129,9 @@ const Cobranza = {
         return this.records.map(r => {
             const estadoCobro = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
             const montoCobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
-            const pendiente = Math.max(0, Number(r.venta || 0) - montoCobrado);
+            const planPagos = r.planPagos || [];
+            const montoProgramado = planPagos.reduce((s, p) => s + (Number(p.monto) || 0), 0);
+            const pendiente = Math.max(0, Number(r.venta || 0) - montoCobrado - montoProgramado);
             const fechaVenc = r.fechaVencimiento ? (r.fechaVencimiento.toDate ? r.fechaVencimiento.toDate() : new Date(r.fechaVencimiento)) : null;
             let agingDays = 0;
             if (fechaVenc && estadoCobro !== 'pagado') {
@@ -141,7 +143,7 @@ const Cobranza = {
             else if (agingDays <= 60) agingBucket = '31-60';
             else if (agingDays <= 90) agingBucket = '61-90';
             else agingBucket = '90+';
-            return { ...r, estadoCobro, montoCobrado, pendiente, fechaVenc, agingDays, agingBucket };
+            return { ...r, estadoCobro, montoCobrado, montoProgramado, planPagos, pendiente, fechaVenc, agingDays, agingBucket };
         });
     },
 
@@ -629,22 +631,33 @@ const Cobranza = {
                 <thead><tr style="background:#f0f0f0;">
                     <th style="padding:8px;">Guía</th><th style="padding:8px;">Cliente</th><th style="padding:8px;">Fecha</th>
                     <th style="text-align:right;padding:8px;">Venta</th><th style="text-align:right;padding:8px;">Cobrado</th>
-                    <th style="text-align:right;padding:8px;">Pendiente</th><th style="text-align:center;padding:8px;">Estado</th>
-                    <th style="padding:8px;">Ruta</th>
+                    <th style="text-align:right;padding:8px;">Programado</th><th style="text-align:right;padding:8px;">Pendiente</th>
+                    <th style="text-align:center;padding:8px;">Estado</th><th style="padding:8px;">Ruta</th>
                 </tr></thead>
                 <tbody>${filtered.map(r => {
                     const c = Number(r.montoCobrado||(r.cobrado===true?r.venta:0));
-                    const p = Math.max(0,Number(r.venta||0)-c);
+                    const prog = r.montoProgramado || 0;
+                    const p = Math.max(0,Number(r.venta||0)-c-prog);
                     const e = r.estadoCobro||(r.cobrado===true?'pagado':'pendiente');
                     const ec = e==='pagado'?'#22c55e':e==='parcial'?'#f97316':'#ef4444';
                     const ruta = this.routes.find(rt => rt.id === r.rutaId);
                     const rutaLabel = ruta ? '#' + ruta.id.substring(0,6) + ' ' + (ruta.repartidorNombre||'') : '-';
-                    return `<tr><td style="padding:8px;font-weight:bold;">${r.guia||''}</td><td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="text-align:right;padding:8px;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:#22c55e;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td><td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td></tr>`;
+                    return `<tr>
+                        <td style="padding:8px;font-weight:bold;">${r.guia||''}</td>
+                        <td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td>
+                        <td style="text-align:right;padding:8px;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                        <td style="text-align:right;padding:8px;color:#22c55e;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                        <td style="text-align:right;padding:8px;color:#7c3aed;">${prog>0?'$'+prog.toLocaleString('en-US',{minimumFractionDigits:2}):'-'}${(r.planPagos||[]).length>0?'<br><small style="color:#7c3aed;">'+r.planPagos.length+' pagos</small>':''}</td>
+                        <td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                        <td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td>
+                        <td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td>
+                    </tr>`;
                 }).join('')}</tbody>
                 <tfoot><tr style="background:#e5e5e5;font-weight:bold;">
                     <td colspan="3" style="padding:8px;text-align:right;">TOTALES (${filtered.length})</td>
                     <td style="text-align:right;padding:8px;">$${totalVenta.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                     <td style="text-align:right;padding:8px;">$${totalCobrado.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                    <td style="text-align:right;padding:8px;">-</td>
                     <td style="text-align:right;padding:8px;">$${totalPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td></td><td></td>
                 </tr></tfoot>
             </table>
