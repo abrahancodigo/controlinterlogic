@@ -59,31 +59,34 @@ const Liquidacion = {
 
     async loadData() {
         const db = firebase.firestore();
-        return new Promise((resolve) => {
-            let loaded = 0;
-            const check = () => { loaded++; if (loaded >= 3) resolve(); };
 
+        const loadRoutes = new Promise((resolve) => {
             if (this.unsubscribeRoutes) this.unsubscribeRoutes();
             this.unsubscribeRoutes = db.collection('rutas').orderBy('fecha', 'desc').onSnapshot(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (loaded >= 3) { this.populateRouteSelect(); this.updateStats(); }
-                check();
-            }, err => { console.error(err); check(); });
-
-            db.collection('repartidores').orderBy('nombre', 'asc').onSnapshot(snap => {
-                this.repartidores = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                check();
-            }, err => { console.error(err); check(); });
-
-            db.collection('liquidaciones').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                this.liquidaciones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (loaded >= 3) this.updateStats();
-                check();
-            }, err => { console.error(err); check(); });
-        }).then(() => {
-            const select = document.getElementById('liq-route-select');
-            if (select) select.addEventListener('change', (e) => this.loadRouteDetail(e.target.value));
+                this.populateRouteSelect();
+                this.updateStats();
+                resolve();
+            }, err => {
+                console.error('Error loading rutas:', err);
+                showToast('Error al cargar rutas: ' + err.message, 'error');
+                resolve();
+            });
         });
+
+        db.collection('repartidores').orderBy('nombre', 'asc').onSnapshot(snap => {
+            this.repartidores = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }, err => console.error('Error loading repartidores:', err));
+
+        db.collection('liquidaciones').orderBy('createdAt', 'desc').onSnapshot(snap => {
+            this.liquidaciones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            this.updateStats();
+        }, err => console.error('Error loading liquidaciones:', err));
+
+        await loadRoutes;
+
+        const select = document.getElementById('liq-route-select');
+        if (select) select.addEventListener('change', (e) => this.loadRouteDetail(e.target.value));
     },
 
     populateRouteSelect() {
@@ -126,12 +129,12 @@ const Liquidacion = {
         return new Promise((resolve) => {
             this.unsubscribeDeliveries = firebase.firestore().collection('rutaEntregas')
                 .where('rutaId', '==', routeId)
-                .orderBy('sequence', 'asc')
                 .onSnapshot(snap => {
                     this.routeDeliveries = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    this.routeDeliveries.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
                     this.renderRouteDetail();
                     resolve();
-                }, err => { console.error(err); resolve(); });
+                }, err => { console.error('Error loading deliveries:', err); resolve(); });
         });
     },
 
