@@ -186,9 +186,9 @@ const App = {
             { icon: '🚨', label: 'Problemas', module: 'problemas' },
             { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
             { icon: '📅', label: 'Asistencia', module: 'asistencia' },
-            { icon: '💵', label: 'Liquidación Contado', module: 'liquidacion-contado' },
-            { icon: '💳', label: 'Liquidación Crédito', module: 'liquidacion-credito' },
-            { icon: '📊', label: 'Cobranza', module: 'cobranza' },
+            { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
+            { icon: '💵', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
+            { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
             { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
         ];
@@ -214,7 +214,7 @@ const App = {
         const bnItem = document.querySelector(`.bn-item[data-module="${moduleName}"]`);
         if (bnItem) {
             bnItem.classList.add('active');
-        } else if (moduleName === 'liquidacion-contado' || moduleName === 'liquidacion-credito') {
+        } else if (moduleName === 'liquidacion-ruta' || moduleName === 'liquidacion-contado' || moduleName === 'liquidacion-credito') {
             const despachoBtn = document.querySelector('.bn-item[data-module="despacho"]');
             if (despachoBtn) despachoBtn.classList.add('active');
         } else {
@@ -237,8 +237,9 @@ const App = {
         if (this.currentModule === 'despacho' && window.Despacho && window.Despacho.unsubscribe) {
             window.Despacho.unsubscribe(); window.Despacho.unsubscribe = null;
         }
-        if ((this.currentModule === 'liquidacion-contado' || this.currentModule === 'liquidacion-credito') && window.Liquidacion && window.Liquidacion.unsubscribe) {
-            window.Liquidacion.unsubscribe(); window.Liquidacion.unsubscribe = null;
+        if ((this.currentModule === 'liquidacion-ruta' || this.currentModule === 'liquidacion-contado' || this.currentModule === 'liquidacion-credito') && window.Liquidacion) {
+            if (window.Liquidacion.unsubscribeRoutes) { window.Liquidacion.unsubscribeRoutes(); window.Liquidacion.unsubscribeRoutes = null; }
+            if (window.Liquidacion.unsubscribeDeliveries) { window.Liquidacion.unsubscribeDeliveries(); window.Liquidacion.unsubscribeDeliveries = null; }
         }
         if (this.currentModule === 'kpi' && window.KpiEvaluation && window.KpiEvaluation.unsubscribe) {
             window.KpiEvaluation.unsubscribe(); window.KpiEvaluation.unsubscribe = null;
@@ -287,11 +288,13 @@ const App = {
                     }
                     if (window.Users && window.Users.render) await window.Users.render();
                     break;
+                case 'liquidacion-ruta':
                 case 'liquidacion-contado':
-                    if (window.Liquidacion && window.Liquidacion.renderContado) await window.Liquidacion.renderContado();
-                    break;
                 case 'liquidacion-credito':
-                    if (window.Liquidacion && window.Liquidacion.renderCredito) await window.Liquidacion.renderCredito();
+                    if (window.Liquidacion && window.Liquidacion.render) await window.Liquidacion.render();
+                    break;
+                case 'repartidores':
+                    if (window.Repartidores && window.Repartidores.render) await window.Repartidores.render();
                     break;
                 case 'kpi':
                     if (window.KpiEvaluation && window.KpiEvaluation.render) await window.KpiEvaluation.render();

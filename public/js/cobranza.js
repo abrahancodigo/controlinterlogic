@@ -10,6 +10,7 @@ const Cobranza = {
     cobros: [],
     gestiones: [],
     ajustes: [],
+    routes: [],
     currentView: 'dashboard',
     unsubscribeRecords: null,
     unsubscribeCobros: null,
@@ -60,7 +61,7 @@ const Cobranza = {
         const db = firebase.firestore();
         return new Promise((resolve) => {
             let loaded = 0;
-            const totalNeeded = 4;
+            const totalNeeded = 5;
             const checkDone = () => { loaded++; if (loaded >= totalNeeded) resolve(); };
 
             if (this.unsubscribeRecords) this.unsubscribeRecords();
@@ -99,6 +100,11 @@ const Cobranza = {
                     if (loaded >= totalNeeded) this.renderCurrentView();
                     checkDone();
                 }, err => { console.error('Error loading ajustes:', err); checkDone(); });
+
+            db.collection('rutas').orderBy('fecha', 'desc').limit(100).get().then(snap => {
+                this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                checkDone();
+            }).catch(err => { checkDone(); });
 
             if (window.Clientes && window.Clientes.loadRecords) {
                 window.Clientes.loadRecords().then(() => { this.clientes = window.Clientes.getAll(); });
@@ -624,19 +630,22 @@ const Cobranza = {
                     <th style="padding:8px;">Guía</th><th style="padding:8px;">Cliente</th><th style="padding:8px;">Fecha</th>
                     <th style="text-align:right;padding:8px;">Venta</th><th style="text-align:right;padding:8px;">Cobrado</th>
                     <th style="text-align:right;padding:8px;">Pendiente</th><th style="text-align:center;padding:8px;">Estado</th>
+                    <th style="padding:8px;">Ruta</th>
                 </tr></thead>
                 <tbody>${filtered.map(r => {
                     const c = Number(r.montoCobrado||(r.cobrado===true?r.venta:0));
                     const p = Math.max(0,Number(r.venta||0)-c);
                     const e = r.estadoCobro||(r.cobrado===true?'pagado':'pendiente');
                     const ec = e==='pagado'?'#22c55e':e==='parcial'?'#f97316':'#ef4444';
-                    return `<tr><td style="padding:8px;font-weight:bold;">${r.guia||''}</td><td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="text-align:right;padding:8px;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:#22c55e;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td></tr>`;
+                    const ruta = this.routes.find(rt => rt.id === r.rutaId);
+                    const rutaLabel = ruta ? '#' + ruta.id.substring(0,6) + ' ' + (ruta.repartidorNombre||'') : '-';
+                    return `<tr><td style="padding:8px;font-weight:bold;">${r.guia||''}</td><td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="text-align:right;padding:8px;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:#22c55e;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td><td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td></tr>`;
                 }).join('')}</tbody>
                 <tfoot><tr style="background:#e5e5e5;font-weight:bold;">
                     <td colspan="3" style="padding:8px;text-align:right;">TOTALES (${filtered.length})</td>
                     <td style="text-align:right;padding:8px;">$${totalVenta.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                     <td style="text-align:right;padding:8px;">$${totalCobrado.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                    <td style="text-align:right;padding:8px;">$${totalPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td></td>
+                    <td style="text-align:right;padding:8px;">$${totalPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td></td><td></td>
                 </tr></tfoot>
             </table>
             ${ajustesRel.length>0 ? `<div style="margin-top:1rem;"><h4 style="font-size:0.85rem;color:#666;margin-bottom:4px;">Ajustes Relacionados (${ajustesRel.length})</h4><table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#fefce8;"><th style="padding:4px;">Tipo</th><th style="padding:4px;text-align:right;">Monto</th><th style="padding:4px;">Motivo</th><th style="padding:4px;">Fecha</th></tr></thead><tbody>${ajustesRel.map(a=>`<tr style="background:#fffbeb;"><td style="padding:4px;">${a.tipo||''}</td><td style="text-align:right;padding:4px;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:4px;">${sanitizeHTML(a.motivo||'')}</td><td style="padding:4px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td></tr>`).join('')}</tbody></table></div>`:''}

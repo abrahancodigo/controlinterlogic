@@ -5,6 +5,7 @@
 const Despacho = {
     records: [],
     filteredRecords: [],
+    routes: [],
     loading: false,
     filters: {
         search: '',
@@ -20,6 +21,7 @@ const Despacho = {
         venta: [],
         cobrador: [],
         horaEntrega: [],
+        routeId: null,
         status: 'all'
     },
     currentSort: {
@@ -55,6 +57,11 @@ const Despacho = {
                     <button id="ds-btn-export-excel" class="btn btn-secondary">
                         📥 Exportar Excel
                     </button>
+                    <button id="ds-btn-nueva-ruta" class="btn btn-accent">➕ Ruta</button>
+                    <select id="ds-filter-ruta" style="padding:0.4rem;font-size:0.8rem;border:1px solid var(--border-color);border-radius:4px;max-width:160px;">
+                        <option value="">Todas las rutas</option>
+                    </select>
+                    <button id="ds-btn-asignar-ruta" class="btn btn-primary" style="display:none;font-size:0.75rem;">📦 Asignar a Ruta</button>
                     <button id="ds-btn-clear-all-filters" class="btn btn-secondary" style="display: none;">
                         🧹 Quitar Filtros
                     </button>
@@ -200,12 +207,14 @@ const Despacho = {
                                         </div>
                                     </div>
                                 </th>
+                                <th>Flete</th>
+                                <th style="text-align: center;">Ruta</th>
                                 <th style="text-align: center;">¿Entregado?</th>
                             </tr>
                         </thead>
                         <tbody id="despacho-table-body">
                             <tr>
-                                <td colspan="11" style="text-align: center; padding: 2rem;">Cargando registros...</td>
+                                <td colspan="12" style="text-align: center; padding: 2rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                         <tfoot id="despacho-table-footer"></tfoot>
@@ -216,6 +225,7 @@ const Despacho = {
 
         // Load records
         await this.loadRecords();
+        await this.loadRoutes();
 
         // Setup event listeners
         const startEl = document.getElementById('ds-filter-start-date');
@@ -232,6 +242,22 @@ const Despacho = {
         if (clearBtn) clearBtn.addEventListener('click', () => this.clearAllFilters());
         const exportBtn = document.getElementById('ds-btn-export-excel');
         if (exportBtn) exportBtn.addEventListener('click', () => this.exportToExcel());
+
+        const nuevaRutaBtn = document.getElementById('ds-btn-nueva-ruta');
+        if (nuevaRutaBtn) nuevaRutaBtn.addEventListener('click', () => {
+            if (window.Liquidacion && window.Liquidacion.showCrearRuta) {
+                window.Liquidacion.showCrearRuta();
+            } else {
+                this.showCrearRutaSimple();
+            }
+        });
+        const rutaFilter = document.getElementById('ds-filter-ruta');
+        if (rutaFilter) rutaFilter.addEventListener('change', (e) => {
+            this.filters.routeId = e.target.value || null;
+            this.applyFilters();
+        });
+        const asignarRutaBtn = document.getElementById('ds-btn-asignar-ruta');
+        if (asignarRutaBtn) asignarRutaBtn.addEventListener('click', () => this.asignarARuta());
 
         // Global search listener
         const searchEl = document.getElementById('ds-global-search');
@@ -269,6 +295,103 @@ const Despacho = {
                 console.error('Error loading records:', error);
                 showToast('Error en sincronización: ' + error.message, 'error');
             });
+    },
+
+    async loadRoutes() {
+        const db = firebase.firestore();
+        db.collection('rutas').orderBy('fecha', 'desc').onSnapshot(snap => {
+            this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const select = document.getElementById('ds-filter-ruta');
+            if (select) {
+                const cur = select.value;
+                select.innerHTML = '<option value="">Todas las rutas (' + this.routes.length + ')</option>';
+                this.routes.forEach(r => {
+                    const f = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
+                    const o = document.createElement('option');
+                    o.value = r.id;
+                    o.textContent = '#' + r.id.substring(0,6) + ' ' + (r.repartidorNombre||'') + ' ' + f;
+                    select.appendChild(o);
+                });
+                if (cur) select.value = cur;
+            }
+            this.applyFilters();
+        }, err => console.error('Error loading routes:', err));
+    },
+
+    async asignarARuta() {
+        const routeId = document.getElementById('ds-filter-ruta')?.value;
+        if (!routeId) { showToast('Selecciona una ruta primero', 'error'); return; }
+        const route = this.routes.find(r => r.id === routeId);
+        if (!route) { showToast('Ruta no encontrada', 'error'); return; }
+
+        const recordsToAssign = this.filteredRecords.filter(r => !r.rutaId || r.rutaId !== routeId);
+        if (recordsToAssign.length === 0) { showToast('No hay registros para asignar', 'warning'); return; }
+        if (!await showConfirm('¿Asignar ' + recordsToAssign.length + ' registros a esta ruta?', 'Ruta: ' + sanitizeHTML(route.repartidorNombre||'') + ' - ' + sanitizeHTML(route.vehiculo||''))) return;
+
+        try {
+            const db = firebase.firestore();
+            const batch = db.batch();
+            recordsToAssign.forEach((r, i) => {
+                const ref = db.collection('rutaEntregas').doc();
+                batch.set(ref, {
+                    rutaId: routeId,
+                    interlogicId: r.id,
+                    guia: r.guia || '',
+                    cliente: r.cliente || '',
+                    direccion: r.direccion || '',
+                    venta: Number(r.venta) || 0,
+                    condicionPago: r.condicionPago || '',
+                    costoEnvio: Number(r.costoEnvio) || 0,
+                    entregado: r.entregado === true,
+                    horaEntrega: r.horaEntrega || '',
+                    telefono: r.telefono || '',
+                    sequence: i + 1,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                batch.update(db.collection('interlogic').doc(r.id), { rutaId: routeId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            });
+            await batch.commit();
+            showToast('✅ ' + recordsToAssign.length + ' registros asignados', 'success');
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    },
+
+    showCrearRutaSimple() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:450px;">
+                <h2 style="margin-bottom:1rem;">➕ Nueva Ruta</h2>
+                <form id="ds-ruta-form">
+                    <div class="form-group"><label>Fecha</label><input type="date" id="ds-ruta-fecha" value="${getLocalDateString()}"></div>
+                    <div class="form-group" style="margin-top:1rem;"><label>Repartidor</label><input type="text" id="ds-ruta-repartidor" placeholder="Nombre del repartidor"></div>
+                    <div class="form-group" style="margin-top:1rem;"><label>Vehículo</label><input type="text" id="ds-ruta-vehiculo" placeholder="Placa"></div>
+                    <div class="form-group" style="margin-top:1rem;"><label>Zona</label><input type="text" id="ds-ruta-zona" placeholder="Zona"></div>
+                    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Crear Ruta</button>
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+        document.getElementById('ds-ruta-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            setButtonLoading(btn, true);
+            try {
+                const fv = document.getElementById('ds-ruta-fecha').value;
+                let fb = firebase.firestore.Timestamp.now();
+                if (fv) { const [y,m,d] = fv.split('-').map(Number); fb = firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d,12,0,0)); }
+                await firebase.firestore().collection('rutas').add({
+                    fecha: fb, repartidorNombre: document.getElementById('ds-ruta-repartidor').value,
+                    vehiculo: document.getElementById('ds-ruta-vehiculo').value,
+                    zona: document.getElementById('ds-ruta-zona').value,
+                    estado: 'pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                modal.remove(); showToast('✅ Ruta creada', 'success');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
+        });
     },
 
     toggleFilter(event, field) {
@@ -396,6 +519,10 @@ const Despacho = {
                     continue;
                 }
                 if (field === 'status') continue;
+                if (field === 'routeId' && val) {
+                    if (record.rutaId !== val) return false;
+                    continue;
+                }
                 if (Array.isArray(val) && val.length > 0) {
                     let recordVal;
                     if (field === 'fecha') {
@@ -462,12 +589,13 @@ const Despacho = {
         }
 
         if (this.filteredRecords.length === 0) {
-            body.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 2rem;">No hay registros coincidentes.</td></tr>';
+            body.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem;">No hay registros coincidentes.</td></tr>';
             return;
         }
 
         body.innerHTML = this.filteredRecords.map(record => {
             const isDelivered = record.entregado === true;
+            const rutaInfo = this.routes.find(r => r.id === record.rutaId);
             return `
                 <tr class="${isDelivered ? 'ds-row-delivered' : 'ds-row-pending'}">
                     <td><strong>${record.guia || ''}</strong></td>
@@ -479,9 +607,13 @@ const Despacho = {
                     <td>${record.condicionPago || ''}</td>
                     <td style="font-weight: 700;">$${formatNumber(record.venta || 0, 2)}</td>
                     <td>${sanitizeHTML(record.cobrador || '')}</td>
+                    <td style="text-align:right;">$${formatNumber(record.costoEnvio || 0, 2)}</td>
                     <td>
                         <input type="text" class="ds-time-input" value="${record.horaEntrega || ''}" placeholder="HH:MM"
                                onchange="Despacho.updateField('${record.id}', 'horaEntrega', this.value)">
+                    </td>
+                    <td style="text-align:center;font-size:0.7rem;">
+                        ${rutaInfo ? `<span class="badge badge-accent" title="Ruta #${rutaInfo.id.substring(0,6)} - ${sanitizeHTML(rutaInfo.repartidorNombre||'')}">#${rutaInfo.id.substring(0,6)}</span>` : '<span style="color:#ccc;">-</span>'}
                     </td>
                     <td style="text-align: center;">
                         <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
@@ -518,9 +650,9 @@ const Despacho = {
 
         tfoot.innerHTML = `
             <tr class="ds-totals-row">
-                <td colspan="7" style="text-align: right;">TOTALES:</td>
+                <td colspan="8" style="text-align: right;">TOTALES:</td>
                 <td>$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                <td colspan="3"></td>
+                <td colspan="4"></td>
             </tr>
         `;
     },
@@ -719,6 +851,7 @@ const Despacho = {
             else if (f === 'endDate') { this.filters[f] = getLocalDateString(); }
             else if (f === 'search') { this.filters[f] = ''; }
             else if (f === 'status') { this.filters[f] = 'all'; }
+            else if (f === 'routeId') { this.filters[f] = null; }
             else if (Array.isArray(this.filters[f])) { this.filters[f] = []; }
         }
         var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
@@ -740,13 +873,16 @@ const Despacho = {
         } else {
             list.innerHTML = this.filteredRecords.map(function(r) {
                 var del = r.entregado === true;
+                var rutaName = '';
+                (this.routes || []).forEach(function(rt) { if (rt.id === r.rutaId) rutaName = rt.repartidorNombre || ''; });
                 return '<div class="m-data-card" onclick="Despacho.showMobileDetail(\'' + r.id + '\')" style="' + (del ? 'border-left:3px solid #10b981;' : '') + '">' +
                     '<div class="m-card-header"><span class="m-card-title">#' + (r.guia || r.id.substring(0,6).toUpperCase()) + '</span>' +
                     '<span class="m-card-badge ' + (del ? 'success' : 'warning') + '">' + (del ? '✓ Entregado' : 'Pendiente') + '</span></div>' +
                     '<div class="m-card-rows">' +
                     '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>' +
-                    '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Venta / Flete</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + ' / $' + formatNumber(r.costoEnvio || 0, 2) + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>' +
+                    (rutaName ? '<div class="m-card-row"><span class="m-card-label">Ruta</span><span class="m-card-value">' + sanitizeHTML(rutaName) + '</span></div>' : '') +
                     '<div class="m-card-row"><span class="m-card-label">Hora Ent.</span><span class="m-card-value">' + (r.horaEntrega || '--:--') + '</span></div>' +
                     '</div>' +
                     '<div class="m-card-actions" onclick="event.stopPropagation()">' +
