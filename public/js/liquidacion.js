@@ -172,7 +172,10 @@ const Liquidacion = {
                         <h2>📍 Ruta #${route.correlativo || route.id.substring(0,8).toUpperCase()}${isLiquidado ? ' <span style="color:#22c55e;">(LIQUIDADO)</span>' : ''}</h2>
                         <p style="font-size:0.85rem;color:#666;">${routeDate} · Repartidor: <strong>${sanitizeHTML(route.repartidorNombre||'-')}</strong> · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')}</p>
                     </div>
-                    ${isLiquidado ? `<button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${route.id}')">🖨️ Imprimir Liquidación</button>` : ''}
+                    <div style="display:flex;gap:0.5rem;">
+                        ${isLiquidado ? `<button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${route.id}')">🖨️ Imprimir Liquidación</button>` : ''}
+                        <button class="btn btn-danger" onclick="Liquidacion.deleteRoute('${route.id}')" title="Eliminar ruta">🗑️ Eliminar Ruta</button>
+                    </div>
                 </div>
                 <div class="card-body">
                     ${delivers.length === 0 ? '<p style="text-align:center;padding:1rem;color:#8e8e93;">Esta ruta no tiene entregas asignadas. Ve a Despacho para asignar guías.</p>' : `
@@ -442,6 +445,35 @@ const Liquidacion = {
             });
             await batch.commit();
             showToast('✅ Entrega removida de la ruta', 'success');
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    },
+
+    async deleteRoute(routeId) {
+        const route = this.routes.find(r => r.id === routeId);
+        const label = route ? (route.correlativo ? '#' + route.correlativo : routeId.substring(0,8)) : routeId;
+        if (!await showConfirm(`¿Eliminar la ruta ${label}?`, 'Se quitarán todas las guías asignadas y la ruta se borrará permanentemente.')) return;
+        try {
+            const db = firebase.firestore();
+            const snap = await db.collection('rutaEntregas').where('rutaId', '==', routeId).get();
+            const batch = db.batch();
+            snap.docs.forEach(doc => {
+                const data = doc.data();
+                batch.delete(doc.ref);
+                if (data.interlogicId) {
+                    batch.update(db.collection('interlogic').doc(data.interlogicId), {
+                        rutaId: firebase.firestore.FieldValue.delete(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            });
+            batch.delete(db.collection('rutas').doc(routeId));
+            await batch.commit();
+            this.currentRouteId = null;
+            const container = document.getElementById('liq-route-detail');
+            if (container) container.innerHTML = '<div style="text-align:center;padding:2rem;color:#8e8e93;">Ruta eliminada. Selecciona otra ruta.</div>';
+            this.populateRouteSelect();
+            this.updateStats();
+            showToast('✅ Ruta eliminada', 'success');
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
     },
 
