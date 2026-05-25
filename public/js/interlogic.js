@@ -14,7 +14,7 @@ const Interlogic = {
     selectedRecords: new Set(),
     filters: {
         search: '',
-        startDate: getLocalDateString(),
+        startDate: '2025-01-01',
         endDate: getLocalDateString(),
         guia: [],
         empresa: [],
@@ -820,6 +820,15 @@ const Interlogic = {
         // Apply Sorting
         this.applySorting();
 
+        const hasActiveFilters = this.currentSort.field || Object.entries(this.filters).some(([k, v]) => {
+            if (k === 'startDate' && v !== '2025-01-01') return true;
+            if (k === 'endDate' && v !== getLocalDateString()) return true;
+            if (k === 'search' && v) return true;
+            return Array.isArray(v) && v.length > 0;
+        });
+        const clearBtn = document.getElementById('btn-clear-all-filters');
+        if (clearBtn) clearBtn.style.display = hasActiveFilters ? 'inline-flex' : 'none';
+
         // Update table
         if (this.isMobile) {
             this.renderMobileCards();
@@ -979,7 +988,7 @@ const Interlogic = {
         const today = getLocalDateString();
         this.filters = {
             search: '',
-            startDate: today,
+            startDate: '2025-01-01',
             endDate: today,
             empresa: [],
             zona: [],
@@ -992,7 +1001,7 @@ const Interlogic = {
 
         const startInput = document.getElementById('filter-start-date');
         const endInput = document.getElementById('filter-end-date');
-        if (startInput) startInput.value = today;
+        if (startInput) startInput.value = '2025-01-01';
         if (endInput) endInput.value = today;
         const searchInput = document.getElementById('global-search');
         if (searchInput) searchInput.value = '';
@@ -1015,9 +1024,6 @@ const Interlogic = {
                     ...doc.data()
                 }));
 
-                // If it's the first load, we might want to populate filters
-                // subsequent loads should preserve filter state but refresh data
-                this.populateFilterOptions();
                 this.applyFilters();
 
                 // Remove loading state on first data receive
@@ -1460,13 +1466,15 @@ const Interlogic = {
                     var d = doc.data();
                     var name = d.displayName || d.email || doc.id;
                     var opt = document.createElement('option');
-                    opt.value = doc.id;
+                    opt.value = name;
                     opt.textContent = name;
                     select.appendChild(opt);
                 });
-                var current = '${sanitizeHTML(val('cobrador'))}';
-                if (current && select.querySelector('option[value="' + current + '"]')) {
-                    select.value = current;
+                var current = sanitizeHTML(val('cobrador'));
+                if (current) {
+                    var match = select.querySelector('option[value="' + current.replace(/"/g,'&quot;') + '"]');
+                    if (match) select.value = current;
+                    else { var opt2 = document.createElement('option'); opt2.value = current; opt2.textContent = current + ' (actual)'; select.appendChild(opt2); select.value = current; }
                 }
             } catch(e) {
                 console.warn('Could not load users for cobrador:', e.message);

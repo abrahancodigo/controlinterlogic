@@ -8,7 +8,7 @@ const Despacho = {
     loading: false,
     filters: {
         search: '',
-        startDate: getLocalDateString(),
+        startDate: '2025-01-01',
         endDate: getLocalDateString(),
         guia: [],
         empresa: [],
@@ -520,9 +520,7 @@ const Despacho = {
             <tr class="ds-totals-row">
                 <td colspan="7" style="text-align: right;">TOTALES:</td>
                 <td>$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                <td></td>
-                <td>$${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                <td></td>
+                <td colspan="3"></td>
             </tr>
         `;
     },
@@ -717,7 +715,7 @@ const Despacho = {
 
     clearAllFilters() {
         for (var f in this.filters) {
-            if (f === 'startDate') { this.filters[f] = getLocalDateString(); }
+            if (f === 'startDate') { this.filters[f] = '2025-01-01'; }
             else if (f === 'endDate') { this.filters[f] = getLocalDateString(); }
             else if (f === 'search') { this.filters[f] = ''; }
             else if (f === 'status') { this.filters[f] = 'all'; }
