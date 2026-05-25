@@ -984,7 +984,7 @@ const Cobranza = {
                         <td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                         <td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td>
                         <td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td>
-                        <td style="text-align:center;padding:8px;">${showPayBtn ? `<button class="btn btn-primary btn-sm" onclick="Cobranza.showPaymentModal('${r.id}')" title="Registrar pago" style="font-size:0.75rem;padding:3px 8px;">💰</button>` : '✅'}</td>
+                        <td style="text-align:center;padding:8px;">${showPayBtn ? `<button class="btn btn-primary btn-sm" onclick="Cobranza.showPaymentModal('${r.id}')" title="Registrar pago" style="font-size:0.75rem;padding:4px 10px;">💰 Cobrar</button>` : '✅'}</td>
                     </tr>`;
                 }).join('')}</tbody>
                 <tfoot><tr style="background:#e5e5e5;font-weight:bold;">
