@@ -231,6 +231,7 @@ const App = {
 
         if (this.currentModule === 'interlogic' && window.Interlogic && window.Interlogic.unsubscribe) {
             window.Interlogic.unsubscribe(); window.Interlogic.unsubscribe = null;
+            window.Interlogic.selectedRecords.clear();
         }
         if (this.currentModule === 'despacho' && window.Despacho && window.Despacho.unsubscribe) {
             window.Despacho.unsubscribe(); window.Despacho.unsubscribe = null;
@@ -243,10 +244,14 @@ const App = {
         }
         if (this.currentModule === 'clientes' && window.Clientes && window.Clientes.unsubscribe) {
             window.Clientes.unsubscribe(); window.Clientes.unsubscribe = null;
+            window.Clientes.selectedRecords.clear();
         }
         if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {
             window.Problemas.unsubscribe(); window.Problemas.unsubscribe = null;
         }
+
+        var bulkContainer = document.getElementById('bulk-actions-container');
+        if (bulkContainer) bulkContainer.remove();
 
         this.currentModule = moduleName;
 

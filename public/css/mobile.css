@@ -114,6 +114,7 @@ body {
 }
 .more-overlay.show { opacity: 1; visibility: visible; pointer-events: auto; }
 .more-menu {
+    display: block;
     position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--m-surface);
     border-radius: 16px 16px 0 0;

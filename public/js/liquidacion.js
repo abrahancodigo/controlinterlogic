@@ -7,7 +7,7 @@ const Liquidacion = {
     filteredRecords: [],
     currentView: 'contado', // 'contado' or 'credito'
     filters: {
-        startDate: '2025-01-01',
+        startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0]
     },
     unsubscribe: null,

@@ -256,7 +256,7 @@ const Settings = {
             // If users module exists, initialize it directly
             if (typeof Users !== 'undefined') {
                 document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                Users.init();
+                Users.render();
             }
         }
     }

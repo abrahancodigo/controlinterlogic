@@ -797,7 +797,16 @@ const Interlogic = {
                         continue;
                     }
 
-                    const recordValue = String(record[field] || ' (Vacío)');
+                    let recordValue;
+                    if (field === 'fecha') {
+                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    } else if (field === 'venta' || field === 'costoEnvio') {
+                        recordValue = formatNumber(record[field] || 0, 2);
+                    } else if (field === 'costoPorcentaje') {
+                        recordValue = formatNumber(record[field] || 0, 2) + '%';
+                    } else {
+                        recordValue = String(record[field] || ' (Vacío)');
+                    }
                     if (Array.isArray(activeValues)) {
                         if (!activeValues.includes(recordValue)) return false;
                     } else if (typeof activeValues === 'string' && activeValues) {
@@ -919,8 +928,8 @@ const Interlogic = {
         // Get unique values from the subset of records, formatted as they appear in the table
         const uniqueValues = [...new Set(recordsPassingOtherFilters.map(r => {
             if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
-            if (field === 'venta' || field === 'costoEnvio') return formatNumber(record[field] || 0, 2);
-            if (field === 'costoPorcentaje') return formatNumber(record[field] || 0, 2) + '%';
+            if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
+            if (field === 'costoPorcentaje') return formatNumber(r[field] || 0, 2) + '%';
             return String(r[field] || ' (Vacío)');
         }))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 

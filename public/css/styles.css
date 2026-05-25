@@ -475,6 +475,9 @@ body {
     display: flex;
 }
 
+.bottom-nav { display: none; }
+.more-menu { display: none; }
+
 
 .sidebar-nav {
     flex: 1;
@@ -4016,6 +4019,7 @@ tbody tr {
     }
 
     .more-menu {
+        display: block;
         position: fixed;
         bottom: 0;
         left: 0;

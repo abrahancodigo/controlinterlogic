@@ -8,8 +8,8 @@ const Despacho = {
     loading: false,
     filters: {
         search: '',
-        startDate: '2025-01-01',
-        endDate: new Date().toISOString().split('T')[0],
+        startDate: getLocalDateString(),
+        endDate: getLocalDateString(),
         guia: [],
         empresa: [],
         fecha: [],
@@ -89,7 +89,6 @@ const Despacho = {
                 <div class="table-container" style="overflow-x: visible;">
                     <table class="data-table">
                         <thead>
-                            <tr>
                             <tr>
                                 <th>
                                     <div class="filter-header" onclick="Despacho.toggleFilter(event, 'guia')">
@@ -206,7 +205,7 @@ const Despacho = {
                         </thead>
                         <tbody id="despacho-table-body">
                             <tr>
-                                <td colspan="12" style="text-align: center; padding: 2rem;">Cargando registros...</td>
+                                <td colspan="11" style="text-align: center; padding: 2rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                         <tfoot id="despacho-table-footer"></tfoot>
@@ -398,7 +397,14 @@ const Despacho = {
                 }
                 if (field === 'status') continue;
                 if (Array.isArray(val) && val.length > 0) {
-                    const recordVal = String(record[field] || ' (Vacío)');
+                    let recordVal;
+                    if (field === 'fecha') {
+                        recordVal = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    } else if (field === 'venta' || field === 'total') {
+                        recordVal = formatNumber(record[field] || 0, 2);
+                    } else {
+                        recordVal = String(record[field] || ' (Vacío)');
+                    }
                     if (!val.includes(recordVal)) return false;
                 }
             }
@@ -516,7 +522,7 @@ const Despacho = {
                 <td>$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 <td></td>
                 <td>$${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                <td colspan="2"></td>
+                <td></td>
             </tr>
         `;
     },
@@ -571,22 +577,6 @@ const Despacho = {
             console.error('Error updating field:', error);
             showToast('Error al actualizar: ' + error.message, 'error');
         }
-    },
-
-    clearAllFilters() {
-        this.filters = {
-            search: '',
-            startDate: '2025-01-01',
-            endDate: new Date().toISOString().split('T')[0],
-            empresa: [],
-            zona: [],
-            vendedor: [],
-            cobrador: [],
-            cliente: [],
-            condicionPago: [],
-            status: 'all'
-        };
-        this.applyFilters();
     },
 
     exportToExcel() {
@@ -727,11 +717,19 @@ const Despacho = {
 
     clearAllFilters() {
         for (var f in this.filters) {
-            if (f === 'startDate' || f === 'endDate') { this.filters[f] = ''; }
+            if (f === 'startDate') { this.filters[f] = getLocalDateString(); }
+            else if (f === 'endDate') { this.filters[f] = getLocalDateString(); }
             else if (f === 'search') { this.filters[f] = ''; }
             else if (f === 'status') { this.filters[f] = 'all'; }
             else if (Array.isArray(this.filters[f])) { this.filters[f] = []; }
         }
+        var setVal = function(id, val) { var el = document.getElementById(id); if (el) el.value = val; };
+        setVal('ds-filter-start-date', this.filters.startDate);
+        setVal('ds-filter-end-date', this.filters.endDate);
+        setVal('ds-global-search', '');
+        setVal('mds-start', this.filters.startDate);
+        setVal('mds-end', this.filters.endDate);
+        setVal('mds-search', '');
         this.applyFilters();
     },
 
