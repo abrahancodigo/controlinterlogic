@@ -632,7 +632,7 @@ const Despacho = {
                                onchange="Despacho.updateField('${record.id}', 'horaEntrega', this.value)">
                     </td>
                     <td style="text-align:center;font-size:0.7rem;">
-                        ${rutaInfo ? `<span class="badge badge-accent" title="Ruta #${rutaInfo.id.substring(0,6)} - ${sanitizeHTML(rutaInfo.repartidorNombre||'')}">#${rutaInfo.id.substring(0,6)}</span>` : '<span style="color:#ccc;">-</span>'}
+                        ${rutaInfo ? `<span class="badge badge-accent" title="Ruta #${rutaInfo.correlativo || rutaInfo.id.substring(0,6)} - ${sanitizeHTML(rutaInfo.repartidorNombre||'')}">#${rutaInfo.correlativo || rutaInfo.id.substring(0,6)}</span>` : '<span style="color:#ccc;">-</span>'}
                     </td>
                     <td style="text-align: center;">
                         <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">

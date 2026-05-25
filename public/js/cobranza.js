@@ -861,7 +861,7 @@ const Cobranza = {
                     const e = r.estadoCobro||(r.cobrado===true?'pagado':'pendiente');
                     const ec = e==='pagado'?'#22c55e':e==='parcial'?'#f97316':'#ef4444';
                     const ruta = this.routes.find(rt => rt.id === r.rutaId);
-                    const rutaLabel = ruta ? '#' + ruta.id.substring(0,6) + ' ' + (ruta.repartidorNombre||'') : '-';
+                    const rutaLabel = ruta ? '#' + (ruta.correlativo || ruta.id.substring(0,6)) + ' ' + (ruta.repartidorNombre||'') : '-';
                     return `<tr>
                         <td style="padding:8px;font-weight:bold;">${r.guia||''}</td>
                         <td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td>

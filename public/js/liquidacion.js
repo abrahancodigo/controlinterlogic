@@ -12,6 +12,14 @@ const Liquidacion = {
     unsubscribeRoutes: null,
     unsubscribeDeliveries: null,
 
+    getNextCorrelativo() {
+        const max = this.routes.reduce((max, r) => {
+            const num = parseInt(r.correlativo, 10);
+            return !isNaN(num) && num > max ? num : max;
+        }, 0);
+        return String(max + 1).padStart(4, '0');
+    },
+
     async render() {
         if (window.innerWidth <= 768) return this.renderMobile();
         return this.renderDesktop();
@@ -99,7 +107,7 @@ const Liquidacion = {
             const opt = document.createElement('option');
             opt.value = r.id;
             const fecha = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
-            opt.textContent = `Ruta #${r.id.substring(0,6)} - ${r.repartidorNombre||'Sin repartidor'} - ${fecha} - ${r.estado||'pendiente'}`;
+            opt.textContent = `Ruta #${r.correlativo || r.id.substring(0,6)} - ${r.repartidorNombre||'Sin repartidor'} - ${fecha} - ${r.estado||'pendiente'}`;
             if (r.estado === 'liquidado') opt.style.color = '#22c55e';
             select.appendChild(opt);
         });
@@ -161,7 +169,7 @@ const Liquidacion = {
             <div class="card" style="margin-bottom:1rem;">
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <h2>📍 Ruta #${route.id.substring(0,8).toUpperCase()}${isLiquidado ? ' <span style="color:#22c55e;">(LIQUIDADO)</span>' : ''}</h2>
+                        <h2>📍 Ruta #${route.correlativo || route.id.substring(0,8).toUpperCase()}${isLiquidado ? ' <span style="color:#22c55e;">(LIQUIDADO)</span>' : ''}</h2>
                         <p style="font-size:0.85rem;color:#666;">${routeDate} · Repartidor: <strong>${sanitizeHTML(route.repartidorNombre||'-')}</strong> · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')}</p>
                     </div>
                     ${isLiquidado ? `<button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${route.id}')">🖨️ Imprimir Liquidación</button>` : ''}
@@ -384,6 +392,7 @@ const Liquidacion = {
                 if (fechaVal) { const [y,m,d] = fechaVal.split('-').map(Number); fbDate = firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d,12,0,0)); }
 
                 const data = {
+                    correlativo: this.getNextCorrelativo(),
                     fecha: fbDate,
                     repartidorId: repId,
                     repartidorNombre: repOpt ? repOpt.dataset.nombre : '',
@@ -607,7 +616,7 @@ const Liquidacion = {
             <div style="font-family:Arial,sans-serif;padding:20px;max-width:900px;margin:0 auto;color:#000;">
                 <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:15px;">
                     <h1 style="margin:0;font-size:1.4rem;">LIQUIDACIÓN DE RUTA</h1>
-                    <p style="margin:5px 0 0;font-size:0.85rem;color:#555;">Ruta #${route.id.substring(0,8).toUpperCase()} · ${routeDate}</p>
+                    <p style="margin:5px 0 0;font-size:0.85rem;color:#555;">Ruta #${route.correlativo || route.id.substring(0,8).toUpperCase()} · ${routeDate}</p>
                     <p style="margin:2px 0 0;font-size:0.8rem;">Repartidor: ${sanitizeHTML(route.repartidorNombre||'-')} · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')} · Comisión: ${comisionPct}%</p>
                 </div>
 
@@ -690,12 +699,12 @@ const Liquidacion = {
             ${pendientes.length > 0 ? '<div style="font-weight:700;font-size:0.75rem;color:#f97316;margin-bottom:8px;">PENDIENTES DE LIQUIDAR</div>' : ''}
             ${pendientes.map(r => {
                 const fecha = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
-                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.id.substring(0,6)}</span><span class="m-card-badge warning">Pendiente</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
+                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.correlativo || r.id.substring(0,6)}</span><span class="m-card-badge warning">Pendiente</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
             }).join('')}
             ${liquidados.length > 0 ? '<div style="font-weight:700;font-size:0.75rem;color:#22c55e;margin:12px 0 8px;">LIQUIDADAS</div>' : ''}
             ${liquidados.slice(0,10).map(r => {
                 const fecha = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
-                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.id.substring(0,6)}</span><span class="m-card-badge success">✓</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
+                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.correlativo || r.id.substring(0,6)}</span><span class="m-card-badge success">✓</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
             }).join('')}
         `;
     },
@@ -714,7 +723,7 @@ const Liquidacion = {
         const existingLiq = this.liquidaciones.find(l=>l.rutaId===routeId);
 
         const sheet = document.createElement('div');
-        sheet.innerHTML = `<div class="m-sheet-backdrop show" id="mliq-backdrop" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show" id="mliq-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Ruta #${route.id.substring(0,6)}</span><button class="m-sheet-close" onclick="document.getElementById('mliq-sheet').remove();document.getElementById('mliq-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Repartidor</span><div>${sanitizeHTML(route.repartidorNombre||'-')} · ${sanitizeHTML(route.vehiculo||'')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div class="m-stat-chip"><div class="m-stat-chip-label">Entregas</div><div class="m-stat-chip-value">${entregados.length}/${delivers.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Facturado</div><div class="m-stat-chip-value">$${formatNumber(totalFacturado,0)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">COD</div><div class="m-stat-chip-value">$${formatNumber(codEsperado,0)}</div></div></div>${delivers.map(d=>`<div class="m-data-card" style="background:${d.entregado?'#f0fdf4':'#fef2f2'}"><div class="m-card-header"><span>#${d.guia||'N/A'} ${sanitizeHTML(d.cliente||'')}</span><span>${d.entregado?'✅':'❌'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value">$${formatNumber(d.venta||0,2)}</span></div><div class="m-card-row"><span class="m-card-label">Flete</span><span class="m-card-value">$${formatNumber(d.costoEnvio||0,2)}</span></div></div></div>`).join('')}</div></div>${isLiquidado?`<div class="m-sheet-footer"><button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${routeId}');">🖨️ Imprimir</button></div>`:`<div class="m-sheet-footer"><button class="btn btn-primary" onclick="Liquidacion.aprobarLiquidacionMobile('${routeId}',${codEsperado},${totalFletes},${totalFacturado})">✅ Aprobar</button><button class="btn" onclick="Liquidacion.printRouteSettlement('${routeId}')">🖨️</button></div>`}</div></div>`;
+        sheet.innerHTML = `<div class="m-sheet-backdrop show" id="mliq-backdrop" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show" id="mliq-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Ruta #${route.correlativo || route.id.substring(0,6)}</span><button class="m-sheet-close" onclick="document.getElementById('mliq-sheet').remove();document.getElementById('mliq-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Repartidor</span><div>${sanitizeHTML(route.repartidorNombre||'-')} · ${sanitizeHTML(route.vehiculo||'')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"><div class="m-stat-chip"><div class="m-stat-chip-label">Entregas</div><div class="m-stat-chip-value">${entregados.length}/${delivers.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Facturado</div><div class="m-stat-chip-value">$${formatNumber(totalFacturado,0)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">COD</div><div class="m-stat-chip-value">$${formatNumber(codEsperado,0)}</div></div></div>${delivers.map(d=>`<div class="m-data-card" style="background:${d.entregado?'#f0fdf4':'#fef2f2'}"><div class="m-card-header"><span>#${d.guia||'N/A'} ${sanitizeHTML(d.cliente||'')}</span><span>${d.entregado?'✅':'❌'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value">$${formatNumber(d.venta||0,2)}</span></div><div class="m-card-row"><span class="m-card-label">Flete</span><span class="m-card-value">$${formatNumber(d.costoEnvio||0,2)}</span></div></div></div>`).join('')}</div></div>${isLiquidado?`<div class="m-sheet-footer"><button class="btn btn-secondary" onclick="Liquidacion.printRouteSettlement('${routeId}');">🖨️ Imprimir</button></div>`:`<div class="m-sheet-footer"><button class="btn btn-primary" onclick="Liquidacion.aprobarLiquidacionMobile('${routeId}',${codEsperado},${totalFletes},${totalFacturado})">✅ Aprobar</button><button class="btn" onclick="Liquidacion.printRouteSettlement('${routeId}')">🖨️</button></div>`}</div></div>`;
         document.body.appendChild(sheet);
     },
 
