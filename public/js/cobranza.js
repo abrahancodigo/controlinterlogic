@@ -66,7 +66,6 @@ const Cobranza = {
 
             if (this.unsubscribeRecords) this.unsubscribeRecords();
             this.unsubscribeRecords = db.collection('interlogic')
-                .where('condicionPago', '==', 'Crédito')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
