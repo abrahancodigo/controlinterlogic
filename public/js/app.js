@@ -188,6 +188,7 @@ const App = {
             { icon: '📅', label: 'Asistencia', module: 'asistencia' },
             { icon: '💵', label: 'Liquidación Contado', module: 'liquidacion-contado' },
             { icon: '💳', label: 'Liquidación Crédito', module: 'liquidacion-credito' },
+            { icon: '📊', label: 'Cobranza', module: 'cobranza' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
             { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
         ];
@@ -249,6 +250,10 @@ const App = {
         if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {
             window.Problemas.unsubscribe(); window.Problemas.unsubscribe = null;
         }
+        if (this.currentModule === 'cobranza' && window.Cobranza) {
+            if (window.Cobranza.unsubscribeRecords) { window.Cobranza.unsubscribeRecords(); window.Cobranza.unsubscribeRecords = null; }
+            if (window.Cobranza.unsubscribeCobros) { window.Cobranza.unsubscribeCobros(); window.Cobranza.unsubscribeCobros = null; }
+        }
 
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
@@ -297,6 +302,9 @@ const App = {
                     break;
                 case 'problemas':
                     if (window.Problemas && window.Problemas.render) await window.Problemas.render();
+                    break;
+                case 'cobranza':
+                    if (window.Cobranza && window.Cobranza.render) await window.Cobranza.render();
                     break;
                 default:
                     console.warn(`Unknown module: ${moduleName}`);

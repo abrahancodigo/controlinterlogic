@@ -109,6 +109,27 @@ const Settings = {
 
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
                 <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
+                    <h2 style="${isMobile ? 'font-size:1rem;' : ''}">💰 Configuración Financiera</h2>
+                </div>
+                <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
+                    <form id="financial-settings-form">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="fin-tasa-mora">Tasa Interés Moratorio (% mensual)</label>
+                                <input type="number" id="fin-tasa-mora" step="0.01" min="0" value="${this.settings?.tasaInteresMoratorio || '0'}" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
+                            </div>
+                            <div class="form-group">
+                                <label for="fin-dias-recordatorio">Días Antes de Recordatorio</label>
+                                <input type="number" id="fin-dias-recordatorio" min="0" max="30" value="${this.settings?.diasRecordatorio || '3'}" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top:1rem;${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.95rem;' : ''}">💾 Guardar Configuración Financiera</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
+                <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
                     <h2 style="${isMobile ? 'font-size:1rem;' : ''}">👥 Gestión de Usuarios</h2>
                 </div>
                 <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
@@ -147,6 +168,12 @@ const Settings = {
         const form = document.getElementById('settings-form');
         if (form) {
             form.addEventListener('submit', (e) => this.handleSubmit(e));
+        }
+
+        // Financial settings form
+        const finForm = document.getElementById('financial-settings-form');
+        if (finForm) {
+            finForm.addEventListener('submit', (e) => this.handleFinancialSubmit(e));
         }
 
         // Logo 1 upload
@@ -242,6 +269,27 @@ const Settings = {
         } catch (error) {
             console.error('Error saving settings:', error);
             showToast('Error al guardar la configuración', 'error');
+        } finally {
+            setButtonLoading(submitBtn, false);
+        }
+    },
+
+    async handleFinancialSubmit(e) {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        setButtonLoading(submitBtn, true);
+        try {
+            const finData = {
+                tasaInteresMoratorio: parseFloat(document.getElementById('fin-tasa-mora').value) || 0,
+                diasRecordatorio: parseInt(document.getElementById('fin-dias-recordatorio').value) || 3,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await firebase.firestore().collection('config').doc('settings').set(finData, { merge: true });
+            this.settings = { ...this.settings, ...finData };
+            showToast('✓ Configuración financiera guardada', 'success');
+        } catch (error) {
+            console.error('Error saving financial settings:', error);
+            showToast('Error al guardar', 'error');
         } finally {
             setButtonLoading(submitBtn, false);
         }

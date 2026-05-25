@@ -1422,10 +1422,16 @@ const Interlogic = {
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
                         <div class="form-group">
-                            <label>Cajas</label>
-                            <input type="text" id="il-cobrador" value="${sanitizeHTML(val('cobrador'))}">
+                            <label>Cobrador</label>
+                            <select id="il-cobrador">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="il-plazo-group">
+                            <label>Plazo Pago (días)</label>
+                            <input type="number" id="il-plazo" value="30" min="1" max="365">
                         </div>
                     </div>
 
@@ -1444,6 +1450,34 @@ const Interlogic = {
     `;
 
         document.body.appendChild(modal);
+
+        var loadCobradorUsers = async function() {
+            try {
+                var snapshot = await firebase.firestore().collection('users').orderBy('displayName', 'asc').get();
+                var select = document.getElementById('il-cobrador');
+                if (!select) return;
+                snapshot.docs.forEach(function(doc) {
+                    var d = doc.data();
+                    var name = d.displayName || d.email || doc.id;
+                    var opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                });
+                var current = '${sanitizeHTML(val('cobrador'))}';
+                if (current && select.querySelector('option[value="' + current + '"]')) {
+                    select.value = current;
+                }
+            } catch(e) {
+                console.warn('Could not load users for cobrador:', e.message);
+            }
+        };
+        loadCobradorUsers();
+
+        var plazoGroup = document.getElementById('il-plazo-group');
+        document.getElementById('il-condicionPago').addEventListener('change', function() {
+            if (plazoGroup) plazoGroup.style.display = this.value === 'Crédito' ? 'block' : 'none';
+        });
 
         // Setup client autocomplete
         const clienteInput = document.getElementById('il-cliente');
@@ -1616,6 +1650,20 @@ const Interlogic = {
                     observations: document.getElementById('il-observations').value.trim() || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
+
+                if (data.condicionPago === 'Crédito') {
+                    const plazo = parseInt(document.getElementById('il-plazo').value) || 30;
+                    const fechaBase = firebaseDate ? firebaseDate.toDate() : new Date();
+                    fechaBase.setHours(12, 0, 0, 0);
+                    const fechaVenc = new Date(fechaBase);
+                    fechaVenc.setDate(fechaVenc.getDate() + plazo);
+                    data.fechaVencimiento = firebase.firestore.Timestamp.fromDate(fechaVenc);
+                    if (!recordId) {
+                        data.estadoCobro = 'pendiente';
+                        data.montoCobrado = 0;
+                        data.montoPendiente = venta;
+                    }
+                }
 
                 const db = firebase.firestore();
                 if (recordId) {

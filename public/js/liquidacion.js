@@ -190,13 +190,19 @@ const Liquidacion = {
         }
 
         body.innerHTML = this.filteredRecords.map(record => {
-            const isCobrado = record.cobrado === true;
+            const estadoCobro = record.estadoCobro || (record.cobrado === true ? 'pagado' : 'pendiente');
+            const montoCobrado = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
+            const pctCobrado = record.venta > 0 ? Math.round((montoCobrado / Number(record.venta)) * 100) : 0;
             const fechaCobro = record.fechaCobro
                 ? (record.fechaCobro.toDate ? formatDate(record.fechaCobro, false) : record.fechaCobro)
                 : '';
 
+            const badgeColor = estadoCobro === 'pagado' ? 'badge-success' : estadoCobro === 'parcial' ? 'badge-warning' : 'badge-error';
+            const badgeText = estadoCobro === 'pagado' ? 'Pagado' : estadoCobro === 'parcial' ? 'Parcial' : 'Pendiente';
+            const barColor = estadoCobro === 'pagado' ? '#22c55e' : '#f97316';
+
             return `
-                <tr class="${isCobrado ? 'liq-row-cobrado' : 'liq-row-pendiente'}">
+                <tr class="${estadoCobro === 'pagado' ? 'liq-row-cobrado' : 'liq-row-pendiente'}">
                     <td><strong>${record.guia || ''}</strong></td>
                     <td><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
                     <td>${record.fecha ? formatDate(record.fecha, false) : ''}</td>
@@ -204,14 +210,17 @@ const Liquidacion = {
                     <td style="font-weight: 700;">$${Number(record.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                     ${isContado ? '' : `
                         <td style="text-align: center;">
-                            <label class="ds-switch">
-                                <input type="checkbox" ${isCobrado ? 'checked' : ''} 
-                                       onchange="Liquidacion.toggleCobrado('${record.id}', this.checked)">
-                                <span class="ds-slider"></span>
-                            </label>
+                            <span class="badge ${badgeColor}">${badgeText}</span>
+                            ${montoCobrado > 0 ? `<div style="margin-top:4px;font-size:0.7rem;color:#666;">$${formatNumber(montoCobrado,0)}</div>` : ''}
                         </td>
                         <td>
-                            ${isCobrado ? `<span class="badge badge-success">${fechaCobro}</span>` : '<span class="badge badge-warning">Pendiente</span>'}
+                            <div style="display:flex;align-items:center;gap:4px;min-width:120px;">
+                                <div style="flex:1;height:6px;background:#e5e5ea;border-radius:3px;overflow:hidden;">
+                                    <div style="height:100%;width:${pctCobrado}%;background:${barColor};border-radius:3px;transition:width 0.3s;"></div>
+                                </div>
+                                <span style="font-size:0.7rem;color:#666;white-space:nowrap;">${pctCobrado}% ${estadoCobro === 'pagado' ? fechaCobro : ''}</span>
+                            </div>
+                            ${estadoCobro !== 'pagado' ? `<button class="btn btn-sm btn-primary" onclick="Liquidacion.showAbonoModal('${record.id}')" style="margin-top:4px;font-size:0.7rem;padding:2px 8px;">💰 Abono</button>` : ''}
                         </td>
                     `}
                 </tr>
@@ -250,9 +259,10 @@ const Liquidacion = {
         if (cantidadEl) cantidadEl.textContent = cantidad;
 
         if (!isContado) {
-            const totalCobrado = this.filteredRecords
-                .filter(r => r.cobrado === true)
-                .reduce((acc, r) => acc + Number(r.venta || 0), 0);
+            const totalCobrado = this.filteredRecords.reduce((acc, r) => {
+                const montoCobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
+                return acc + montoCobrado;
+            }, 0);
             const pendiente = totalEntregado - totalCobrado;
 
             const cobradoEl = document.getElementById('liq-stat-total-cobrado');
@@ -263,24 +273,142 @@ const Liquidacion = {
         }
     },
 
-    async toggleCobrado(recordId, checked) {
+    showAbonoModal(recordId) {
+        const record = this.records.find(r => r.id === recordId);
+        if (!record) return;
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+
+        const montoPendiente = Number(record.venta || 0) - Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
+
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px;">
+                <h2 style="margin-bottom: 1rem;">💰 Registrar Abono</h2>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+                        <span>Guía: <strong>#${record.guia || 'N/A'}</strong></span>
+                        <span>Cliente: <strong>${sanitizeHTML(record.cliente || '-')}</strong></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                        <span>Total Venta: <strong>$${Number(record.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></span>
+                        <span>Pendiente: <strong style="color:#f97316;">$${(montoPendiente).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></span>
+                    </div>
+                </div>
+
+                <form id="abono-form">
+                    <div class="form-group">
+                        <label>Monto del Abono *</label>
+                        <input type="number" id="ab-monto" step="0.01" min="0.01" max="${montoPendiente}" value="${montoPendiente}" required style="width:100%;">
+                    </div>
+
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Método de Pago</label>
+                        <select id="ab-metodo" style="width:100%;">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="deposito">Depósito</option>
+                            <option value="tarjeta">Tarjeta</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Fecha del Abono</label>
+                        <input type="date" id="ab-fecha" value="${getLocalDateString()}" style="width:100%;">
+                    </div>
+
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Referencia (opcional)</label>
+                        <input type="text" id="ab-referencia" placeholder="N° de operación, nota..." style="width:100%;">
+                    </div>
+
+                    <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="ab-save-btn">💾 Guardar Abono</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+        document.getElementById('abono-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveAbono(recordId, modal);
+        });
+    },
+
+    async saveAbono(recordId, modal) {
+        const montoInput = document.getElementById('ab-monto');
+        const metodo = document.getElementById('ab-metodo').value;
+        const fechaVal = document.getElementById('ab-fecha').value;
+        const referencia = document.getElementById('ab-referencia').value.trim();
+        const monto = parseFloat(montoInput.value) || 0;
+
+        const record = this.records.find(r => r.id === recordId);
+        if (!record) return;
+
+        const ventaTotal = Number(record.venta || 0);
+        const montoPrev = Number(record.montoCobrado || (record.cobrado === true ? ventaTotal : 0));
+        const pendiente = ventaTotal - montoPrev;
+
+        if (monto <= 0) { showToast('El monto debe ser mayor a 0', 'error'); return; }
+        if (monto > pendiente) { showToast('El abono excede el saldo pendiente', 'error'); return; }
+
+        const saveBtn = document.getElementById('ab-save-btn');
+        setButtonLoading(saveBtn, true);
+
         try {
+            const db = firebase.firestore();
+            const nuevoMontoCobrado = montoPrev + monto;
+            const estado = nuevoMontoCobrado >= ventaTotal ? 'pagado' : 'parcial';
+
+            let firebaseDate = firebase.firestore.Timestamp.now();
+            if (fechaVal) {
+                const [y, m, d] = fechaVal.split('-').map(Number);
+                firebaseDate = firebase.firestore.Timestamp.fromDate(new Date(y, m - 1, d, 12, 0, 0));
+            }
+
+            const cobroData = {
+                interlogicId: recordId,
+                cliente: record.cliente || '',
+                monto: monto,
+                metodo: metodo,
+                fecha: firebaseDate,
+                referencia: referencia,
+                cobrador: firebase.auth().currentUser?.uid || '',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
             const updateData = {
-                cobrado: checked,
+                montoCobrado: nuevoMontoCobrado,
+                montoPendiente: ventaTotal - nuevoMontoCobrado,
+                estadoCobro: estado,
+                cobrado: estado === 'pagado',
+                fechaCobro: estado === 'pagado' ? firebase.firestore.FieldValue.serverTimestamp() : null,
+                metodoPago: metodo,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            if (checked) {
-                updateData.fechaCobro = firebase.firestore.FieldValue.serverTimestamp();
-            } else {
-                updateData.fechaCobro = null;
-            }
+            const batch = db.batch();
+            batch.set(db.collection('cobros').doc(), cobroData);
+            batch.update(db.collection('interlogic').doc(recordId), updateData);
+            await batch.commit();
 
-            await firebase.firestore().collection('interlogic').doc(recordId).update(updateData);
-            showToast(checked ? '✅ Marcado como cobrado' : '↩️ Desmarcado', 'success');
+            record.montoCobrado = nuevoMontoCobrado;
+            record.montoPendiente = ventaTotal - nuevoMontoCobrado;
+            record.estadoCobro = estado;
+            record.cobrado = estado === 'pagado';
+            record.metodoPago = metodo;
+
+            modal.remove();
+            this.applyFilters();
+            showToast('✅ Abono registrado: $' + formatNumber(monto, 2), 'success');
         } catch (error) {
-            console.error('Error updating cobrado:', error);
-            showToast('Error al actualizar: ' + error.message, 'error');
+            console.error('Error saving abono:', error);
+            showToast('Error al guardar: ' + error.message, 'error');
+            setButtonLoading(saveBtn, false);
         }
     },
 
@@ -332,23 +460,26 @@ const Liquidacion = {
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Fecha</th>
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Cliente</th>
                             <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Venta</th>
-                            ${isContado ? '' : '<th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Cobrado</th><th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Fecha Cobro</th>'}
+                            ${isContado ? '' : '<th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Estado</th><th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Cobrado</th><th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Pendiente</th>'}
                         </tr>
                     </thead>
                     <tbody>
                         ${this.filteredRecords.map(r => {
-                            const cobrado = r.cobrado === true;
-                            const fechaCobro = r.fechaCobro ? (r.fechaCobro.toDate ? formatDateShort(r.fechaCobro) : r.fechaCobro) : '';
+                            const estado = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
+                            const cobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
+                            const pendiente = Math.max(0, Number(r.venta || 0) - cobrado);
+                            const bg = estado === 'pagado' ? 'background: #f0fdf4;' : estado === 'parcial' ? 'background: #fffbeb;' : '';
                             return `
-                                <tr${cobrado ? ' style="background: #f0fdf4;"' : ''}>
+                                <tr style="${bg}">
                                     <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold;">${r.guia || ''}</td>
                                     <td style="border: 1px solid #ccc; padding: 8px;">${sanitizeHTML(r.empresa || '')}</td>
                                     <td style="border: 1px solid #ccc; padding: 8px;">${r.fecha ? formatDateShort(r.fecha) : ''}</td>
                                     <td style="border: 1px solid #ccc; padding: 8px;">${sanitizeHTML(r.cliente || '')}</td>
                                     <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">$${Number(r.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                     ${isContado ? '' : `
-                                        <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${cobrado ? '✓ Sí' : '✗ No'}</td>
-                                        <td style="border: 1px solid #ccc; padding: 8px;">${fechaCobro}</td>
+                                        <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">${estado.charAt(0).toUpperCase() + estado.slice(1)}</td>
+                                        <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">$${cobrado.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                        <td style="border: 1px solid #ccc; padding: 8px; text-align: right; color: ${pendiente > 0 ? '#ef4444' : '#22c55e'};">$${pendiente.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                     `}
                                 </tr>
                             `;
@@ -356,7 +487,7 @@ const Liquidacion = {
                     </tbody>
                     <tfoot>
                         <tr style="background: #e5e5e5; font-weight: bold;">
-                            <td colspan="${isContado ? 4 : 6}" style="border: 1px solid #ccc; padding: 8px; text-align: right;">TOTAL:</td>
+                            <td colspan="${isContado ? 6 : 8}" style="border: 1px solid #ccc; padding: 8px; text-align: right;">TOTAL (${this.filteredRecords.length} registros):</td>
                             <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                             ${isContado ? '' : '<td colspan="2" style="border: 1px solid #ccc; padding: 8px;"></td>'}
                         </tr>
@@ -426,9 +557,10 @@ const Liquidacion = {
         const isContado = this.currentView === 'contado';
         const headers = isContado
             ? ['Guía', 'Empresa', 'Fecha', 'Cliente', 'Total']
-            : ['Guía', 'Empresa', 'Fecha', 'Cliente', 'Total', 'Cobrado', 'Fecha Cobro'];
+            : ['Guía', 'Empresa', 'Fecha', 'Cliente', 'Total', 'Estado', 'Cobrado', 'Pendiente'];
 
         const rows = this.filteredRecords.map(r => {
+            const estado = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
             const base = [
                 r.guia || '',
                 r.empresa || '',
@@ -437,8 +569,9 @@ const Liquidacion = {
                 Number(r.venta || 0)
             ];
             if (!isContado) {
-                base.push(r.cobrado ? 'SÍ' : 'NO');
-                base.push(r.fechaCobro ? formatDate(r.fechaCobro, false) : '');
+                base.push(estado.charAt(0).toUpperCase() + estado.slice(1));
+                base.push(Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0)));
+                base.push(Math.max(0, Number(r.venta || 0) - Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0))));
             }
             return base;
         });
@@ -510,7 +643,11 @@ const Liquidacion = {
             list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No hay resultados para este período.</div></div>';
         } else {
             list.innerHTML = this.filteredRecords.map(function(r) {
-                var cobrado = r.cobrado === true;
+                var estadoCobro = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
+                var montoCobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
+                var pct = r.venta > 0 ? Math.round((montoCobrado / Number(r.venta)) * 100) : 0;
+                var badgeLabel = estadoCobro === 'pagado' ? '✓ Pagado' : estadoCobro === 'parcial' ? '⏳ Parcial' : '⚠ Pendiente';
+                var badgeStyle = estadoCobro === 'pagado' ? 'color:#10b981;' : estadoCobro === 'parcial' ? 'color:#f97316;' : 'color:#ef4444;';
                 return '<div class="m-data-card">' +
                     '<div class="m-card-header"><span class="m-card-title">#' + (r.guia || 'N/A') + '</span>' +
                     '<span class="m-card-badge ' + (r.empresa === 'DALSE' ? 'primary' : 'warning') + '">' + (r.empresa || '') + '</span></div>' +
@@ -518,17 +655,20 @@ const Liquidacion = {
                     '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>' +
-                    (isContado ? '' : '<div class="m-card-row"><span class="m-card-label">Cobrado</span><span class="m-card-value" style="color:' + (cobrado ? '#10b981' : '#f97316') + ';font-weight:700;">' + (cobrado ? '✓ Sí' : '⏳ No') + '</span></div>') +
+                    (isContado ? '' : '<div class="m-card-row"><span class="m-card-label">Estado</span><span class="m-card-value" style="' + badgeStyle + ';font-weight:700;">' + badgeLabel + ' ' + pct + '%</span></div>') +
                     '</div>' +
                     (isContado ? '' : '<div class="m-card-actions" onclick="event.stopPropagation()">' +
-                        '<button class="m-card-action" onclick="Liquidacion.toggleCobradoMobile(\'' + r.id + '\',' + cobrado + ')" title="' + (cobrado ? 'Desmarcar cobro' : 'Marcar cobrado') + '" style="color:' + (cobrado ? '#f97316' : '#10b981') + ';">' + (cobrado ? '↩️' : '✅') + '</button>' +
+                        '<div style="flex:1;height:4px;background:#e5e5ea;border-radius:2px;overflow:hidden;margin-right:8px;"><div style="height:100%;width:' + pct + '%;background:' + (estadoCobro === 'pagado' ? '#10b981' : '#f97316') + ';border-radius:2px;"></div></div>' +
+                        (estadoCobro !== 'pagado' ? '<button class="m-card-action" onclick="Liquidacion.showAbonoModal(\'' + r.id + '\')" title="Registrar abono" style="color:#7c3aed;font-weight:700;">💰</button>' : '') +
                     '</div>') +
                 '</div>';
             }, this).join('');
         }
 
         var totalEntregado = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
-        var totalCobrado = this.filteredRecords.filter(function(r) { return r.cobrado === true; }).reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
+        var totalCobrado = this.filteredRecords.reduce(function(s, r) {
+            return s + (Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0)));
+        }, 0);
         var pendiente = totalEntregado - totalCobrado;
 
         var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
@@ -540,17 +680,14 @@ const Liquidacion = {
         }
     },
 
-    toggleCobradoMobile(id, currentState) {
-        this.toggleCobrado(id, !currentState);
-    },
-
     mobileExportExcel() {
         if (typeof XLSX === 'undefined') { showToast('Librería Excel no disponible', 'error'); return; }
         if (this.filteredRecords.length === 0) { showToast('No hay datos', 'warning'); return; }
         var isContado = this.currentView === 'contado';
         var data = this.filteredRecords.map(function(r) {
+            var estado = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
             var row = {'Guía': r.guia||'', 'Empresa': r.empresa||'', 'Fecha': r.fecha?formatDateShort(r.fecha):'', 'Cliente': r.cliente||'', 'Venta': r.venta||0};
-            if (!isContado) { row['Cobrado'] = r.cobrado ? 'Sí' : 'No'; }
+            if (!isContado) { row['Estado'] = estado.charAt(0).toUpperCase() + estado.slice(1); row['Cobrado'] = '$' + formatNumber(r.montoCobrado || (r.cobrado === true ? r.venta : 0), 2); row['Pendiente'] = '$' + formatNumber((r.venta||0) - Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0)), 2); }
             return row;
         });
         var ws = XLSX.utils.json_to_sheet(data);

@@ -349,6 +349,22 @@ const Clientes = {
                         </select>
                     </div>
 
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div class="form-group">
+                            <label>Límite de Crédito ($)</label>
+                            <input type="number" id="cl-limiteCredito" step="0.01" min="0" value="${record?.limiteCredito || ''}" placeholder="Ej: 5000">
+                        </div>
+                        <div class="form-group">
+                            <label>Plazo de Pago (días)</label>
+                            <select id="cl-plazoPago">
+                                <option value="15" ${record?.plazoPago === 15 || record?.plazoPago === '15' ? 'selected' : ''}>15 días</option>
+                                <option value="30" ${!record?.plazoPago || record?.plazoPago === 30 || record?.plazoPago === '30' ? 'selected' : ''}>30 días</option>
+                                <option value="45" ${record?.plazoPago === 45 || record?.plazoPago === '45' ? 'selected' : ''}>45 días</option>
+                                <option value="60" ${record?.plazoPago === 60 || record?.plazoPago === '60' ? 'selected' : ''}>60 días</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
                         <button type="submit" class="btn btn-primary" id="btn-cl-save">💾 Guardar</button>
                         <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
@@ -382,6 +398,8 @@ const Clientes = {
                     vendedor: document.getElementById('cl-vendedor').value.trim(),
                     empresa: document.getElementById('cl-empresa').value,
                     condicionPago: document.getElementById('cl-condicionPago').value,
+                    limiteCredito: parseFloat(document.getElementById('cl-limiteCredito').value) || 0,
+                    plazoPago: parseInt(document.getElementById('cl-plazoPago').value) || 30,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
@@ -797,13 +815,13 @@ const Clientes = {
         var c = id ? (this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;})) : null;
         var isEdit = !!c;
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + (c?.nombre || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + (c?.telefono || '') + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + (c?.empresa || '') + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + (c?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + (c?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + (c?.vendedor || '') + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + (c?.nombre || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + (c?.telefono || '') + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + (c?.empresa || '') + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + (c?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + (c?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + (c?.vendedor || '') + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + (c?.limiteCredito || '') + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         document.getElementById('mcf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mcf-submit'); btn.disabled = true; btn.textContent = 'Guardando...';
             try {
-                var data = { nombre: document.getElementById('mcf-nombre').value, telefono: document.getElementById('mcf-telefono').value, empresa: document.getElementById('mcf-empresa').value, direccion: document.getElementById('mcf-direccion').value, zona: document.getElementById('mcf-zona').value, vendedor: document.getElementById('mcf-vendedor').value, condicionPago: document.getElementById('mcf-condicion').value };
+                var data = { nombre: document.getElementById('mcf-nombre').value, telefono: document.getElementById('mcf-telefono').value, empresa: document.getElementById('mcf-empresa').value, direccion: document.getElementById('mcf-direccion').value, zona: document.getElementById('mcf-zona').value, vendedor: document.getElementById('mcf-vendedor').value, condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30 };
                 var db = firebase.firestore();
                 if (isEdit) { await db.collection('clientes').doc(id).update(data); }
                 else { await db.collection('clientes').add(data); }
