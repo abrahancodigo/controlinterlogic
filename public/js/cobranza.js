@@ -743,39 +743,73 @@ const Cobranza = {
         const container = document.getElementById('cobranza-content');
         if (!container) return;
         const records = this.getCreditRecords();
+        const today = getLocalDateString();
 
         container.innerHTML = `
             <div class="card" style="margin-bottom:1rem;">
                 <div class="card-body">
+                    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="cob-start-date" style="margin-bottom:0;white-space:nowrap;font-size:0.85rem;">📅 Desde:</label>
+                            <input type="date" id="cob-start-date" value="${today}" style="padding:0.5rem;font-size:1rem;border:2px solid var(--border-color);border-radius:var(--radius-md);min-height:44px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label for="cob-end-date" style="margin-bottom:0;white-space:nowrap;font-size:0.85rem;">Hasta:</label>
+                            <input type="date" id="cob-end-date" value="${today}" style="padding:0.5rem;font-size:1rem;border:2px solid var(--border-color);border-radius:var(--radius-md);min-height:44px;">
+                        </div>
+                    </div>
                     <div class="search-container" style="margin-bottom:1rem;">
                         <div class="search-box" style="position:relative;">
                             <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="text" id="cob-cliente-search" class="search-input" placeholder="Buscar por cliente, guía, empresa, doc..." autocomplete="off">
                         </div>
-                        <p class="search-hint">Escribe cualquier palabra para filtrar resultados al instante</p>
+                        <p class="search-hint">Filtra por fecha y/o escribe cualquier palabra para buscar</p>
                     </div>
                     <div id="cob-estado-cuenta-result" style="margin-top:1rem;">
-                        <p style="color:#8e8e93;">Escribe arriba para buscar o deja vacío para ver todos</p>
+                        <p style="color:#8e8e93;">Selecciona un rango de fechas o escribe arriba para buscar</p>
                     </div>
                 </div>
             </div>
         `;
 
+        const startDateInput = document.getElementById('cob-start-date');
+        const endDateInput = document.getElementById('cob-end-date');
         const searchInput = document.getElementById('cob-cliente-search');
-        searchInput.addEventListener('input', () => {
-            this.showEstadoCuentaDetail(searchInput.value, records);
-        });
-        this.showEstadoCuentaDetail('', records);
+
+        const updateResults = () => {
+            this.showEstadoCuentaDetail(searchInput.value, records, startDateInput.value, endDateInput.value);
+        };
+
+        startDateInput.addEventListener('change', updateResults);
+        endDateInput.addEventListener('change', updateResults);
+        searchInput.addEventListener('input', updateResults);
+
+        // Default: show today's records
+        this.showEstadoCuentaDetail('', records, today, today);
     },
 
-    showEstadoCuentaDetail(query, records) {
+    showEstadoCuentaDetail(query, records, startDate, endDate) {
         const resultDiv = document.getElementById('cob-estado-cuenta-result');
         if (!resultDiv) return;
 
         const q = query.toLowerCase().trim();
         let filtered = records;
+
+        // 1. Filter by date range first
+        if (startDate || endDate) {
+            filtered = filtered.filter(r => {
+                const recordDate = r.fecha ? (r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha)) : null;
+                if (!recordDate) return true; // Allow records without date to pass through
+                const dateStr = recordDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                if (startDate && dateStr < startDate) return false;
+                if (endDate && dateStr > endDate) return false;
+                return true;
+            });
+        }
+
+        // 2. Then filter by text search
         if (q) {
-            filtered = records.filter(r => {
+            filtered = filtered.filter(r => {
                 const guia = String(r.guia || '').toLowerCase();
                 const cliente = String(r.cliente || '').toLowerCase();
                 const empresa = String(r.empresa || '').toLowerCase();
@@ -786,7 +820,15 @@ const Cobranza = {
                 return guia.includes(q) || cliente.includes(q) || empresa.includes(q) || doc.includes(q) || vendedor.includes(q) || cobrador.includes(q) || fecha.includes(q);
             });
         }
-        if (filtered.length === 0) { resultDiv.innerHTML = `<p style="color:#8e8e93;text-align:center;padding:2rem;">Sin resultados para "<strong>${sanitizeHTML(query)}</strong>"</p>`; return; }
+
+        if (filtered.length === 0) {
+            let msg = 'Sin resultados';
+            if (startDate && endDate && startDate === endDate) msg += ` para el ${startDate}`;
+            else if (startDate || endDate) msg += ` para el rango ${startDate||'...'} a ${endDate||'...'}`;
+            if (q) msg += ` con búsqueda "<strong>${sanitizeHTML(query)}</strong>"`;
+            resultDiv.innerHTML = `<p style="color:#8e8e93;text-align:center;padding:2rem;">${msg}</p>`;
+            return;
+        }
 
         const totalVenta = filtered.reduce((s, r) => s + Number(r.venta || 0), 0);
         const totalCobrado = filtered.reduce((s, r) => s + Number(r.montoCobrado || (r.cobrado===true?r.venta:0)), 0);
@@ -841,7 +883,7 @@ const Cobranza = {
                 </tr></tfoot>
             </table>
             ${ajustesRel.length>0 ? `<div style="margin-top:1rem;"><h4 style="font-size:0.85rem;color:#666;margin-bottom:4px;">Ajustes Relacionados (${ajustesRel.length})</h4><table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#fefce8;"><th style="padding:4px;">Tipo</th><th style="padding:4px;text-align:right;">Monto</th><th style="padding:4px;">Motivo</th><th style="padding:4px;">Fecha</th></tr></thead><tbody>${ajustesRel.map(a=>`<tr style="background:#fffbeb;"><td style="padding:4px;">${a.tipo||''}</td><td style="text-align:right;padding:4px;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:4px;">${sanitizeHTML(a.motivo||'')}</td><td style="padding:4px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td></tr>`).join('')}</tbody></table></div>`:''}
-            <button class="btn btn-secondary" onclick="Cobranza.printEstadoCuenta('${q||''}')" style="margin-top:1rem;">🖨️ Imprimir Estado de Cuenta</button>
+            <button class="btn btn-secondary" onclick="Cobranza.printEstadoCuenta('${q||''}','${startDate||''}','${endDate||''}')" style="margin-top:1rem;">🖨️ Imprimir Estado de Cuenta</button>
         `;
     },
 
@@ -885,12 +927,26 @@ const Cobranza = {
         showToast('Reporte exportado','success');
     },
 
-    printEstadoCuenta(query) {
+    printEstadoCuenta(query, startDate, endDate) {
         const records = this.getCreditRecords();
         let filtered = records;
+
+        // Filter by date range first
+        if (startDate || endDate) {
+            filtered = filtered.filter(r => {
+                const recordDate = r.fecha ? (r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha)) : null;
+                if (!recordDate) return true;
+                const dateStr = recordDate.toISOString().split('T')[0];
+                if (startDate && dateStr < startDate) return false;
+                if (endDate && dateStr > endDate) return false;
+                return true;
+            });
+        }
+
+        // Then filter by text search
         if (query) {
             const q = query.toLowerCase().trim();
-            filtered = records.filter(r => {
+            filtered = filtered.filter(r => {
                 const guia = String(r.guia || '').toLowerCase();
                 const cliente = String(r.cliente || '').toLowerCase();
                 const empresa = String(r.empresa || '').toLowerCase();
@@ -901,7 +957,10 @@ const Cobranza = {
         const printArea = document.getElementById('print-area'); if (!printArea) return;
         const tv=filtered.reduce((s,r)=>s+Number(r.venta||0),0), tc=filtered.reduce((s,r)=>s+Number(r.montoCobrado||(r.cobrado===true?r.venta:0)),0), tp=tv-tc;
         const today=new Date().toLocaleDateString('es-ES',{year:'numeric',month:'long',day:'numeric'});
-        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${query?'Búsqueda: '+sanitizeHTML(query):'Todos los clientes'} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Math.max(0,Number(r.venta||0)-c).toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tv.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tc.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tp.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
+        let periodLabel = '';
+        if (startDate && endDate && startDate === endDate) periodLabel = ` · Fecha: ${startDate}`;
+        else if (startDate || endDate) periodLabel = ` · Período: ${startDate||'...'} a ${endDate||'...'}`;
+        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${query?'Búsqueda: '+sanitizeHTML(query):'Todos los clientes'}${periodLabel} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Math.max(0,Number(r.venta||0)-c).toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tv.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tc.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tp.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
         setTimeout(()=>window.print(),100);
     },
 
