@@ -608,7 +608,7 @@ const Despacho = {
         }
 
         if (this.filteredRecords.length === 0) {
-            body.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 2rem;">No hay registros coincidentes.</td></tr>';
+            body.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 1rem;">No hay registros coincidentes.</td></tr>';
             return;
         }
 

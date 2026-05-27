@@ -323,7 +323,7 @@ const Interlogic = {
                         </thead>
                         <tbody id="interlogic-table-body">
                             <tr>
-                                <td colspan="16" style="text-align: center; padding: 2rem;">Cargando registros...</td>
+                                <td colspan="16" style="text-align: center; padding: 1rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1189,7 +1189,7 @@ const Interlogic = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="16" style="text-align: center; padding: 2rem;">No hay registros disponibles que coincidan con los filtros.</td>
+                    <td colspan="16" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
                 </tr>
             `;
             // Clear footer if exists
@@ -1211,7 +1211,7 @@ const Interlogic = {
                 <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc"><span class="badge ${record.doc === 'NC' ? 'badge-nc' : (record.doc === 'CCF' ? 'badge-primary' : 'badge-accent')}">${sanitizeHTML(record.doc || '')}</span> ${record.docNum ? '#' + sanitizeHTML(record.docNum) : ''}</td>
-                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.7rem; color: #000;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
+                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.6rem; color: #666;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>

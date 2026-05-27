@@ -681,17 +681,17 @@ thead th {
 }
 
 th {
-    padding: var(--spacing-md);
+    padding: 0.35rem 0.5rem;
     text-align: left;
     font-weight: 600;
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
 }
 
 td {
-    padding: var(--spacing-md);
+    padding: 0.35rem 0.5rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -700,16 +700,16 @@ tbody tr {
 }
 
 .data-table {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
 }
 
 .data-table th {
-    font-size: 0.75rem;
-    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.68rem;
+    padding: 0.2rem 0.35rem;
 }
 
 .data-table td {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 0.2rem 0.35rem;
 }
 
 /* Dynamic Totals Footer */
@@ -719,6 +719,10 @@ tbody tr {
     border-top: 2px solid var(--border-color);
     position: sticky;
     bottom: 0;
+}
+
+.data-table tbody tr {
+    line-height: 1.3;
 }
 
 .data-table tfoot td {
@@ -1223,8 +1227,8 @@ tbody tr {
 }
 
 .btn-icon {
-    width: 44px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -1232,6 +1236,7 @@ tbody tr {
     border-radius: var(--radius-md);
     border: none;
     cursor: pointer;
+    font-size: 0.8rem;
     transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
@@ -1244,7 +1249,7 @@ tbody tr {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.2rem;
     position: relative;
     cursor: pointer;
 }
@@ -1260,8 +1265,9 @@ tbody tr {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 22px;
+    min-height: 22px;
+    font-size: 0.6rem;
 }
 
 .filter-trigger:hover,
@@ -4235,10 +4241,10 @@ tbody tr {
         display: flex;
         flex-direction: column;
         background: #fff;
-        border-radius: 14px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-radius: 10px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         border: 1px solid var(--gray-100);
-        padding: 0.5rem;
+        padding: 0.35rem;
         transition: transform 0.15s, opacity 0.15s, background 0.15s;
     }
 
@@ -4251,10 +4257,10 @@ tbody tr {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.35rem 0.5rem !important;
+        padding: 0.25rem 0.4rem !important;
         border-bottom: 1px solid var(--gray-50);
         white-space: normal;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
     .data-table tbody td:last-child {
