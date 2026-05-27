@@ -280,97 +280,93 @@ const Flota = {
 
     showModalVehiculo(vehiculo) {
         const isEdit = !!vehiculo;
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.innerHTML = `
-            <div class="modal" style="max-width:600px;">
-                <div class="modal-header">
-                    <h2>${isEdit ? '✏️ Editar Vehículo' : '🚛 Nuevo Vehículo'}</h2>
-                    <button class="modal-close">&times;</button>
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:600px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;">${isEdit ? '✏️ Editar Vehículo' : '🚛 Nuevo Vehículo'}</h2>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()" style="padding:0.2rem 0.6rem;font-size:1.2rem;">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
-                        <div class="form-group">
-                            <label>Nombre del Vehículo *</label>
-                            <input type="text" id="fv-nombre" class="form-control" value="${this.sanitize(vehiculo?.nombre || '')}" placeholder="Ej. Camión Daihatsu 2018">
-                        </div>
-                        <div class="form-group">
-                            <label>Número de Placa *</label>
-                            <input type="text" id="fv-placa" class="form-control" value="${this.sanitize(vehiculo?.numeroPlaca || '')}" placeholder="M-1234-4567">
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo de Vehículo</label>
-                            <select id="fv-tipo" class="form-control">
-                                <option value="camion" ${vehiculo?.tipoVehiculo === 'camion' ? 'selected' : ''}>Camión</option>
-                                <option value="microbus" ${vehiculo?.tipoVehiculo === 'microbus' ? 'selected' : ''}>Microbús</option>
-                                <option value="pickup" ${vehiculo?.tipoVehiculo === 'pickup' ? 'selected' : ''}>Pickup</option>
-                                <option value="moto" ${vehiculo?.tipoVehiculo === 'moto' ? 'selected' : ''}>Motocicleta</option>
-                                <option value="otro" ${vehiculo?.tipoVehiculo === 'otro' ? 'selected' : ''}>Otro</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Capacidad</label>
-                            <input type="text" id="fv-capacidad" class="form-control" value="${this.sanitize(vehiculo?.capacidad || '')}" placeholder="Ej. 1.5 ton / 30 pasajeros">
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo de Combustible</label>
-                            <select id="fv-combustible" class="form-control">
-                                <option value="diesel" ${vehiculo?.tipoCombustible === 'diesel' ? 'selected' : ''}>Diesel</option>
-                                <option value="gasolina" ${vehiculo?.tipoCombustible === 'gasolina' ? 'selected' : ''}>Gasolina</option>
-                                <option value="gas" ${vehiculo?.tipoCombustible === 'gas' ? 'selected' : ''}>Gas</option>
-                                <option value="electrico" ${vehiculo?.tipoCombustible === 'electrico' ? 'selected' : ''}>Eléctrico</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Kilometraje Actual</label>
-                            <input type="number" id="fv-kilometraje" class="form-control" value="${vehiculo?.kilometrajeActual || 0}">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="fv-estado" class="form-control">
-                                <option value="activo" ${vehiculo?.estado === 'activo' || !vehiculo ? 'selected' : ''}>Activo</option>
-                                <option value="en_mantenimiento" ${vehiculo?.estado === 'en_mantenimiento' ? 'selected' : ''}>En Mantenimiento</option>
-                                <option value="fuera_servicio" ${vehiculo?.estado === 'fuera_servicio' ? 'selected' : ''}>Fuera de Servicio</option>
-                            </select>
-                        </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div class="form-group">
+                        <label>Nombre del Vehículo *</label>
+                        <input type="text" id="fv-nombre" class="form-control" value="${this.sanitize(vehiculo?.nombre || '')}" placeholder="Ej. Camión Daihatsu 2018">
                     </div>
-                    <hr style="margin:1rem 0;">
-                    <h4 style="margin-bottom:0.5rem;">📋 Tarjeta de Circulación</h4>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
-                        <div class="form-group">
-                            <label>Número de Circulación</label>
-                            <input type="text" id="fv-numCirculacion" class="form-control" value="${this.sanitize(vehiculo?.numeroCirculacion || '')}">
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de Vencimiento</label>
-                            <input type="date" id="fv-vencimiento" class="form-control" value="${vehiculo?.fechaVencimientoCirculacion ? this.toDateInput(vehiculo.fechaVencimientoCirculacion) : ''}">
-                        </div>
+                    <div class="form-group">
+                        <label>Número de Placa *</label>
+                        <input type="text" id="fv-placa" class="form-control" value="${this.sanitize(vehiculo?.numeroPlaca || '')}" placeholder="M-1234-4567">
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-top:0.5rem;">
-                        <div class="form-group">
-                            <label>Foto del Vehículo</label>
-                            <input type="file" id="fv-foto" accept="image/*" class="form-control" style="padding:0.3rem;">
-                            ${vehiculo?.fotoVehiculo ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoVehiculo}" style="max-height:80px;border-radius:4px;"></div>` : ''}
-                        </div>
-                        <div class="form-group">
-                            <label>Foto Tarjeta de Circulación</label>
-                            <input type="file" id="fv-fotoTarjeta" accept="image/*" class="form-control" style="padding:0.3rem;">
-                            ${vehiculo?.fotoTarjetaCirculacion ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoTarjetaCirculacion}" style="max-height:80px;border-radius:4px;"></div>` : ''}
-                        </div>
+                    <div class="form-group">
+                        <label>Tipo de Vehículo</label>
+                        <select id="fv-tipo" class="form-control">
+                            <option value="camion" ${vehiculo?.tipoVehiculo === 'camion' ? 'selected' : ''}>Camión</option>
+                            <option value="microbus" ${vehiculo?.tipoVehiculo === 'microbus' ? 'selected' : ''}>Microbús</option>
+                            <option value="pickup" ${vehiculo?.tipoVehiculo === 'pickup' ? 'selected' : ''}>Pickup</option>
+                            <option value="moto" ${vehiculo?.tipoVehiculo === 'moto' ? 'selected' : ''}>Motocicleta</option>
+                            <option value="otro" ${vehiculo?.tipoVehiculo === 'otro' ? 'selected' : ''}>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacidad</label>
+                        <input type="text" id="fv-capacidad" class="form-control" value="${this.sanitize(vehiculo?.capacidad || '')}" placeholder="Ej. 1.5 ton / 30 pasajeros">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Combustible</label>
+                        <select id="fv-combustible" class="form-control">
+                            <option value="diesel" ${vehiculo?.tipoCombustible === 'diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="gasolina" ${vehiculo?.tipoCombustible === 'gasolina' ? 'selected' : ''}>Gasolina</option>
+                            <option value="gas" ${vehiculo?.tipoCombustible === 'gas' ? 'selected' : ''}>Gas</option>
+                            <option value="electrico" ${vehiculo?.tipoCombustible === 'electrico' ? 'selected' : ''}>Eléctrico</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Kilometraje Actual</label>
+                        <input type="number" id="fv-kilometraje" class="form-control" value="${vehiculo?.kilometrajeActual || 0}">
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="fv-estado" class="form-control">
+                            <option value="activo" ${vehiculo?.estado === 'activo' || !vehiculo ? 'selected' : ''}>Activo</option>
+                            <option value="en_mantenimiento" ${vehiculo?.estado === 'en_mantenimiento' ? 'selected' : ''}>En Mantenimiento</option>
+                            <option value="fuera_servicio" ${vehiculo?.estado === 'fuera_servicio' ? 'selected' : ''}>Fuera de Servicio</option>
+                        </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="fv-cancel">Cancelar</button>
+                <hr style="margin:1rem 0;">
+                <h4 style="margin-bottom:0.5rem;">📋 Tarjeta de Circulación</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div class="form-group">
+                        <label>Número de Circulación</label>
+                        <input type="text" id="fv-numCirculacion" class="form-control" value="${this.sanitize(vehiculo?.numeroCirculacion || '')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Vencimiento</label>
+                        <input type="date" id="fv-vencimiento" class="form-control" value="${vehiculo?.fechaVencimientoCirculacion ? this.toDateInput(vehiculo.fechaVencimientoCirculacion) : ''}">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-top:0.5rem;">
+                    <div class="form-group">
+                        <label>Foto del Vehículo</label>
+                        <input type="file" id="fv-foto" accept="image/*" style="width:100%;padding:0.3rem;">
+                        ${vehiculo?.fotoVehiculo ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoVehiculo}" style="max-height:80px;border-radius:4px;"></div>` : ''}
+                    </div>
+                    <div class="form-group">
+                        <label>Foto Tarjeta de Circulación</label>
+                        <input type="file" id="fv-fotoTarjeta" accept="image/*" style="width:100%;padding:0.3rem;">
+                        ${vehiculo?.fotoTarjetaCirculacion ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoTarjetaCirculacion}" style="max-height:80px;border-radius:4px;"></div>` : ''}
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
                     <button class="btn btn-primary" id="fv-save">${isEdit ? 'Guardar Cambios' : 'Crear Vehículo'}</button>
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.modal-close')?.addEventListener('click', () => overlay.remove());
-        overlay.querySelector('#fv-cancel')?.addEventListener('click', () => overlay.remove());
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
-        overlay.querySelector('#fv-save')?.addEventListener('click', async () => {
+        modal.querySelector('#fv-save')?.addEventListener('click', async () => {
             const data = {
                 nombre: document.getElementById('fv-nombre').value.trim(),
                 numeroPlaca: document.getElementById('fv-placa').value.trim().toUpperCase(),
@@ -409,7 +405,7 @@ const Flota = {
                     await db.collection('vehiculos').add(data);
                     showToast('Vehículo creado', 'success');
                 }
-                overlay.remove();
+                modal.remove();
             } catch (err) {
                 console.error('Error saving vehiculo:', err);
                 showToast('Error al guardar el vehículo', 'error');
@@ -542,78 +538,74 @@ const Flota = {
     },
 
     showModalMantenimiento() {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.innerHTML = `
-            <div class="modal" style="max-width:550px;">
-                <div class="modal-header">
-                    <h2>🔧 Registrar Servicio</h2>
-                    <button class="modal-close">&times;</button>
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:550px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;">🔧 Registrar Servicio</h2>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()" style="padding:0.2rem 0.6rem;font-size:1.2rem;">&times;</button>
                 </div>
-                <div class="modal-body">
+                <div class="form-group">
+                    <label>Vehículo *</label>
+                    <select id="fm-vehiculo" class="form-control">
+                        <option value="">Seleccionar vehículo</option>
+                        ${this.vehiculos.filter(v => v.estado !== 'fuera_servicio').map(v =>
+                            `<option value="${v.id}" ${this.selectedVehiculoId === v.id ? 'selected' : ''}>${this.sanitize(v.nombre)} - ${this.sanitize(v.numeroPlaca)}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
                     <div class="form-group">
-                        <label>Vehículo *</label>
-                        <select id="fm-vehiculo" class="form-control">
-                            <option value="">Seleccionar vehículo</option>
-                            ${this.vehiculos.filter(v => v.estado !== 'fuera_servicio').map(v =>
-                                `<option value="${v.id}" ${this.selectedVehiculoId === v.id ? 'selected' : ''}>${this.sanitize(v.nombre)} - ${this.sanitize(v.numeroPlaca)}</option>`
-                            ).join('')}
+                        <label>Tipo de Servicio *</label>
+                        <select id="fm-tipo" class="form-control">
+                            <option value="preventivo">Preventivo</option>
+                            <option value="correctivo">Correctivo</option>
                         </select>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
-                        <div class="form-group">
-                            <label>Tipo de Servicio *</label>
-                            <select id="fm-tipo" class="form-control">
-                                <option value="preventivo">Preventivo</option>
-                                <option value="correctivo">Correctivo</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha *</label>
-                            <input type="date" id="fm-fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                        </div>
-                        <div class="form-group">
-                            <label>Costo ($)</label>
-                            <input type="number" id="fm-costo" class="form-control" step="0.01" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Kilometraje</label>
-                            <input type="number" id="fm-kilometraje" class="form-control" min="0" value="">
-                        </div>
+                    <div class="form-group">
+                        <label>Fecha *</label>
+                        <input type="date" id="fm-fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}">
                     </div>
                     <div class="form-group">
-                        <label>Descripción del Servicio *</label>
-                        <textarea id="fm-descripcion" class="form-control" rows="3" placeholder="Describa el servicio realizado..."></textarea>
+                        <label>Costo ($)</label>
+                        <input type="number" id="fm-costo" class="form-control" step="0.01" min="0" value="0">
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
-                        <div class="form-group">
-                            <label>Taller / Mecánico</label>
-                            <input type="text" id="fm-taller" class="form-control" placeholder="Nombre del taller" list="fl-taller-list">
-                            <datalist id="fl-taller-list">
-                                ${this.proveedores.map(p => `<option value="${this.sanitize(p.nombre)}">`).join('')}
-                            </datalist>
-                        </div>
-                        <div class="form-group">
-                            <label>Generar Orden de Trabajo</label>
-                            <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
-                                <input type="checkbox" id="fm-generar-ot" checked>
-                                <span style="font-size:0.85rem;">Crear OT para llevar al taller</span>
-                            </label>
-                        </div>
+                    <div class="form-group">
+                        <label>Kilometraje</label>
+                        <input type="number" id="fm-kilometraje" class="form-control" min="0" value="">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="fm-cancel">Cancelar</button>
+                <div class="form-group">
+                    <label>Descripción del Servicio *</label>
+                    <textarea id="fm-descripcion" class="form-control" rows="3" placeholder="Describa el servicio realizado..."></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div class="form-group">
+                        <label>Taller / Mecánico</label>
+                        <input type="text" id="fm-taller" class="form-control" placeholder="Nombre del taller" list="fl-taller-list">
+                        <datalist id="fl-taller-list">
+                            ${this.proveedores.map(p => `<option value="${this.sanitize(p.nombre)}">`).join('')}
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Generar Orden de Trabajo</label>
+                        <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+                            <input type="checkbox" id="fm-generar-ot" checked>
+                            <span style="font-size:0.85rem;">Crear OT para llevar al taller</span>
+                        </label>
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
                     <button class="btn btn-primary" id="fm-save">Registrar Servicio</button>
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.modal-close')?.addEventListener('click', () => overlay.remove());
-        overlay.querySelector('#fm-cancel')?.addEventListener('click', () => overlay.remove());
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
-        overlay.querySelector('#fm-save')?.addEventListener('click', async () => {
+        modal.querySelector('#fm-save')?.addEventListener('click', async () => {
             const vehiculoId = document.getElementById('fm-vehiculo').value;
             const tipo = document.getElementById('fm-tipo').value;
             const fecha = document.getElementById('fm-fecha').value;
@@ -666,7 +658,7 @@ const Flota = {
 
                 await batch.commit();
                 showToast('Servicio registrado exitosamente', 'success');
-                overlay.remove();
+                modal.remove();
             } catch (err) {
                 console.error('Error saving mantenimiento:', err);
                 showToast('Error al registrar servicio', 'error');
@@ -901,53 +893,49 @@ const Flota = {
 
     showModalProveedor(proveedor) {
         const isEdit = !!proveedor;
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.innerHTML = `
-            <div class="modal" style="max-width:450px;">
-                <div class="modal-header">
-                    <h2>${isEdit ? '✏️ Editar Taller' : '🏪 Nuevo Taller'}</h2>
-                    <button class="modal-close">&times;</button>
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:450px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;">${isEdit ? '✏️ Editar Taller' : '🏪 Nuevo Taller'}</h2>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()" style="padding:0.2rem 0.6rem;font-size:1.2rem;">&times;</button>
                 </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Nombre *</label>
-                        <input type="text" id="fp-nombre" class="form-control" value="${this.sanitize(proveedor?.nombre || '')}" placeholder="Nombre del taller o mecánico">
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo</label>
-                        <select id="fp-tipo" class="form-control">
-                            <option value="taller" ${proveedor?.tipo === 'taller' || !proveedor ? 'selected' : ''}>Taller Mecánico</option>
-                            <option value="mecanico" ${proveedor?.tipo === 'mecanico' ? 'selected' : ''}>Mecánico Independiente</option>
-                            <option value="lubricentro" ${proveedor?.tipo === 'lubricentro' ? 'selected' : ''}>Lubricentro</option>
-                            <option value="refaccionaria" ${proveedor?.tipo === 'refaccionaria' ? 'selected' : ''}>Refaccionaria</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="text" id="fp-telefono" class="form-control" value="${this.sanitize(proveedor?.telefono || '')}">
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="fp-email" class="form-control" value="${this.sanitize(proveedor?.email || '')}">
-                    </div>
-                    <div class="form-group">
-                        <label>Dirección</label>
-                        <textarea id="fp-direccion" class="form-control" rows="2">${this.sanitize(proveedor?.direccion || '')}</textarea>
-                    </div>
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="fp-nombre" class="form-control" value="${this.sanitize(proveedor?.nombre || '')}" placeholder="Nombre del taller o mecánico">
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="fp-cancel">Cancelar</button>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="fp-tipo" class="form-control">
+                        <option value="taller" ${proveedor?.tipo === 'taller' || !proveedor ? 'selected' : ''}>Taller Mecánico</option>
+                        <option value="mecanico" ${proveedor?.tipo === 'mecanico' ? 'selected' : ''}>Mecánico Independiente</option>
+                        <option value="lubricentro" ${proveedor?.tipo === 'lubricentro' ? 'selected' : ''}>Lubricentro</option>
+                        <option value="refaccionaria" ${proveedor?.tipo === 'refaccionaria' ? 'selected' : ''}>Refaccionaria</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="fp-telefono" class="form-control" value="${this.sanitize(proveedor?.telefono || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="fp-email" class="form-control" value="${this.sanitize(proveedor?.email || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <textarea id="fp-direccion" class="form-control" rows="2">${this.sanitize(proveedor?.direccion || '')}</textarea>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
                     <button class="btn btn-primary" id="fp-save">${isEdit ? 'Guardar' : 'Crear Taller'}</button>
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-        overlay.querySelector('.modal-close')?.addEventListener('click', () => overlay.remove());
-        overlay.querySelector('#fp-cancel')?.addEventListener('click', () => overlay.remove());
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
-        overlay.querySelector('#fp-save')?.addEventListener('click', async () => {
+        modal.querySelector('#fp-save')?.addEventListener('click', async () => {
             const data = {
                 nombre: document.getElementById('fp-nombre').value.trim(),
                 tipo: document.getElementById('fp-tipo').value,
@@ -966,7 +954,7 @@ const Flota = {
                     await db.collection('proveedores').add(data);
                     showToast('Taller creado', 'success');
                 }
-                overlay.remove();
+                modal.remove();
             } catch (err) {
                 console.error('Error saving proveedor:', err);
                 showToast('Error al guardar', 'error');
