@@ -152,7 +152,9 @@ const Asistencia = {
         document.getElementById('clear-color-btn').onclick = () => this.applyColorToSelection('');
         document.getElementById('add-employee-btn').onclick = () => this.addNewEmployee();
         document.getElementById('export-excel-btn').onclick = () => this.exportToExcel();
-        document.addEventListener('mouseup', () => { if (this.isSelecting) { this.isSelecting = false; this.showColorButtons(true); } });
+        if (this._mouseupListener) document.removeEventListener('mouseup', this._mouseupListener);
+        this._mouseupListener = () => { if (this.isSelecting) { this.isSelecting = false; this.showColorButtons(true); } };
+        document.addEventListener('mouseup', this._mouseupListener);
     },
 
     showColorButtons(show) {
@@ -191,12 +193,22 @@ const Asistencia = {
         const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
         for (let d = startDay; d <= endDay; d++) {
             const date = new Date(this.currentYear, this.currentMonth, d);
-            headerHtml += `<th class="th-day day-col ${date.getDay() % 6 === 0 ? 'day-weekend' : ''}" onclick="Asistencia.selectColumn(${d - startDay + 1})">
+            headerHtml += `<th class="th-day day-col ${date.getDay() % 6 === 0 ? 'day-weekend' : ''}" data-select-col="${d - startDay + 1}">
                 <span class="day-name-vert">${dayNames[date.getDay()]}</span><br><span class="day-number">${d}</span></th>`;
         }
-        headerHtml += `<th onclick="Asistencia.selectColumn(${numDays + 1})">Total</th><th class="col-obs" onclick="Asistencia.selectColumn(${numDays + 2})">Obs.</th><th class="col-images">Fotos</th><th></th>`;
+        headerHtml += `<th data-select-col="${numDays + 1}">Total</th><th class="col-obs" data-select-col="${numDays + 2}">Obs.</th><th class="col-images">Fotos</th><th></th>`;
         headerRow.innerHTML = headerHtml;
         document.getElementById('attendance-table').style.setProperty('--col-width', this.dayWidth + 'px');
+        if (!this._headerListenerAdded) {
+            headerRow.addEventListener('click', (e) => {
+                const th = e.target.closest('[data-select-col]');
+                if (th) {
+                    const c = parseInt(th.getAttribute('data-select-col'), 10);
+                    this.selectColumn(c);
+                }
+            });
+            this._headerListenerAdded = true;
+        }
         this.renderTableBody();
     },
 
@@ -208,13 +220,12 @@ const Asistencia = {
         const numDays = (endDay - startDay + 1);
         const filtered = this.employees.filter(e => e.nombre.toLowerCase().includes(this.filterText));
         
-        body.innerHTML = '';
-        filtered.forEach((emp, r) => {
+        const rows = filtered.map((emp, r) => {
             const empCols = this.colors[emp.id] || {};
             const empImages = this.images[emp.id] || [];
             let rowHtml = `<tr data-emp-id="${emp.id}">
                 <td class="emp-name-col" id="cell-${r}-0" style="background-color: ${empCols.name || ''}"
-                    onmousedown="Asistencia.startSelection(${r}, 0, event)" onmouseenter="Asistencia.updateSelection(${r}, 0)">${emp.nombre}</td>`;
+                    onmousedown="Asistencia.startSelection(${r}, 0, event)" onmouseenter="Asistencia.updateSelection(${r}, 0)">${sanitizeHTML(emp.nombre)}</td>`;
             
             let rowTotal = 0;
             for (let i = 0; i < numDays; i++) {
@@ -223,7 +234,7 @@ const Asistencia = {
                 rowHtml += `<td class="day-col ${new Date(this.currentYear, this.currentMonth, d).getDay() % 6 === 0 ? 'day-weekend' : ''}" id="cell-${r}-${c}" 
                                 style="background-color: ${empCols[d] || ''}" onmousedown="Asistencia.startSelection(${r}, ${c}, event)" 
                                 onmouseenter="Asistencia.updateSelection(${r}, ${c})" onclick="Asistencia.activateInput(this)">
-                                <input type="number" class="asis-input" value="${val}" onchange="Asistencia.saveValue('${emp.id}', ${d}, this.value)" onblur="Asistencia.deactivateInput(this)"></td>`;
+                                <input type="number" class="asis-input" value="${String(val).replace(/"/g, '&quot;')}" onchange="Asistencia.saveValue('${emp.id}', ${d}, this.value)" onblur="Asistencia.deactivateInput(this)"></td>`;
             }
             
             rowHtml += `<td class="row-total" id="cell-${r}-${numDays + 1}" style="background-color: ${empCols.total || ''}"
@@ -237,16 +248,35 @@ const Asistencia = {
                     <div class="img-list">
                         ${empImages.map((url, idx) => `
                             <div class="img-item">
-                                <img src="${url}" class="img-thumb" onclick="Asistencia.showFullImage('${url}')">
-                                <span class="btn-del-img" onclick="Asistencia.deleteImage('${emp.id}', ${idx}, '${url}')">×</span>
+                                <img src="${sanitizeHTML(url)}" class="img-thumb" data-action="show-full" data-url="${sanitizeHTML(url)}">
+                                <span class="btn-del-img" data-action="del-img" data-emp-id="${sanitizeHTML(emp.id)}" data-index="${idx}" data-url="${sanitizeHTML(url)}">×</span>
                             </div>
                         `).join('')}
-                        <span class="add-img-btn" onclick="Asistencia.uploadImage('${emp.id}')">📸</span>
+                        <span class="add-img-btn" data-action="add-img" data-emp-id="${sanitizeHTML(emp.id)}">📸</span>
                     </div>
                 </td>
-                <td><button class="delete-emp" onclick="Asistencia.removeEmployee('${emp.id}', '${emp.nombre}')">×</button></td></tr>`;
-            body.innerHTML += rowHtml;
+                <td><button class="delete-emp" data-action="del-emp" data-emp-id="${sanitizeHTML(emp.id)}" data-emp-name="${sanitizeHTML(emp.nombre)}">×</button></td></tr>`;
+            return rowHtml;
         });
+        body.innerHTML = rows.join('');
+
+        if (!this._bodyListenerAdded) {
+            body.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const action = target.getAttribute('data-action');
+                if (action === 'show-full') {
+                    this.showFullImage(target.getAttribute('data-url'));
+                } else if (action === 'del-img') {
+                    this.deleteImage(target.getAttribute('data-emp-id'), parseInt(target.getAttribute('data-index'), 10), target.getAttribute('data-url'));
+                } else if (action === 'add-img') {
+                    this.uploadImage(target.getAttribute('data-emp-id'));
+                } else if (action === 'del-emp') {
+                    this.removeEmployee(target.getAttribute('data-emp-id'), target.getAttribute('data-emp-name'));
+                }
+            });
+            this._bodyListenerAdded = true;
+        }
     },
 
     async uploadImage(empId) {
@@ -336,16 +366,30 @@ const Asistencia = {
     },
 
     async saveValue(id, d, v) {
-        if (!this.data[id]) this.data[id] = {}; v === "" ? delete this.data[id][d] : this.data[id][d] = v;
         const pId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-        await this.db.collection('asistencia').doc(pId).set({ records: this.data }, { merge: true });
-        this.updateRowTotal(id);
+        try {
+            const snapshot = { ...this.data };
+            if (!snapshot[id]) snapshot[id] = {};
+            if (v === "") delete snapshot[id][d]; else snapshot[id][d] = v;
+            await this.db.collection('asistencia').doc(pId).set({ records: snapshot }, { merge: true });
+            this.data = snapshot;
+            this.updateRowTotal(id);
+        } catch (e) {
+            console.error(e);
+            showToast('Error al guardar valor', 'error');
+        }
     },
 
     async saveObservation(id, v) {
-        this.observations[id] = v;
         const pId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-        await this.db.collection('asistencia').doc(pId).set({ observations: this.observations }, { merge: true });
+        try {
+            const snapshot = { ...this.observations, [id]: v };
+            await this.db.collection('asistencia').doc(pId).set({ observations: snapshot }, { merge: true });
+            this.observations = snapshot;
+        } catch (e) {
+            console.error(e);
+            showToast('Error al guardar observación', 'error');
+        }
     },
 
     updateRowTotal(id) {
@@ -357,9 +401,25 @@ const Asistencia = {
     getMonthsOptions() { return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m, i) => `<option value="${i}" ${this.currentMonth === i ? 'selected' : ''}>${m}</option>`).join(''); },
     getYearsOptions() { let o = ''; for (let y = 2024; y <= new Date().getFullYear() + 1; y++) o += `<option value="${y}" ${this.currentYear === y ? 'selected' : ''}>${y}</option>`; return o; },
     async addNewEmployee() {
-        const n = prompt("Nombre:"); if (n) { await this.db.collection('empleados').add({ nombre: n.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp() }); this.loadData(); }
+        const n = prompt("Nombre:"); if (!n) return;
+        try {
+            await this.db.collection('empleados').add({ nombre: n.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            this.loadData();
+        } catch (e) {
+            console.error(e);
+            showToast('Error al agregar empleado', 'error');
+        }
     },
-    async removeEmployee(id, n) { if (confirm(`¿Eliminar a ${n}?`)) { await this.db.collection('empleados').doc(id).delete(); this.loadData(); } },
+    async removeEmployee(id, n) {
+        if (!confirm(`¿Eliminar a ${n}?`)) return;
+        try {
+            await this.db.collection('empleados').doc(id).delete();
+            this.loadData();
+        } catch (e) {
+            console.error(e);
+            showToast('Error al eliminar empleado', 'error');
+        }
+    },
 
     async exportToExcel() {
         const loading = document.getElementById('loading-screen'); if (loading) loading.style.display = 'flex';

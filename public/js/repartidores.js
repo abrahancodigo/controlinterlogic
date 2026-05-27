@@ -15,6 +15,7 @@ const Repartidores = {
     },
 
     async renderDesktop() {
+        this.isMobile = false;
         const contentArea = document.getElementById('content-area');
         contentArea.innerHTML = `
             <div class="module-header">
@@ -46,24 +47,43 @@ const Repartidores = {
             </div>
         `;
 
-        document.getElementById('rep-btn-add').addEventListener('click', () => this.showForm());
+        const addBtn = document.getElementById('rep-btn-add');
+        if (addBtn) {
+            if (this._desktopAddListener) addBtn.removeEventListener('click', this._desktopAddListener);
+            this._desktopAddListener = () => this.showForm();
+            addBtn.addEventListener('click', this._desktopAddListener);
+        }
 
         await this.loadRecords();
     },
 
     async loadRecords() {
-        if (this.unsubscribe) this.unsubscribe();
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+        if (this._loadResolve) {
+            this._loadResolve();
+            this._loadResolve = null;
+        }
         return new Promise((resolve) => {
+            this._loadResolve = resolve;
             this.unsubscribe = firebase.firestore().collection('repartidores')
                 .orderBy('nombre', 'asc')
                 .onSnapshot(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     this.applySort();
-                    resolve();
+                    if (this._loadResolve) {
+                        this._loadResolve();
+                        this._loadResolve = null;
+                    }
                 }, err => {
                     console.error('Error loading repartidores:', err);
                     showToast('Error al cargar repartidores', 'error');
-                    resolve();
+                    if (this._loadResolve) {
+                        this._loadResolve();
+                        this._loadResolve = null;
+                    }
                 });
         });
     },
@@ -103,17 +123,27 @@ const Repartidores = {
         body.innerHTML = this.filteredRecords.map(r => `
             <tr>
                 <td><strong>${sanitizeHTML(r.nombre || '')}</strong></td>
-                <td>${r.telefono ? `<a href="tel:${r.telefono}" style="color:var(--primary-600)">${r.telefono}</a>` : '-'}</td>
+                <td>${r.telefono ? `<a href="tel:${sanitizeHTML(r.telefono)}" style="color:var(--primary-600)">${sanitizeHTML(r.telefono)}</a>` : '-'}</td>
                 <td>${sanitizeHTML(r.vehiculo || '-')}</td>
                 <td>${sanitizeHTML(r.zona || '-')}</td>
                 <td><span class="badge badge-accent">${r.comisionPct ?? 70}%</span></td>
                 <td>${r.activo !== false ? '<span style="color:#22c55e;">✓ Activo</span>' : '<span style="color:#ef4444;">✗ Inactivo</span>'}</td>
                 <td class="actions-cell">
-                    <button class="btn-icon btn-secondary" onclick="Repartidores.showForm('${r.id}')" title="Editar">✏️</button>
-                    ${window.permissions?.canDelete ? `<button class="btn-icon btn-danger" onclick="Repartidores.deleteRecord('${r.id}')" title="Eliminar">🗑️</button>` : ''}
+                    <button class="btn-icon btn-secondary btn-edit-rep" data-id="${sanitizeHTML(r.id)}" title="Editar">✏️</button>
+                    ${window.permissions?.canDelete ? `<button class="btn-icon btn-danger btn-delete-rep" data-id="${sanitizeHTML(r.id)}" title="Eliminar">🗑️</button>` : ''}
                 </td>
             </tr>
         `).join('');
+
+        if (!this._tableListenerAdded) {
+            body.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-rep');
+                if (editBtn) { this.showForm(editBtn.dataset.id); return; }
+                const deleteBtn = e.target.closest('.btn-delete-rep');
+                if (deleteBtn) { this.deleteRecord(deleteBtn.dataset.id); return; }
+            });
+            this._tableListenerAdded = true;
+        }
     },
 
     showForm(recordId = null) {
@@ -180,7 +210,7 @@ const Repartidores = {
                     telefono: document.getElementById('rep-telefono').value.trim(),
                     vehiculo: document.getElementById('rep-vehiculo').value.trim(),
                     zona: document.getElementById('rep-zona').value.trim(),
-                    comisionPct: parseInt(document.getElementById('rep-comision').value) || 70,
+                    comisionPct: (function(v){ var n=parseInt(v,10); return Number.isFinite(n)?n:70; })(document.getElementById('rep-comision').value),
                     activo: document.getElementById('rep-activo').checked,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
@@ -213,14 +243,19 @@ const Repartidores = {
 
     // ==================== MOBILE ====================
     async renderMobile() {
-        const contentArea = document.getElementById('content-area');
         this.isMobile = true;
+        const contentArea = document.getElementById('content-area');
         contentArea.innerHTML = `
             <div style="padding:0 0 8px 0;"><h1 style="font-size:1.35rem;font-weight:800;">🚛 Repartidores</h1><p style="font-size:0.78rem;color:#8e8e93;">Gestión de repartidores</p></div>
             <div class="m-actions-bar"><button class="btn btn-primary" id="mrep-btn-add" style="border-radius:20px;">➕ Nuevo</button></div>
             <div class="m-data-list" id="mrep-list"><div style="text-align:center;padding:40px;color:#8e8e93;">Cargando...</div></div>
         `;
-        document.getElementById('mrep-btn-add').addEventListener('click', () => this.showMobileForm());
+        const maddBtn = document.getElementById('mrep-btn-add');
+        if (maddBtn) {
+            if (this._mobileAddListener) maddBtn.removeEventListener('click', this._mobileAddListener);
+            this._mobileAddListener = () => this.showMobileForm();
+            maddBtn.addEventListener('click', this._mobileAddListener);
+        }
         await this.loadRecords();
     },
 
@@ -232,39 +267,66 @@ const Repartidores = {
             return;
         }
         list.innerHTML = this.filteredRecords.map(r => `
-            <div class="m-data-card" onclick="Repartidores.showMobileDetail('${r.id}')">
+            <div class="m-data-card" data-id="${sanitizeHTML(r.id)}">
                 <div class="m-card-header"><span class="m-card-title">${sanitizeHTML(r.nombre||'')}</span><span class="m-card-badge primary">${r.comisionPct??70}%</span></div>
                 <div class="m-card-rows">
                     <div class="m-card-row"><span class="m-card-label">Vehículo</span><span class="m-card-value">${sanitizeHTML(r.vehiculo||'-')}</span></div>
                     <div class="m-card-row"><span class="m-card-label">Zona</span><span class="m-card-value">${sanitizeHTML(r.zona||'-')}</span></div>
                 </div>
-                ${window.permissions?.canEdit ? `<div class="m-card-actions" onclick="event.stopPropagation()"><button class="m-card-action" onclick="Repartidores.showMobileForm('${r.id}')">✏️</button>${window.permissions?.canDelete?`<button class="m-card-action delete" onclick="Repartidores.deleteRecord('${r.id}')">🗑️</button>`:''}</div>` : ''}
+                ${window.permissions?.canEdit ? `<div class="m-card-actions"><button class="m-card-action btn-edit-mrep" data-id="${sanitizeHTML(r.id)}">✏️</button>${window.permissions?.canDelete?`<button class="m-card-action delete btn-delete-mrep" data-id="${sanitizeHTML(r.id)}">🗑️</button>`:''}</div>` : ''}
             </div>
         `).join('');
+
+        if (!this._mobileCardsListenerAdded) {
+            list.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-mrep');
+                const deleteBtn = e.target.closest('.btn-delete-mrep');
+                const card = e.target.closest('.m-data-card');
+                if (editBtn) { this.showMobileForm(editBtn.dataset.id); return; }
+                if (deleteBtn) { this.deleteRecord(deleteBtn.dataset.id); return; }
+                if (card) { this.showMobileDetail(card.dataset.id); }
+            });
+            this._mobileCardsListenerAdded = true;
+        }
     },
 
     showMobileDetail(id) {
         const r = this.records.find(x => x.id === id); if (!r) return;
         const sheet = document.createElement('div');
-        sheet.innerHTML = `<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${sanitizeHTML(r.nombre||'Repartidor')}</span><button class="m-sheet-close" onclick="this.closest('.m-bottom-sheet').remove();document.querySelector('.m-sheet-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Nombre</span><div style="font-weight:500;">${sanitizeHTML(r.nombre||'-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Teléfono</span><div style="font-weight:500;">${r.telefono?`<a href="tel:${r.telefono}" style="color:#7c3aed;">${r.telefono}</a>`:'-'}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Vehículo</span><div style="font-weight:500;">${sanitizeHTML(r.vehiculo||'-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Zona</span><div style="font-weight:500;">${sanitizeHTML(r.zona||'-')}</div></div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Comisión</span><div style="font-weight:700;color:#7c3aed;">${r.comisionPct??70}% del flete</div></div></div></div></div>`;
+        sheet.innerHTML = `<div class="m-sheet-backdrop show"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${sanitizeHTML(r.nombre||'Repartidor')}</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Nombre</span><div style="font-weight:500;">${sanitizeHTML(r.nombre||'-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Teléfono</span><div style="font-weight:500;">${r.telefono?`<a href="tel:${sanitizeHTML(r.telefono)}" style="color:#7c3aed;">${sanitizeHTML(r.telefono)}</a>`:'-'}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Vehículo</span><div style="font-weight:500;">${sanitizeHTML(r.vehiculo||'-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Zona</span><div style="font-weight:500;">${sanitizeHTML(r.zona||'-')}</div></div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;">Comisión</span><div style="font-weight:700;color:#7c3aed;">${r.comisionPct??70}% del flete</div></div></div></div></div>`;
+        const closeBtn = sheet.querySelector('.m-sheet-close');
+        const backdrop = sheet.querySelector('.m-sheet-backdrop');
+        const remove = () => sheet.remove();
+        if (closeBtn) closeBtn.addEventListener('click', remove);
+        if (backdrop) backdrop.addEventListener('click', remove);
         document.body.appendChild(sheet);
     },
 
     showMobileForm(id) {
         const r = id ? this.records.find(x => x.id === id) : null;
         const sheet = document.createElement('div');
-        sheet.innerHTML = `<div class="m-sheet-backdrop show" id="mrepf-backdrop"></div><div class="m-bottom-sheet show" id="mrepf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${r?'Editar':'Nuevo'} Repartidor</span><button class="m-sheet-close" onclick="document.getElementById('mrepf-sheet').remove();document.getElementById('mrepf-backdrop').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mrepf-nombre" value="${sanitizeHTML(r?.nombre||'')}"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="text" id="mrepf-telefono" value="${r?.telefono||''}"></div><div class="m-form-group"><label>Vehículo</label><input type="text" id="mrepf-vehiculo" value="${sanitizeHTML(r?.vehiculo||'')}"></div></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mrepf-zona" value="${sanitizeHTML(r?.zona||'')}"></div><div class="m-form-group"><label>Comisión %</label><input type="number" id="mrepf-comision" min="0" max="100" value="${r?.comisionPct??70}"></div></div><div class="m-form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;"><input type="checkbox" id="mrepf-activo" ${r?.activo!==false?'checked':''}> Activo</label></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById('mrepf-sheet').remove();document.getElementById('mrepf-backdrop').remove();">Cancelar</button><button class="btn btn-primary" id="mrepf-submit">${r?'Guardar':'Crear'}</button></div></div>`;
+        const esc = function(v) { return String(v == null ? '' : v).replace(/"/g, '&quot;'); };
+        sheet.innerHTML = `<div class="m-sheet-backdrop show"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${r?'Editar':'Nuevo'} Repartidor</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" class="mrepf-nombre" value="${esc(r?.nombre)}"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="text" class="mrepf-telefono" value="${esc(r?.telefono)}"></div><div class="m-form-group"><label>Vehículo</label><input type="text" class="mrepf-vehiculo" value="${esc(r?.vehiculo)}"></div></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" class="mrepf-zona" value="${esc(r?.zona)}"></div><div class="m-form-group"><label>Comisión %</label><input type="number" class="mrepf-comision" min="0" max="100" value="${esc(r?.comisionPct ?? 70)}"></div></div><div class="m-form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;"><input type="checkbox" class="mrepf-activo" ${r?.activo!==false?'checked':''}> Activo</label></div></div><div class="m-sheet-footer"><button class="btn mrepf-cancel">Cancelar</button><button class="btn btn-primary mrepf-submit">${r?'Guardar':'Crear'}</button></div></div>`;
         document.body.appendChild(sheet);
 
-        document.getElementById('mrepf-submit').addEventListener('click', async function(){
-            const btn = document.getElementById('mrepf-submit'); btn.disabled = true; btn.textContent = 'Guardando...';
+        const removeSheet = function() { sheet.remove(); };
+        const closeBtn = sheet.querySelector('.m-sheet-close');
+        const cancelBtn = sheet.querySelector('.mrepf-cancel');
+        if (closeBtn) closeBtn.addEventListener('click', removeSheet);
+        if (cancelBtn) cancelBtn.addEventListener('click', removeSheet);
+
+        sheet.querySelector('.mrepf-submit').addEventListener('click', async function(){
+            const btn = sheet.querySelector('.mrepf-submit'); btn.disabled = true; btn.textContent = 'Guardando...';
             try {
-                const data = { nombre: document.getElementById('mrepf-nombre').value, telefono: document.getElementById('mrepf-telefono').value, vehiculo: document.getElementById('mrepf-vehiculo').value, zona: document.getElementById('mrepf-zona').value, comisionPct: parseInt(document.getElementById('mrepf-comision').value)||70, activo: document.getElementById('mrepf-activo').checked };
-                const db = firebase.firestore();
+                var nombre = sheet.querySelector('.mrepf-nombre').value.trim();
+                if (!nombre) { showToast('Nombre requerido', 'error'); btn.disabled = false; btn.textContent = r ? 'Guardar' : 'Crear'; return; }
+                var comisionVal = parseInt(sheet.querySelector('.mrepf-comision').value, 10);
+                var data = { nombre: nombre, telefono: sheet.querySelector('.mrepf-telefono').value.trim(), vehiculo: sheet.querySelector('.mrepf-vehiculo').value.trim(), zona: sheet.querySelector('.mrepf-zona').value.trim(), comisionPct: Number.isFinite(comisionVal) ? comisionVal : 70, activo: sheet.querySelector('.mrepf-activo').checked, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                var db = firebase.firestore();
                 if (r) await db.collection('repartidores').doc(id).update(data);
-                else await db.collection('repartidores').add(data);
+                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('repartidores').add(data); }
                 showToast(r?'Actualizado':'Creado','success');
-                document.getElementById('mrepf-sheet').remove(); document.getElementById('mrepf-backdrop').remove();
+                removeSheet();
             } catch(err) { showToast('Error: '+err.message,'error'); btn.disabled=false; btn.textContent=r?'Guardar':'Crear'; }
         });
     }

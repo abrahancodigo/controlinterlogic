@@ -158,7 +158,7 @@ const Settings = {
                     ${this.settings?.sourceZipUrl
                         ? `
                         <p style="${isMobile ? 'font-size:0.85rem;margin-bottom:1rem;' : ''}">Descarga el código completo del proyecto.</p>
-                        <a href="${this.settings.sourceZipUrl}" class="btn btn-primary btn-block" target="_blank" style="${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.9rem;' : ''}">
+                        <a href="${sanitizeHTML(this.settings.sourceZipUrl)}" class="btn btn-primary btn-block" target="_blank" style="${isMobile ? 'min-height:48px;border-radius:12px;font-size:0.9rem;' : ''}">
                             ⬇️ Descargar Código (.zip)
                         </a>
                         `

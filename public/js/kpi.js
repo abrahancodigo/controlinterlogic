@@ -91,7 +91,7 @@ const KpiEvaluation = {
                         </thead>
                         <tbody id="kpi-table-body">
                             <tr>
-                                <td colspan="13" style="text-align: center; padding: 2rem;">Cargando evaluaciones...</td>
+                                <td colspan="${3 + this.kpiAspects.length + 3}" style="text-align: center; padding: 2rem;">Cargando evaluaciones...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -174,7 +174,7 @@ const KpiEvaluation = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="13" style="text-align: center; padding: 2rem;">No hay evaluaciones para el período seleccionado.</td>
+                    <td colspan="${3 + this.kpiAspects.length + 3}" style="text-align: center; padding: 2rem;">No hay evaluaciones para el período seleccionado.</td>
                 </tr>
             `;
             return;
@@ -209,14 +209,14 @@ const KpiEvaluation = {
                 const colors = getColor(score);
                 return `
                         <td style="text-align: center; background: ${colors.bg}; padding: 0.6rem 0.3rem; border-right: 1px solid rgba(0,0,0,0.05);">
-                            <div style="font-weight: 900; color: ${colors.text}; font-size: 1.05rem; line-height: 1;">${score}</div>
+                            <div style="font-weight: 900; color: ${colors.main}; font-size: 1.05rem; line-height: 1;">${score}</div>
                             <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; margin-top: 4px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05);">
                                 <div style="width: ${score * 10}%; height: 100%; background: ${colors.main};"></div>
                             </div>
                         </td>`;
             }).join('')}
                     <td style="text-align: center; font-weight: 900; min-width: 130px; background: #f8fafc; border-left: 2px solid #e2e8f0;">
-                        <div style="color: ${avgColors.text}; font-size: 1.3rem; margin-bottom: 5px; font-family: 'Inter', sans-serif;">${avg.toFixed(1)}</div>
+                        <div style="color: ${avgColors.main}; font-size: 1.3rem; margin-bottom: 5px; font-family: 'Inter', sans-serif;">${avg.toFixed(1)}</div>
                         <div style="width: 90%; margin: 0 auto; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
                             <div style="width: ${avg * 10}%; height: 100%; background: ${avgColors.main}; box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);"></div>
                         </div>
@@ -234,13 +234,22 @@ const KpiEvaluation = {
             `;
         }).join('');
 
-        // Attach listeners
-        tableBody.querySelectorAll('.btn-edit-kpi').forEach(btn => {
-            btn.addEventListener('click', () => this.showForm(btn.dataset.id));
-        });
-        tableBody.querySelectorAll('.btn-delete-kpi').forEach(btn => {
-            btn.addEventListener('click', () => this.deleteRecord(btn.dataset.id));
-        });
+        // Single delegated listener
+        if (!this._tableListenerAdded) {
+            tableBody.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-kpi');
+                if (editBtn && !editBtn.disabled) {
+                    this.showForm(editBtn.dataset.id);
+                    return;
+                }
+                const deleteBtn = e.target.closest('.btn-delete-kpi');
+                if (deleteBtn && !deleteBtn.disabled) {
+                    this.deleteRecord(deleteBtn.dataset.id);
+                    return;
+                }
+            });
+            this._tableListenerAdded = true;
+        }
     },
 
     updateStats() {
@@ -286,8 +295,9 @@ const KpiEvaluation = {
         let dateValue = '';
         if (record && record.fecha) {
             const d = record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha);
-            dateValue = d.toISOString().split('T')[0];
-        } else {
+            dateValue = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+        }
+        if (!dateValue) {
             dateValue = new Date().toISOString().split('T')[0];
         }
 
@@ -548,12 +558,22 @@ const KpiEvaluation = {
                     '<div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (record.fecha ? formatDateShort(record.fecha) : '-') + '</span></div></div>' +
                     '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">' + scoresHtml + '</div>' +
                     (record.observaciones ? '<div style="font-size:0.78rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#f9f9fb;border-radius:10px;">' + sanitizeHTML(record.observaciones) + '</div>' : '') +
-                    ((canEdit || canDelete) ? '<div class="m-card-actions" onclick="event.stopPropagation()">' +
-                        (canEdit ? '<button class="m-card-action" onclick="KpiEvaluation.showForm(\'' + record.id + '\')" title="Editar">✏️</button>' : '') +
-                        (canDelete ? '<button class="m-card-action delete" onclick="KpiEvaluation.deleteRecord(\'' + record.id + '\')" title="Eliminar">🗑️</button>' : '') +
+                    ((canEdit || canDelete) ? '<div class="m-card-actions">' +
+                        (canEdit ? '<button class="m-card-action btn-edit-mkpi" data-id="' + sanitizeHTML(record.id) + '" title="Editar">✏️</button>' : '') +
+                        (canDelete ? '<button class="m-card-action delete btn-delete-mkpi" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' : '') +
                     '</div>' : '') +
                 '</div>';
             }, this).join('');
+        }
+
+        if (!this._mobileCardsListenerAdded) {
+            list.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-mkpi');
+                const deleteBtn = e.target.closest('.btn-delete-mkpi');
+                if (editBtn) { this.showForm(editBtn.dataset.id); return; }
+                if (deleteBtn) { this.deleteRecord(deleteBtn.dataset.id); return; }
+            });
+            this._mobileCardsListenerAdded = true;
         }
 
         // Update stats

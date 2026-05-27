@@ -370,9 +370,11 @@ Users.showAddUserForm = function () {
             // 2. Save to user_registry (this will be used by login)
             // Note: We don't create the Firebase Auth user yet to avoid logging out the admin.
             // The Firebase Auth user will be created on the first login of this new user.
+            const passwordHash = await hashPassword(password);
+
             await userRegistryRef.set({
                 username: username,
-                password: password, // Store in plaintext for simplicity as requested, but could be MD5 or similar
+                passwordHash: passwordHash,
                 displayName: name,
                 role: role,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -402,3 +404,16 @@ Users.showAddUserForm = function () {
     document.getElementById('close-user-modal').onclick = () => modal.remove();
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 };
+
+// ===================================
+// Password Hashing Helper
+// ===================================
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}

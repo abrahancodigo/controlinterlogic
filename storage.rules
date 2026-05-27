@@ -1,26 +1,41 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper functions for role checks (read from Firestore users collection)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isEditor() {
+      return isAuthenticated() &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'editor';
+    }
+
     // Reglas para entregas (existentes)
     match /deliveries/{imageId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read: if isAuthenticated();
+      allow write: if (isAdmin() || isEditor())
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
-    
+
     // Reglas para asistencia (Corregidas para permitir subcarpetas)
     match /asistencia/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read: if isAuthenticated();
+      allow write: if (isAdmin() || isEditor())
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
-    
+
     // Reglas para problemas
     match /problemas/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow read: if isAuthenticated();
+      allow write: if (isAdmin() || isEditor())
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }

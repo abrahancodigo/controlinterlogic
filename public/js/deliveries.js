@@ -5,6 +5,16 @@
 const Deliveries = {
     deliveries: [],
     userIsAdmin: false,
+    activeModals: [],
+
+    closeAllModals() {
+        this.activeModals.forEach(modal => {
+            if (modal && modal.parentElement) {
+                modal.remove();
+            }
+        });
+        this.activeModals = [];
+    },
 
     // Render deliveries view
     async render() {
@@ -396,7 +406,7 @@ const Deliveries = {
                     <tbody>
                         ${this.deliveries.map(delivery => `
                             <tr>
-                                <td data-label="Folio"><strong>${delivery.folio || delivery.id.substring(0, 8).toUpperCase()}</strong></td>
+                                <td data-label="Folio"><strong>${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</strong></td>
                                 <td data-label="Fecha">${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</td>
                                 <td data-label="Cliente">${sanitizeHTML(delivery.cliente)}</td>
                                 <td data-label="Tienda">${sanitizeHTML(delivery.tienda)}</td>
@@ -454,7 +464,9 @@ const Deliveries = {
         const delivery = this.deliveries.find(d => d.id === deliveryId);
         if (!delivery || !delivery.imageUrl) return;
 
+        this.closeAllModals();
         const modal = document.createElement('div');
+        this.activeModals.push(modal);
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -470,7 +482,7 @@ const Deliveries = {
         `;
 
         modal.innerHTML = `
-            <button onclick="this.parentElement.remove()" style="
+            <button onclick="Deliveries.closeAllModals()" style="
                 position: absolute;
                 top: 1rem;
                 right: 1rem;
@@ -484,9 +496,9 @@ const Deliveries = {
                 z-index: 10;
             ">✕</button>
             <div style="max-width: 90vw; max-height: 90vh; text-align: center;">
-                <img src="${delivery.imageUrl}" style="max-width: 100%; max-height: 85vh; border-radius: 0.5rem;" alt="Imagen de entrega ${delivery.folio}">
+                <img src="${delivery.imageUrl}" style="max-width: 100%; max-height: 85vh; border-radius: 0.5rem;" alt="Imagen de entrega ${sanitizeHTML(delivery.folio || '')}">
                 <p style="color: white; margin-top: 1rem; font-size: 1.1rem;">
-                    📦 Entrega: <strong>${delivery.folio || delivery.id.substring(0, 8).toUpperCase()}</strong>
+                    📦 Entrega: <strong>${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</strong>
                 </p>
             </div>
         `;
@@ -494,9 +506,12 @@ const Deliveries = {
         document.body.appendChild(modal);
 
         // Close on background click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
+        const clickHandler = (e) => {
+            if (e.target === modal) {
+                this.closeAllModals();
+            }
+        };
+        modal.addEventListener('click', clickHandler);
     },
 
     // View delivery details
@@ -508,7 +523,9 @@ const Deliveries = {
         const canEdit = window.permissions?.canEdit;
         const canDelete = window.permissions?.canDelete;
 
+        this.closeAllModals();
         const modal = document.createElement('div');
+        this.activeModals.push(modal);
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -556,7 +573,7 @@ const Deliveries = {
                         🖨️ Imprimir
                     </button>
                     <button class="btn btn-accent ${!canEdit ? 'btn-disabled' : ''}" 
-                            onclick="${canEdit ? `this.closest('[style*=fixed]').remove(); Deliveries.editDelivery('${deliveryId}')` : ''}"
+                            onclick="${canEdit ? `Deliveries.closeAllModals(); Deliveries.editDelivery('${deliveryId}')` : ''}"
                             ${!canEdit ? 'disabled' : ''}>
                         ✏️ Editar
                     </button>
@@ -565,7 +582,7 @@ const Deliveries = {
                             ${!canDelete ? 'disabled' : ''}>
                         🗑️ Eliminar
                     </button>
-                    <button class="btn btn-secondary" onclick="this.closest('[style*=fixed]').remove()">
+                    <button class="btn btn-secondary" onclick="Deliveries.closeAllModals()">
                         Cerrar
                     </button>
                 </div>
@@ -575,11 +592,12 @@ const Deliveries = {
         document.body.appendChild(modal);
 
         // Close on background click
-        modal.addEventListener('click', (e) => {
+        const clickHandler = (e) => {
             if (e.target === modal) {
-                modal.remove();
+                this.closeAllModals();
             }
-        });
+        };
+        modal.addEventListener('click', clickHandler);
     },
 
     // Edit delivery
@@ -600,7 +618,9 @@ const Deliveries = {
             dateValue = formatDateForInput(date);
         }
 
+        this.closeAllModals();
         const modal = document.createElement('div');
+        this.activeModals.push(modal);
         modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -667,7 +687,7 @@ const Deliveries = {
                     </div>
                     
                     <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="this.closest('[style*=fixed]').remove()">
+                        <button type="button" class="btn btn-secondary" onclick="Deliveries.closeAllModals()">
                             Cancelar
                         </button>
                         <button type="submit" class="btn btn-primary" id="btn-save-edit">
@@ -697,7 +717,7 @@ const Deliveries = {
 
         // Handle form submission
         const form = document.getElementById('edit-delivery-form');
-        form.addEventListener('submit', async (e) => {
+        const submitHandler = async (e) => {
             e.preventDefault();
 
             const saveBtn = document.getElementById('btn-save-edit');
@@ -764,7 +784,7 @@ const Deliveries = {
                 await firebase.firestore().collection('deliveries').doc(deliveryId).update(updatedData);
 
                 showToast('✓ Entrega actualizada exitosamente', 'success');
-                modal.remove();
+                this.closeAllModals();
 
                 // Reload deliveries
                 await this.loadDeliveries();
@@ -774,14 +794,16 @@ const Deliveries = {
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 Guardar Cambios';
             }
-        });
+        };
+        form.addEventListener('submit', submitHandler);
 
         // Close on background click
-        modal.addEventListener('click', (e) => {
+        const clickHandler = (e) => {
             if (e.target === modal) {
-                modal.remove();
+                this.closeAllModals();
             }
-        });
+        };
+        modal.addEventListener('click', clickHandler);
     },
 
     // Delete delivery
@@ -846,7 +868,7 @@ const Deliveries = {
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <p style="margin: 0; font-weight: bold; font-size: 1.2rem;">Folio: ${delivery.folio || delivery.id.substring(0, 8).toUpperCase()}</p>
+                        <p style="margin: 0; font-weight: bold; font-size: 1.2rem;">Folio: ${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</p>
                         <p style="margin: 5px 0 0 0;">Fecha: ${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</p>
                     </div>
                 </div>
@@ -911,8 +933,10 @@ const Deliveries = {
             });
         }
 
+        this.closeAllModals();
         // Create preview modal
         const previewModal = document.createElement('div');
+        this.activeModals.push(previewModal);
         previewModal.id = 'print-preview-modal';
         previewModal.style.cssText = `
             position: fixed;
@@ -981,7 +1005,7 @@ const Deliveries = {
 
         // Close button handler
         document.getElementById('close-print-preview').onclick = () => {
-            previewModal.remove();
+            this.closeAllModals();
             printArea.innerHTML = '';
         };
 
@@ -990,7 +1014,7 @@ const Deliveries = {
             previewModal.style.display = 'none';
             window.print();
             setTimeout(() => {
-                previewModal.remove();
+                this.closeAllModals();
                 printArea.innerHTML = '';
             }, 500);
         };
@@ -1026,12 +1050,13 @@ const Deliveries = {
         };
 
         // Close on background click
-        previewModal.addEventListener('click', (e) => {
+        const clickHandler = (e) => {
             if (e.target === previewModal) {
-                previewModal.remove();
+                this.closeAllModals();
                 printArea.innerHTML = '';
             }
-        });
+        };
+        previewModal.addEventListener('click', clickHandler);
     },
 
     // ============= MOBILE RENDER =============
@@ -1076,7 +1101,7 @@ const Deliveries = {
             return `
             <div class="m-data-card" onclick="Deliveries.showMobileView('${d.id}')">
                 <div class="m-card-header">
-                    <span class="m-card-title">#${folio}</span>
+                    <span class="m-card-title">#${sanitizeHTML(folio)}</span>
                     <span class="m-card-badge primary">${sanitizeHTML(d.tipoMueble || 'Mueble')}</span>
                 </div>
                 <div class="m-card-rows">
@@ -1096,16 +1121,21 @@ const Deliveries = {
     showMobileView(id) {
         const d = this.deliveries.find(x => x.id === id);
         if (!d) return;
+        this.closeAllModals();
         const sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + (d.folio || d.id.substring(0,8).toUpperCase()) + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(d.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Tienda</span><div style="font-weight:500;">' + sanitizeHTML(d.tienda || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (d.fecha ? formatDate(d.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Mueble</span><div style="font-weight:500;">' + sanitizeHTML(d.tipoMueble || '-') + '</div></div></div>' + (d.accesorios ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Accesorios</span><div style="font-weight:500;">' + sanitizeHTML(d.accesorios) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer">' + (window.permissions?.canEdit ? '<button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Deliveries.showMobileForm(\'' + d.id + '\')">✏️ Editar</button>' : '') + ' 🖨️ <button class="m-card-action" onclick="Deliveries.printDelivery(\'' + d.id + '\')">Imprimir</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Deliveries.deleteDelivery(\'' + d.id + '\')">🗑️ Eliminar</button>' : '') + '</div></div>';
+        this.activeModals.push(sheet);
+        const folio = sanitizeHTML(d.folio || d.id.substring(0,8).toUpperCase());
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="Deliveries.closeAllModals()"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + folio + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(d.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Tienda</span><div style="font-weight:500;">' + sanitizeHTML(d.tienda || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (d.fecha ? formatDate(d.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Mueble</span><div style="font-weight:500;">' + sanitizeHTML(d.tipoMueble || '-') + '</div></div></div>' + (d.accesorios ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Accesorios</span><div style="font-weight:500;">' + sanitizeHTML(d.accesorios) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer">' + (window.permissions?.canEdit ? '<button class="m-card-action" onclick="Deliveries.closeAllModals();Deliveries.showMobileForm(\'' + d.id + '\')">✏️ Editar</button>' : '') + ' 🖨️ <button class="m-card-action" onclick="Deliveries.printDelivery(\'' + d.id + '\')">Imprimir</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="Deliveries.closeAllModals();Deliveries.deleteDelivery(\'' + d.id + '\')">🗑️ Eliminar</button>' : '') + '</div></div>';
         document.body.appendChild(sheet);
     },
 
     showMobileForm(id) {
         const d = id ? this.deliveries.find(x => x.id === id) : null;
         const isEdit = !!d;
+        this.closeAllModals();
         const sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mdf-sheet\').remove();document.getElementById(\'mdf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? d.fecha.toDate().toISOString().split('T')[0] : String(d.fecha).split('T')[0]) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mdf-sheet\').remove();document.getElementById(\'mdf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        this.activeModals.push(sheet);
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? d.fecha.toDate().toISOString().split('T')[0] : String(d.fecha).split('T')[0]) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="Deliveries.closeAllModals()">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         document.getElementById('mdf-submit').addEventListener('click', async () => {

@@ -19,6 +19,7 @@ const Clientes = {
     },
 
     async renderDesktop() {
+        this.isMobile = false;
         const content = document.getElementById('content-area');
         if (!content) return;
 
@@ -121,6 +122,22 @@ const Clientes = {
             }
         });
 
+        // Action buttons (event delegation)
+        tableBody.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit-cliente');
+            if (editBtn && !editBtn.disabled) {
+                const id = editBtn.dataset.id;
+                if (id) this.showForm(id);
+                return;
+            }
+            const deleteBtn = e.target.closest('.btn-delete-cliente');
+            if (deleteBtn && !deleteBtn.disabled) {
+                const id = deleteBtn.dataset.id;
+                if (id) this.deleteRecord(id);
+                return;
+            }
+        });
+
         // Load data
         await this.loadRecords();
     },
@@ -169,6 +186,13 @@ const Clientes = {
 
     return this._loadPromise;
   },
+
+    destroy() {
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+    },
 
     // Apply search and sort
     applyFilters() {
@@ -246,21 +270,21 @@ const Clientes = {
         tableBody.innerHTML = this.filteredRecords.map(c => `
             <tr>
                 <td style="text-align: center;">
-                    <input type="checkbox" class="cliente-checkbox" data-id="${c.id}" ${this.selectedRecords.has(c.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
+                    <input type="checkbox" class="cliente-checkbox" data-id="${sanitizeHTML(c.id)}" ${this.selectedRecords.has(c.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
                 </td>
                 <td><strong>${sanitizeHTML(c.nombre || '')}</strong></td>
                 <td>${sanitizeHTML(c.direccion || '')}</td>
-                <td>${c.telefono ? `<a href="https://wa.me/${c.telefono.replace(/\D/g, '')}" target="_blank" style="color: var(--primary-600); text-decoration: none;">${sanitizeHTML(c.telefono)}</a>` : ''}</td>
+                <td>${c.telefono ? `<a href="https://wa.me/${String(c.telefono).replace(/\D/g, '')}" target="_blank" style="color: var(--primary-600); text-decoration: none;">${sanitizeHTML(c.telefono)}</a>` : ''}</td>
                 <td>${sanitizeHTML(c.zona || '')}</td>
                 <td>${sanitizeHTML(c.vendedor || '')}</td>
-                <td><span class="badge ${c.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${c.empresa || ''}</span></td>
-                <td>${c.condicionPago || ''}</td>
+                <td><span class="badge ${c.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(c.empresa || '')}</span></td>
+                <td>${sanitizeHTML(c.condicionPago || '')}</td>
                 <td class="actions-cell">
-                    <button class="btn-icon btn-secondary ${!canEdit ? 'btn-disabled' : ''}" 
-                            onclick="Clientes.showForm('${c.id}')"
+                    <button class="btn-icon btn-secondary ${!canEdit ? 'btn-disabled' : ''} btn-edit-cliente" 
+                            data-id="${sanitizeHTML(c.id)}"
                             ${!canEdit ? 'disabled' : ''} title="Editar">✏️</button>
-                    <button class="btn-icon btn-danger ${!canDelete ? 'btn-disabled' : ''}" 
-                            onclick="Clientes.deleteRecord('${c.id}')"
+                    <button class="btn-icon btn-danger ${!canDelete ? 'btn-disabled' : ''} btn-delete-cliente" 
+                            data-id="${sanitizeHTML(c.id)}"
                             ${!canDelete ? 'disabled' : ''} title="Eliminar">🗑️</button>
                 </td>
             </tr>
@@ -747,7 +771,7 @@ const Clientes = {
             </div>
             <div class="m-search-bar">
                 <span class="search-icon-m">🔍</span>
-                <input type="text" id="mc-search" placeholder="Buscar por nombre, dirección, teléfono..." value="${this.searchQuery || ''}">
+                <input type="text" id="mc-search" placeholder="Buscar por nombre, dirección, teléfono..." value="${String(this.searchQuery || '').replace(/"/g, '&quot;')}">
             </div>
             <div class="m-stats-row" id="mc-stats">
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Total</div><div class="m-stat-chip-value" id="mc-total">0</div></div>
@@ -771,27 +795,57 @@ const Clientes = {
         });
         document.getElementById('mc-btn-add').addEventListener('click', () => this.showMobileForm());
         document.getElementById('mc-btn-export').addEventListener('click', () => this.mobileExportExcel());
+
+        const dataList = document.getElementById('mc-data-list');
+        if (dataList && !this._mobileListListener) {
+            dataList.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-m');
+                const deleteBtn = e.target.closest('.btn-delete-m');
+                const telLink = e.target.closest('.m-tel-link');
+                const card = e.target.closest('.m-data-card');
+                if (editBtn) {
+                    e.stopPropagation();
+                    const id = editBtn.dataset.id;
+                    if (id) this.showMobileForm(id);
+                    return;
+                }
+                if (deleteBtn) {
+                    e.stopPropagation();
+                    const id = deleteBtn.dataset.id;
+                    if (id) this.deleteRecord(id);
+                    return;
+                }
+                if (telLink) {
+                    e.stopPropagation();
+                    return;
+                }
+                if (card) {
+                    const id = card.dataset.id;
+                    if (id) this.showMobileDetail(id);
+                }
+            });
+            this._mobileListListener = true;
+        }
     },
 
     renderMobileCards() {
         var list = document.getElementById('mc-data-list');
         if (!list) return;
-        var self = this;
 
         if (this.filteredRecords.length === 0) {
             list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin clientes</div><div class="m-empty-text">No hay registros.</div></div>';
         } else {
             list.innerHTML = this.filteredRecords.map(function(c) {
-                return '<div class="m-data-card" onclick="Clientes.showMobileDetail(\'' + c.id + '\')">' +
+                return '<div class="m-data-card" data-id="' + sanitizeHTML(c.id) + '">' +
                     '<div class="m-card-header"><span class="m-card-title">' + sanitizeHTML(c.nombre || 'Sin nombre') + '</span>' +
                     '<span class="m-card-badge primary">' + sanitizeHTML(c.empresa || 'Cliente') + '</span></div>' +
                     '<div class="m-card-rows">' +
-                    '<div class="m-card-row"><span class="m-card-label">Teléfono</span><span class="m-card-value">' + (c.telefono ? '<a href="tel:' + c.telefono + '" onclick="event.stopPropagation()" style="color:#7c3aed;">' + c.telefono + '</a>' : '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Teléfono</span><span class="m-card-value">' + (c.telefono ? '<a href="tel:' + sanitizeHTML(c.telefono) + '" class="m-tel-link" style="color:#7c3aed;">' + sanitizeHTML(c.telefono) + '</a>' : '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Dirección</span><span class="m-card-value">' + sanitizeHTML(c.direccion || '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Zona</span><span class="m-card-value">' + sanitizeHTML(c.zona || '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Vendedor</span><span class="m-card-value">' + sanitizeHTML(c.vendedor || '-') + '</span></div>' +
                     '</div>' +
-                    (window.permissions?.canEdit ? '<div class="m-card-actions" onclick="event.stopPropagation()"><button class="m-card-action" onclick="Clientes.showMobileForm(\'' + c.id + '\')">✏️</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="Clientes.deleteRecord(\'' + c.id + '\')">🗑️</button>' : '') + '</div>' : '') +
+                    (window.permissions?.canEdit ? '<div class="m-card-actions"><button class="m-card-action btn-edit-m" data-id="' + sanitizeHTML(c.id) + '">✏️</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete btn-delete-m" data-id="' + sanitizeHTML(c.id) + '">🗑️</button>' : '') + '</div>' : '') +
                     '</div>';
             }).join('');
         }
@@ -807,27 +861,49 @@ const Clientes = {
         var c = this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;});
         if (!c) return;
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + sanitizeHTML(c.nombre || 'Cliente') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(c.empresa || '-') + '</div></div>' + (c.telefono ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Teléfono</span><div style="font-weight:500;"><a href="tel:' + c.telefono + '" style="color:#7c3aed;text-decoration:none;">' + c.telefono + '</a></div></div>' : '') + '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(c.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(c.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(c.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (c.condicionPago || '-') + '</div></div></div></div></div>' + (window.permissions?.canEdit ? '<div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Clientes.showMobileForm(\'' + c.id + '\')">✏️ Editar</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Clientes.deleteRecord(\'' + c.id + '\')">🗑️ Eliminar</button>' : '') + '</div>' : '') + '</div>';
+        sheet.innerHTML = `<div class="m-sheet-backdrop show"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${sanitizeHTML(c.nombre || 'Cliente')}</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">${sanitizeHTML(c.empresa || '-')}</div></div>` + (c.telefono ? `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Teléfono</span><div style="font-weight:500;"><a href="tel:${sanitizeHTML(c.telefono)}" style="color:#7c3aed;text-decoration:none;">${sanitizeHTML(c.telefono)}</a></div></div>` : '') + `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">${sanitizeHTML(c.direccion || '-')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">${sanitizeHTML(c.zona || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">${sanitizeHTML(c.vendedor || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">${sanitizeHTML(c.condicionPago || '-')}</div></div></div></div></div>` + (window.permissions?.canEdit ? `<div class="m-sheet-footer"><button class="m-card-action btn-edit-m" data-id="${sanitizeHTML(c.id)}">✏️ Editar</button>` + (window.permissions?.canDelete ? `<button class="m-card-action delete btn-delete-m" data-id="${sanitizeHTML(c.id)}">🗑️ Eliminar</button>` : '') + `</div>` : '') + `</div>`;
+        var backdrop = sheet.querySelector('.m-sheet-backdrop');
+        var bottomSheet = sheet.querySelector('.m-bottom-sheet');
+        var closeBtn = sheet.querySelector('.m-sheet-close');
+        if (closeBtn) closeBtn.addEventListener('click', function() { sheet.remove(); });
+        if (backdrop) backdrop.addEventListener('click', function() { sheet.remove(); });
+        var editBtn = sheet.querySelector('.btn-edit-m');
+        var deleteBtn = sheet.querySelector('.btn-delete-m');
+        if (editBtn) editBtn.addEventListener('click', function() { sheet.remove(); Clientes.showMobileForm(editBtn.dataset.id); });
+        if (deleteBtn) deleteBtn.addEventListener('click', function() { sheet.remove(); Clientes.deleteRecord(deleteBtn.dataset.id); });
         document.body.appendChild(sheet);
     },
 
     showMobileForm(id) {
         var c = id ? (this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;})) : null;
         var isEdit = !!c;
+        var esc = function(v) { return String(v == null ? '' : v).replace(/"/g, '&quot;'); };
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + (c?.nombre || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + (c?.telefono || '') + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + (c?.empresa || '') + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + (c?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + (c?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + (c?.vendedor || '') + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + (c?.limiteCredito || '') + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'mcf-sheet\').remove();document.getElementById(\'mcf-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + esc(c?.nombre) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + esc(c?.telefono) + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + esc(c?.empresa) + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + esc(c?.direccion) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + esc(c?.zona) + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + esc(c?.vendedor) + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + esc(c?.limiteCredito) + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" id="mcf-cancel">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
+
+        var removeSheet = function() {
+            var s = document.getElementById('mcf-sheet');
+            var b = document.getElementById('mcf-backdrop');
+            if (s) s.remove();
+            if (b) b.remove();
+        };
+        var closeBtn = document.querySelector('#mcf-sheet .m-sheet-close');
+        var cancelBtn = document.getElementById('mcf-cancel');
+        if (closeBtn) closeBtn.addEventListener('click', removeSheet);
+        if (cancelBtn) cancelBtn.addEventListener('click', removeSheet);
 
         document.getElementById('mcf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mcf-submit'); btn.disabled = true; btn.textContent = 'Guardando...';
             try {
-                var data = { nombre: document.getElementById('mcf-nombre').value, telefono: document.getElementById('mcf-telefono').value, empresa: document.getElementById('mcf-empresa').value, direccion: document.getElementById('mcf-direccion').value, zona: document.getElementById('mcf-zona').value, vendedor: document.getElementById('mcf-vendedor').value, condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30 };
+                var nombre = document.getElementById('mcf-nombre').value.trim();
+                if (!nombre) { showToast('El nombre es obligatorio', 'error'); btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; return; }
+                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), zona: document.getElementById('mcf-zona').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 var db = firebase.firestore();
                 if (isEdit) { await db.collection('clientes').doc(id).update(data); }
-                else { await db.collection('clientes').add(data); }
+                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('clientes').add(data); }
                 showToast(isEdit ? 'Actualizado' : 'Creado', 'success');
-                document.getElementById('mcf-sheet').remove();
-                document.getElementById('mcf-backdrop').remove();
+                removeSheet();
             } catch(err) { showToast('Error: '+err.message,'error'); btn.disabled=false; btn.textContent=isEdit?'Guardar':'Crear'; }
         });
     },

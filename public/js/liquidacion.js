@@ -3,6 +3,9 @@
 // Reconciliación COD, fletes, comisión repartidor
 // ===================================
 
+const toCents = v => Math.round((parseFloat(v) || 0) * 100);
+const fromCents = c => (c / 100).toFixed(2);
+
 const Liquidacion = {
     routes: [],
     routeDeliveries: [],
@@ -11,6 +14,8 @@ const Liquidacion = {
     currentRouteId: null,
     unsubscribeRoutes: null,
     unsubscribeDeliveries: null,
+    unsubscribeRepartidores: null,
+    unsubscribeLiquidaciones: null,
 
     getNextCorrelativo() {
         const max = this.routes.reduce((max, r) => {
@@ -82,19 +87,23 @@ const Liquidacion = {
             });
         });
 
-        db.collection('repartidores').orderBy('nombre', 'asc').onSnapshot(snap => {
+        if (this.unsubscribeRepartidores) this.unsubscribeRepartidores();
+        this.unsubscribeRepartidores = db.collection('repartidores').orderBy('nombre', 'asc').onSnapshot(snap => {
             this.repartidores = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        }, err => console.error('Error loading repartidores:', err));
+        }, err => { console.error('Error loading repartidores:', err); showToast('Error al cargar repartidores', 'error'); });
 
-        db.collection('liquidaciones').orderBy('createdAt', 'desc').onSnapshot(snap => {
+        if (this.unsubscribeLiquidaciones) this.unsubscribeLiquidaciones();
+        this.unsubscribeLiquidaciones = db.collection('liquidaciones').orderBy('createdAt', 'desc').onSnapshot(snap => {
             this.liquidaciones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             this.updateStats();
-        }, err => console.error('Error loading liquidaciones:', err));
+        }, err => { console.error('Error loading liquidaciones:', err); showToast('Error al cargar liquidaciones', 'error'); });
 
         await loadRoutes;
 
         const select = document.getElementById('liq-route-select');
-        if (select) select.addEventListener('change', (e) => this.loadRouteDetail(e.target.value));
+        if (select) {
+            select.onchange = (e) => this.loadRouteDetail(e.target.value);
+        }
     },
 
     populateRouteSelect() {
@@ -287,11 +296,12 @@ const Liquidacion = {
 
     async aprobarLiquidacion(route, codEsperado, totalFletes, totalFacturado) {
         const codRecibido = parseFloat(document.getElementById('liq-cod-recibido').value) || 0;
-        const diferencia = codEsperado - codRecibido;
+        const diferenciaCents = toCents(codEsperado) - toCents(codRecibido);
+        const diferencia = parseFloat(fromCents(diferenciaCents));
         const efectivoDepositar = codRecibido;
         const observaciones = document.getElementById('liq-observaciones') ? document.getElementById('liq-observaciones').value.trim() : '';
 
-        if (diferencia !== 0) {
+        if (diferenciaCents !== 0) {
             const confirm = await showConfirm('⚠️ Diferencia detectada ($' + formatNumber(Math.abs(diferencia), 2) + ')', '¿Deseas aprobar la liquidación con esta diferencia?');
             if (!confirm) return;
         }
@@ -313,7 +323,7 @@ const Liquidacion = {
                 diferencia,
                 totalFletes,
                 efectivoDepositado: efectivoDepositar,
-                estado: diferencia === 0 ? 'aprobado' : 'disputado',
+                estado: diferenciaCents === 0 ? 'aprobado' : 'disputado',
                 observaciones,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdBy: firebase.auth().currentUser?.uid || ''
@@ -649,7 +659,7 @@ const Liquidacion = {
                 <div style="text-align:center;border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:15px;">
                     <h1 style="margin:0;font-size:1.4rem;">LIQUIDACIÓN DE RUTA</h1>
                     <p style="margin:5px 0 0;font-size:0.85rem;color:#555;">Ruta #${route.correlativo || route.id.substring(0,8).toUpperCase()} · ${routeDate}</p>
-                    <p style="margin:2px 0 0;font-size:0.8rem;">Repartidor: ${sanitizeHTML(route.repartidorNombre||'-')} · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')} · Comisión: ${comisionPct}%</p>
+                    <p style="margin:2px 0 0;font-size:0.8rem;">Repartidor: ${sanitizeHTML(route.repartidorNombre||'-')} · Vehículo: ${sanitizeHTML(route.vehiculo||'-')} · Zona: ${sanitizeHTML(route.zona||'-')} · Comisión: ${(repartidor && repartidor.comision) || 0}%</p>
                 </div>
 
                 <h3 style="font-size:0.9rem;margin-bottom:8px;">Detalle de Entregas</h3>

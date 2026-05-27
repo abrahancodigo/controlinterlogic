@@ -52,9 +52,10 @@ const Auth = {
 
             const registrySnapshot = await firebase.firestore().collection('user_registry').limit(1).get();
             if (registrySnapshot.empty && username === 'admin') {
+                const adminHash = await hashPassword('admin123');
                 await userRegistryRef.set({
                     username: 'admin',
-                    password: 'admin123',
+                    passwordHash: adminHash,
                     displayName: 'Admin Principal',
                     role: 'admin',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -72,7 +73,16 @@ const Auth = {
 
             const registryData = userRegistryDoc.data();
 
-            if (registryData.password !== password) {
+            const inputHash = await hashPassword(password);
+            let passwordValid = false;
+            if (registryData.passwordHash) {
+                passwordValid = registryData.passwordHash === inputHash;
+            } else if (registryData.password) {
+                console.warn('[SECURITY] Legacy plaintext password detected for user:', username);
+                passwordValid = registryData.password === password;
+            }
+
+            if (!passwordValid) {
                 errorEl.textContent = 'Usuario o contraseña incorrectos';
                 setButtonLoading(submitBtn, false);
                 return;
@@ -263,6 +273,19 @@ const Auth = {
         return messages[errorCode] || 'Error de autenticación.';
     }
 };
+
+// ===================================
+// Password Hashing Helper
+// ===================================
+
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
 
 function initAuthWhenReady() {
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {

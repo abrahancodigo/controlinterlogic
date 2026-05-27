@@ -62,62 +62,71 @@ const Cobranza = {
     async loadData() {
         const db = firebase.firestore();
         return new Promise((resolve) => {
-            let loaded = 0;
+            const loadedCollections = new Set();
             const totalNeeded = 6;
-            const checkDone = () => { loaded++; if (loaded >= totalNeeded) resolve(); };
+            const checkDone = (name) => {
+                if (!loadedCollections.has(name)) {
+                    loadedCollections.add(name);
+                    if (loadedCollections.size >= totalNeeded) resolve();
+                }
+            };
 
             if (this.unsubscribeRecords) this.unsubscribeRecords();
             this.unsubscribeRecords = db.collection('interlogic')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loaded >= totalNeeded) this.renderCurrentView();
-                    checkDone();
-                }, err => { console.error('Error loading interlogic:', err); checkDone(); });
+                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
+                    checkDone('records');
+                }, err => { console.error('Error loading interlogic:', err); showToast('Error cargando registros', 'error'); checkDone('records'); });
 
             if (this.unsubscribeCobros) this.unsubscribeCobros();
             this.unsubscribeCobros = db.collection('cobros')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.cobros = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loaded >= totalNeeded) this.renderCurrentView();
-                    checkDone();
-                }, err => { console.error('Error loading cobros:', err); checkDone(); });
+                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
+                    checkDone('cobros');
+                }, err => { console.error('Error loading cobros:', err); showToast('Error cargando cobros', 'error'); checkDone('cobros'); });
 
             if (this.unsubscribeGestiones) this.unsubscribeGestiones();
             this.unsubscribeGestiones = db.collection('gestiones')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.gestiones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loaded >= totalNeeded) this.renderCurrentView();
-                    checkDone();
-                }, err => { console.error('Error loading gestiones:', err); checkDone(); });
+                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
+                    checkDone('gestiones');
+                }, err => { console.error('Error loading gestiones:', err); showToast('Error cargando gestiones', 'error'); checkDone('gestiones'); });
 
             if (this.unsubscribeAjustes) this.unsubscribeAjustes();
             this.unsubscribeAjustes = db.collection('ajustes')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.ajustes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loaded >= totalNeeded) this.renderCurrentView();
-                    checkDone();
-                }, err => { console.error('Error loading ajustes:', err); checkDone(); });
+                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
+                    checkDone('ajustes');
+                }, err => { console.error('Error loading ajustes:', err); showToast('Error cargando ajustes', 'error'); checkDone('ajustes'); });
 
             if (this.unsubscribeNC) this.unsubscribeNC();
             this.unsubscribeNC = db.collection('notasCredito')
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.notasCredito = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loaded >= totalNeeded) this.renderCurrentView();
-                    checkDone();
-                }, err => { console.error('Error loading notasCredito:', err); checkDone(); });
+                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
+                    checkDone('nc');
+                }, err => { console.error('Error loading notasCredito:', err); showToast('Error cargando notas de crédito', 'error'); checkDone('nc'); });
 
             db.collection('rutas').orderBy('fecha', 'desc').limit(100).get().then(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                checkDone();
-            }).catch(err => { checkDone(); });
+                checkDone('rutas');
+            }).catch(err => { console.error('Error loading rutas:', err); showToast('Error cargando rutas', 'error'); checkDone('rutas'); });
 
             if (window.Clientes && window.Clientes.loadRecords) {
-                window.Clientes.loadRecords().then(() => { this.clientes = window.Clientes.getAll(); });
+                window.Clientes.loadRecords()
+                    .then(() => { this.clientes = window.Clientes.getAll(); checkDone('clientes'); })
+                    .catch(err => { console.error('Error loading clientes:', err); checkDone('clientes'); });
+            } else {
+                checkDone('clientes');
             }
         });
     },

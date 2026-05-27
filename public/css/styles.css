@@ -84,6 +84,9 @@
     /* Layout */
     --sidebar-width: 280px;
     --header-height: 64px;
+
+    /* NOTE: z-index values are inconsistent across the codebase (e.g., 5001, 1000, 1050, 1100, 1200, 1500, 10000).
+       This is documented for awareness but not changed to avoid breaking existing stacking contexts. */
 }
 
 /* ===================================
@@ -271,10 +274,10 @@ body {
     border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
     font-family: var(--font-family);
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: var(--text-primary);
     background: white;
-    transition: all var(--transition-base);
+    transition: transform var(--transition-base), opacity var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .form-group input:focus,
@@ -398,7 +401,6 @@ body {
     padding: 0.2rem 0.4rem !important;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
     position: relative;
     overflow: visible !important;
     /* Allow popups to overflow header */
@@ -408,7 +410,6 @@ body {
     padding: 0.2rem 0.4rem !important;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -497,7 +498,7 @@ body {
     color: var(--gray-400);
     text-decoration: none;
     font-weight: 500;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 
 .nav-item:hover {
@@ -660,7 +661,7 @@ body {
 .table-container {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
-    overflow: visible;
+    overflow-x: auto;
 }
 
 table {
@@ -1222,8 +1223,8 @@ tbody tr {
 }
 
 .btn-icon {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -1231,7 +1232,7 @@ tbody tr {
     border-radius: var(--radius-md);
     border: none;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .btn-icon:hover {
@@ -1259,6 +1260,8 @@ tbody tr {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .filter-trigger:hover,
@@ -1651,7 +1654,7 @@ tbody tr {
     }
 
     .stat-card h3 {
-        font-size: 0.6rem;
+        font-size: 0.75rem;
     }
 
     .stat-card p {
@@ -1707,7 +1710,7 @@ tbody tr {
     }
 
     .stat-card h3 {
-        font-size: 0.55rem;
+        font-size: 0.75rem;
     }
 
     .stat-card p {
@@ -1732,7 +1735,7 @@ tbody tr {
 
     /* Table: compact */
     .data-table {
-        font-size: 0.6rem;
+        font-size: 0.75rem;
     }
 
     .data-table th,
@@ -1783,7 +1786,7 @@ tbody tr {
     }
 
     .content-header p {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
 
     .signature-pad {
@@ -1992,7 +1995,7 @@ tbody tr {
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     margin-bottom: 1rem;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     animation: cardSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2495,8 +2498,8 @@ tbody tr {
     border: 2px solid var(--gray-200) !important;
     border-radius: 16px !important;
     font-family: var(--font-family) !important;
-    font-size: 0.95rem !important;
-    transition: all 0.25s !important;
+    font-size: 1rem !important;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, box-shadow 0.25s !important;
     background: white !important;
 }
 
@@ -2607,7 +2610,7 @@ tbody tr {
     border: 2px solid var(--gray-200);
     border-radius: 16px;
     padding: 1rem;
-    transition: all 0.3s;
+    transition: transform 0.3s, opacity 0.3s, border-color 0.3s, background 0.3s;
 }
 
 .factura-preview.factura-filled {
@@ -2665,8 +2668,8 @@ tbody tr {
     border: 2px solid var(--gray-200) !important;
     border-radius: 16px !important;
     font-family: var(--font-family) !important;
-    font-size: 0.95rem !important;
-    transition: all 0.25s !important;
+    font-size: 1rem !important;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, box-shadow 0.25s !important;
     background: white !important;
     line-height: 1.65;
     color: var(--text-primary);
@@ -2689,7 +2692,7 @@ tbody tr {
     padding: 2rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.25s;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, background 0.25s;
     background: var(--gray-50);
 }
 
@@ -2784,13 +2787,13 @@ tbody tr {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 26px;
-    height: 26px;
+    width: 44px;
+    height: 44px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: transform 0.2s, opacity 0.2s;
     padding: 0;
     backdrop-filter: blur(4px);
 }
@@ -3155,7 +3158,7 @@ tbody tr {
     border-radius: var(--radius-xl);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
-    transition: all 0.25s ease;
+    transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
 }
@@ -3465,8 +3468,8 @@ tbody tr {
     border: 2px solid var(--border-color) !important;
     border-radius: var(--radius-lg) !important;
     font-family: var(--font-family) !important;
-    font-size: 0.95rem !important;
-    transition: all 0.25s !important;
+    font-size: 1rem !important;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, box-shadow 0.25s !important;
     background: white !important;
 }
 
@@ -3577,7 +3580,7 @@ tbody tr {
     border: 2px solid var(--border-color);
     border-radius: var(--radius-lg);
     padding: 1rem;
-    transition: all 0.3s;
+    transition: transform 0.3s, opacity 0.3s, border-color 0.3s, background 0.3s;
 }
 
 .problema-factura-card.selected {
@@ -3632,8 +3635,8 @@ tbody tr {
     border: 2px solid var(--border-color) !important;
     border-radius: var(--radius-lg) !important;
     font-family: var(--font-family) !important;
-    font-size: 0.95rem !important;
-    transition: all 0.25s !important;
+    font-size: 1rem !important;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, box-shadow 0.25s !important;
     background: white !important;
     line-height: 1.6;
 }
@@ -3651,7 +3654,7 @@ tbody tr {
     padding: 1.5rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.25s;
+    transition: transform 0.25s, opacity 0.25s, border-color 0.25s, background 0.25s;
     background: var(--gray-50);
 }
 
@@ -3707,14 +3710,14 @@ tbody tr {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
     font-size: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: transform 0.2s, opacity 0.2s;
     padding: 0;
     line-height: 1;
 }
@@ -4064,8 +4067,8 @@ tbody tr {
     }
 
     .more-menu-close {
-        width: 32px;
-        height: 32px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: var(--gray-100);
         border: none;
@@ -4162,7 +4165,7 @@ tbody tr {
     }
 
     .stat-card h3 {
-        font-size: 0.6rem;
+        font-size: 0.75rem;
         letter-spacing: 0.04em;
     }
 
@@ -4236,7 +4239,7 @@ tbody tr {
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         border: 1px solid var(--gray-100);
         padding: 0.5rem;
-        transition: all 0.15s;
+        transition: transform 0.15s, opacity 0.15s, background 0.15s;
     }
 
     .data-table tbody tr:active {

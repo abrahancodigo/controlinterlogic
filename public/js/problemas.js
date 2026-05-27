@@ -44,6 +44,50 @@ const Problemas = {
         });
 
         await this.loadProblemas();
+
+        // Single event delegation for desktop cards
+        const timeline = document.getElementById('problemas-timeline');
+        if (timeline && !this._desktopListenerAdded) {
+            timeline.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.prob-btn-edit');
+                if (editBtn && !editBtn.disabled) {
+                    const id = editBtn.getAttribute('data-id');
+                    if (id) this.showEditForm(id);
+                    return;
+                }
+                const deleteBtn = e.target.closest('.prob-btn-delete');
+                if (deleteBtn && !deleteBtn.disabled) {
+                    const id = deleteBtn.getAttribute('data-id');
+                    if (id) this.deleteProblema(id);
+                    return;
+                }
+                const toggleBtn = e.target.closest('.prob-obs-toggle');
+                if (toggleBtn) {
+                    const id = toggleBtn.getAttribute('data-id');
+                    if (id) this.toggleObs(id, toggleBtn);
+                    return;
+                }
+                const imgMini = e.target.closest('.prob-img-mini');
+                if (imgMini) {
+                    const id = imgMini.getAttribute('data-id');
+                    const idx = parseInt(imgMini.getAttribute('data-idx'), 10);
+                    if (id) this.viewImages(id, idx);
+                    return;
+                }
+                const btnImages = e.target.closest('.prob-btn-images');
+                if (btnImages) {
+                    const id = btnImages.getAttribute('data-id');
+                    if (id) this.viewImages(id, 0);
+                    return;
+                }
+                const emptyBtn = e.target.closest('.problemas-empty-btn');
+                if (emptyBtn) {
+                    this.showForm();
+                    return;
+                }
+            });
+            this._desktopListenerAdded = true;
+        }
     },
 
     async renderMobile() {
@@ -72,6 +116,50 @@ const Problemas = {
         });
 
         await this.loadProblemas();
+
+        // Single event delegation for desktop cards
+        const timeline = document.getElementById('problemas-timeline');
+        if (timeline && !this._desktopListenerAdded) {
+            timeline.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.prob-btn-edit');
+                if (editBtn && !editBtn.disabled) {
+                    const id = editBtn.getAttribute('data-id');
+                    if (id) this.showEditForm(id);
+                    return;
+                }
+                const deleteBtn = e.target.closest('.prob-btn-delete');
+                if (deleteBtn && !deleteBtn.disabled) {
+                    const id = deleteBtn.getAttribute('data-id');
+                    if (id) this.deleteProblema(id);
+                    return;
+                }
+                const toggleBtn = e.target.closest('.prob-obs-toggle');
+                if (toggleBtn) {
+                    const id = toggleBtn.getAttribute('data-id');
+                    if (id) this.toggleObs(id, toggleBtn);
+                    return;
+                }
+                const imgMini = e.target.closest('.prob-img-mini');
+                if (imgMini) {
+                    const id = imgMini.getAttribute('data-id');
+                    const idx = parseInt(imgMini.getAttribute('data-idx'), 10);
+                    if (id) this.viewImages(id, idx);
+                    return;
+                }
+                const btnImages = e.target.closest('.prob-btn-images');
+                if (btnImages) {
+                    const id = btnImages.getAttribute('data-id');
+                    if (id) this.viewImages(id, 0);
+                    return;
+                }
+                const emptyBtn = e.target.closest('.problemas-empty-btn');
+                if (emptyBtn) {
+                    this.showForm();
+                    return;
+                }
+            });
+            this._desktopListenerAdded = true;
+        }
     },
 
     async loadProblemas() {
@@ -115,7 +203,7 @@ const Problemas = {
                     </div>
                     <h3>¡Todo en orden!</h3>
                     <p>No hay problemas registrados. Cuando ocurra alguna incidencia, regístrala aquí.</p>
-                    ${canCreate ? '<button class="btn btn-primary btn-lg" style="margin-top: 1.5rem;" onclick="Problemas.showForm()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar Primer Problema</button>' : ''}
+                    ${canCreate ? '<button class="btn btn-primary btn-lg" style="margin-top: 1.5rem;" class="problemas-empty-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar Primer Problema</button>' : ''}
                 </div>
             `;
             return;
@@ -165,7 +253,7 @@ const Problemas = {
                             <span>Descripción del problema</span>
                         </div>
                         <p class="prob-obs-text" id="obs-${record.id}">${sanitizeHTML(shortText)}</p>
-                        ${isLongText ? `<button class="prob-obs-toggle" onclick="Problemas.toggleObs('${record.id}', this)">Leer más</button>` : ''}
+                        ${isLongText ? `<button class="prob-obs-toggle" data-id="${record.id}">Leer más</button>` : ''}
                     </div>
 
                     ${hasImages ? `
@@ -176,13 +264,13 @@ const Problemas = {
                         </span>
                         <div class="prob-images-mini">
                             ${record.imagenes.slice(0, 4).map((url, idx) => `
-                                <div class="prob-img-mini" onclick="Problemas.viewImages('${record.id}', ${idx})">
+                                <div class="prob-img-mini" data-id="${record.id}" data-idx="${idx}">
                                     <img src="${url}" alt="Imagen" loading="lazy">
                                     ${idx === 3 && imgCount > 4 ? `<div class="prob-img-more">+${imgCount - 4}</div>` : ''}
                                 </div>
                             `).join('')}
                         </div>
-                        <button class="prob-btn-images" onclick="Problemas.viewImages('${record.id}', 0)">
+                        <button class="prob-btn-images" data-id="${record.id}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             Ver galería
                         </button>
@@ -214,23 +302,6 @@ const Problemas = {
 
         // Timeline connector
         container.innerHTML = `<div class="prob-timeline-line"></div>${cardsHtml}`;
-
-        // Event delegation
-        container.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.prob-btn-edit');
-            if (editBtn && !editBtn.disabled) {
-                const id = editBtn.getAttribute('data-id');
-                if (id) this.showEditForm(id);
-                return;
-            }
-
-            const deleteBtn = e.target.closest('.prob-btn-delete');
-            if (deleteBtn && !deleteBtn.disabled) {
-                const id = deleteBtn.getAttribute('data-id');
-                if (id) this.deleteProblema(id);
-                return;
-            }
-        });
     },
 
     renderMobileCards() {
@@ -251,15 +322,15 @@ const Problemas = {
                 '<div class="m-card-header"><span class="m-card-title">' + sanitizeHTML(record.cliente || '—') + '</span>' +
                 '<span class="m-card-badge danger">$' + formatNumber(record.monto || 0, 0) + '</span></div>' +
                 '<div class="m-card-rows">' +
-                '<div class="m-card-row"><span class="m-card-label">Doc</span><span class="m-card-value">' + (record.doc || '') + (record.docNum ? ' #' + record.docNum : '') + '</span></div>' +
+                '<div class="m-card-row"><span class="m-card-label">Doc</span><span class="m-card-value">' + sanitizeHTML(record.doc || '') + (record.docNum ? ' #' + sanitizeHTML(record.docNum) : '') + '</span></div>' +
                 '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + fechaFactura + '</span></div>' +
                 '</div>' +
                 (observacion ? '<div style="font-size:0.8rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#fef2f2;border-radius:10px;">' + sanitizeHTML(observacion.length > 120 ? observacion.substring(0, 120) + '...' : observacion) + '</div>' : '') +
                 (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;">' + record.imagenes.slice(0, 3).map(function(url) {
                     return '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>';
                 }).join('') + (imgCount > 3 ? '<div style="width:60px;height:60px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#8e8e93;flex-shrink:0;">+' + (imgCount - 3) + '</div>' : '') + '</div>' : '') +
-                (canDelete ? '<div class="m-card-actions" onclick="event.stopPropagation()">' +
-                    '<button class="m-card-action delete" onclick="Problemas.deleteProblema(\'' + record.id + '\')" title="Eliminar">🗑️</button>' +
+                (canDelete ? '<div class="m-card-actions">' +
+                    '<button class="m-card-action delete btn-delete-mprob" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' +
                 '</div>' : '') +
             '</div>';
         }, this).join('');
@@ -370,10 +441,10 @@ const Problemas = {
                                 </div>
                             </div>
                         </div>
-                        <input type="hidden" id="problema-fecha" value="${facturaInfo ? facturaInfo.fecha : ''}">
-                        <input type="hidden" id="problema-doc" value="${facturaInfo ? facturaInfo.doc : ''}">
-                        <input type="hidden" id="problema-cliente" value="${facturaInfo ? facturaInfo.cliente : ''}">
-                        <input type="hidden" id="problema-monto" value="${facturaInfo ? facturaInfo.monto : ''}">
+                        <input type="hidden" id="problema-fecha" value="${String(facturaInfo ? facturaInfo.fecha : '').replace(/"/g, '&quot;')}">
+                        <input type="hidden" id="problema-doc" value="${String(facturaInfo ? facturaInfo.doc : '').replace(/"/g, '&quot;')}">
+                        <input type="hidden" id="problema-cliente" value="${String(facturaInfo ? facturaInfo.cliente : '').replace(/"/g, '&quot;')}">
+                        <input type="hidden" id="problema-monto" value="${String(facturaInfo ? facturaInfo.monto : '').replace(/"/g, '&quot;')}">
                     </div>
 
                     <div class="form-section">
@@ -428,9 +499,18 @@ const Problemas = {
             searchInput.addEventListener('focus', () => {
                 if (this.interlogicRecords.length > 0) this.filterDropdown(searchInput.value);
             });
-            document.addEventListener('click', (e) => {
+            this._dropdownDocListener = (e) => {
                 if (!e.target.closest('#problema-factura-search') && !e.target.closest('#problema-factura-dropdown')) {
                     dropdown.style.display = 'none';
+                }
+            };
+            document.addEventListener('click', this._dropdownDocListener);
+
+            dropdown.addEventListener('click', (e) => {
+                const item = e.target.closest('.dropdown-select-factura');
+                if (item) {
+                    const id = item.getAttribute('data-id');
+                    if (id) this.selectFactura(id);
                 }
             });
         }
@@ -462,6 +542,14 @@ const Problemas = {
     hideForm() {
         const modal = document.getElementById('problema-modal');
         if (modal) modal.remove();
+        if (this._dropdownDocListener) {
+            document.removeEventListener('click', this._dropdownDocListener);
+            this._dropdownDocListener = null;
+        }
+        if (this._objectUrls) {
+            this._objectUrls.forEach(url => URL.revokeObjectURL(url));
+            this._objectUrls = [];
+        }
         this.selectedFactura = null;
         this.editingId = null;
         this.selectedImages = [];
@@ -511,7 +599,7 @@ const Problemas = {
                 const cliente = sanitizeHTML(r.cliente || '');
                 const monto = formatNumber(r.venta || 0, 2);
                 return `
-                    <div class="dropdown-item" onclick="Problemas.selectFactura('${r.id}')">
+                    <div class="dropdown-item dropdown-select-factura" data-id="${sanitizeHTML(r.id)}">
                         <div class="dropdown-item-left">
                             <div class="dropdown-item-doc">${doc} <span class="dropdown-item-num">${docNum}</span></div>
                             <div class="dropdown-item-cliente">${cliente}</div>
@@ -584,16 +672,41 @@ const Problemas = {
         const total = this.existingImages.length + this.selectedImages.length;
         if (counter) counter.textContent = `${total}/3`;
 
+        if (!this._objectUrls) this._objectUrls = [];
+        // Revoke previous object URLs before re-rendering
+        this._objectUrls.forEach(url => URL.revokeObjectURL(url));
+        this._objectUrls = [];
+
         let html = '';
         this.existingImages.forEach((url, idx) => {
-            html += `<div class="preview-card"><img src="${url}" alt="Imagen"><button type="button" class="preview-remove" onclick="Problemas.removeExistingImage(${idx})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`;
+            html += `<div class="preview-card"><img src="${sanitizeHTML(url)}" alt="Imagen"><button type="button" class="preview-remove btn-remove-existing" data-index="${idx}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`;
         });
         this.selectedImages.forEach((file, idx) => {
             const objectUrl = URL.createObjectURL(file);
-            html += `<div class="preview-card preview-new"><img src="${objectUrl}" alt="Nueva"><button type="button" class="preview-remove" onclick="Problemas.removeSelectedImage(${idx})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><span class="preview-badge">NUEVA</span></div>`;
+            this._objectUrls.push(objectUrl);
+            html += `<div class="preview-card preview-new"><img src="${objectUrl}" alt="Nueva"><button type="button" class="preview-remove btn-remove-selected" data-index="${idx}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><span class="preview-badge">NUEVA</span></div>`;
         });
 
         container.innerHTML = html;
+
+        // Event delegation for preview removal
+        if (!this._previewListenerAdded) {
+            container.addEventListener('click', (e) => {
+                const existingBtn = e.target.closest('.btn-remove-existing');
+                if (existingBtn) {
+                    const idx = parseInt(existingBtn.getAttribute('data-index'), 10);
+                    this.removeExistingImage(idx);
+                    return;
+                }
+                const selectedBtn = e.target.closest('.btn-remove-selected');
+                if (selectedBtn) {
+                    const idx = parseInt(selectedBtn.getAttribute('data-index'), 10);
+                    this.removeSelectedImage(idx);
+                    return;
+                }
+            });
+            this._previewListenerAdded = true;
+        }
     },
 
     removeExistingImage(index) { this.existingImages.splice(index, 1); this.renderImagePreviews(); },
@@ -673,7 +786,7 @@ const Problemas = {
             const url = record.imagenes[index];
             return `
                 <div class="lightbox-slide">
-                    <img src="${url}" alt="Imagen ${index + 1}">
+                    <img src="${sanitizeHTML(url)}" alt="Imagen ${index + 1}">
                 </div>
             `;
         };
@@ -685,31 +798,31 @@ const Problemas = {
                         <h3>📷 ${sanitizeHTML(record.doc || '')}</h3>
                         <p>${sanitizeHTML(record.cliente || '')} — ${record.imagenes.length} imagen${record.imagenes.length > 1 ? 'es' : ''}</p>
                     </div>
-                    <button class="lightbox-close" onclick="document.getElementById('lightbox-modal').remove()">
+                    <button class="lightbox-close" id="lb-close">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
                 
                 <div class="lightbox-main">
-                    ${record.imagenes.length > 1 ? `<button class="lightbox-nav lightbox-prev" onclick="Problemas.lightboxNav(-1)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
+                    ${record.imagenes.length > 1 ? `<button class="lightbox-nav lightbox-prev" id="lb-prev"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>` : ''}
                     <div class="lightbox-slide-area" id="lightbox-slide-area">
                         ${renderSlide(currentIndex)}
                     </div>
-                    ${record.imagenes.length > 1 ? `<button class="lightbox-nav lightbox-next" onclick="Problemas.lightboxNav(1)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>` : ''}
+                    ${record.imagenes.length > 1 ? `<button class="lightbox-nav lightbox-next" id="lb-next"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>` : ''}
                 </div>
 
                 ${record.imagenes.length > 1 ? `
                 <div class="lightbox-counter" id="lightbox-counter">${currentIndex + 1} / ${record.imagenes.length}</div>
-                <div class="lightbox-thumbs">
+                <div class="lightbox-thumbs" id="lightbox-thumbs">
                     ${record.imagenes.map((url, idx) => `
-                        <div class="lightbox-thumb ${idx === currentIndex ? 'active' : ''}" onclick="Problemas.lightboxGoTo(${idx})">
-                            <img src="${url}" alt="Thumb ${idx + 1}">
+                        <div class="lightbox-thumb ${idx === currentIndex ? 'active' : ''}" data-index="${idx}">
+                            <img src="${sanitizeHTML(url)}" alt="Thumb ${idx + 1}">
                         </div>
                     `).join('')}
                 </div>
                 ` : `
                 <div class="lightbox-single-actions">
-                    <a href="${record.imagenes[0]}" target="_blank" class="btn btn-gradient btn-sm">
+                    <a href="${sanitizeHTML(record.imagenes[0])}" target="_blank" class="btn btn-gradient btn-sm">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         Abrir en tamaño completo
                     </a>
@@ -722,6 +835,23 @@ const Problemas = {
         // Store for navigation
         this._lightboxRecord = record;
         this._lightboxIndex = currentIndex;
+
+        const closeBtn = document.getElementById('lb-close');
+        if (closeBtn) closeBtn.addEventListener('click', () => modal.remove());
+        const prevBtn = document.getElementById('lb-prev');
+        if (prevBtn) prevBtn.addEventListener('click', () => this.lightboxNav(-1));
+        const nextBtn = document.getElementById('lb-next');
+        if (nextBtn) nextBtn.addEventListener('click', () => this.lightboxNav(1));
+        const thumbsContainer = document.getElementById('lightbox-thumbs');
+        if (thumbsContainer) {
+            thumbsContainer.addEventListener('click', (e) => {
+                const thumb = e.target.closest('.lightbox-thumb');
+                if (thumb) {
+                    const idx = parseInt(thumb.getAttribute('data-index'), 10);
+                    this.lightboxGoTo(idx);
+                }
+            });
+        }
 
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     },
