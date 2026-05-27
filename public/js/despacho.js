@@ -311,7 +311,7 @@ const Despacho = {
                     const f = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
                     const o = document.createElement('option');
                     o.value = r.id;
-                    o.textContent = '#' + r.id.substring(0,6) + ' ' + (r.repartidorNombre||'') + ' ' + f;
+                    o.textContent = '#' + r.id.substring(0,6) + ' ' + (r.repartidorNombre||'') + ' ' + f + (r.vehiculo ? ' [' + r.vehiculo + ']' : '');
                     select.appendChild(o);
                 });
                 if (cur) select.value = cur;
@@ -377,7 +377,7 @@ const Despacho = {
                 <form id="ds-ruta-form">
                     <div class="form-group"><label>Fecha</label><input type="date" id="ds-ruta-fecha" value="${getLocalDateString()}"></div>
                     <div class="form-group" style="margin-top:1rem;"><label>Repartidor</label><input type="text" id="ds-ruta-repartidor" placeholder="Nombre del repartidor"></div>
-                    <div class="form-group" style="margin-top:1rem;"><label>Vehículo</label><input type="text" id="ds-ruta-vehiculo" placeholder="Placa"></div>
+                    <div class="form-group" style="margin-top:1rem;"><label>Vehículo</label><select id="ds-ruta-vehiculo" style="width:100%;padding:0.5rem;border:1px solid var(--border-color);border-radius:var(--radius-md);"><option value="">Seleccionar... (opcional)</option></select></div>
                     <div class="form-group" style="margin-top:1rem;"><label>Zona</label><input type="text" id="ds-ruta-zona" placeholder="Zona"></div>
                     <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
                         <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
@@ -387,6 +387,20 @@ const Despacho = {
             </div>
         `;
         document.body.appendChild(modal);
+        // Cargar vehículos en el select
+        (async () => {
+            try {
+                const snap = await firebase.firestore().collection('vehiculos').where('estado', '==', 'activo').get();
+                const select = document.getElementById('ds-ruta-vehiculo');
+                snap.forEach(doc => {
+                    const v = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = `${v.nombre} - ${v.numeroPlaca}`;
+                    select.appendChild(opt);
+                });
+            } catch (e) { console.error('Error loading vehicles:', e); }
+        })();
         modal.onclick = e => { if (e.target === modal) modal.remove(); };
         document.getElementById('ds-ruta-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -396,9 +410,12 @@ const Despacho = {
                 const fv = document.getElementById('ds-ruta-fecha').value;
                 let fb = firebase.firestore.Timestamp.now();
                 if (fv) { const [y,m,d] = fv.split('-').map(Number); fb = firebase.firestore.Timestamp.fromDate(new Date(y,m-1,d,12,0,0)); }
+                const vehiculoId = document.getElementById('ds-ruta-vehiculo').value;
+                const vehiculoNombre = document.getElementById('ds-ruta-vehiculo').selectedOptions[0]?.text || '';
                 await firebase.firestore().collection('rutas').add({
                     fecha: fb, repartidorNombre: document.getElementById('ds-ruta-repartidor').value,
-                    vehiculo: document.getElementById('ds-ruta-vehiculo').value,
+                    vehiculoId: vehiculoId || '',
+                    vehiculo: vehiculoNombre,
                     zona: document.getElementById('ds-ruta-zona').value,
                     estado: 'pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });

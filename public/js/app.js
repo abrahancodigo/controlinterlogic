@@ -187,6 +187,7 @@ const App = {
             { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
             { icon: '📅', label: 'Asistencia', module: 'asistencia' },
             { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
+            { icon: '🚚', label: 'Flota y Manto.', module: 'flota' },
             { icon: '🧾', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
             { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
@@ -254,6 +255,12 @@ const App = {
             if (window.Cobranza.unsubscribeGestiones) { window.Cobranza.unsubscribeGestiones(); window.Cobranza.unsubscribeGestiones = null; }
             if (window.Cobranza.unsubscribeAjustes) { window.Cobranza.unsubscribeAjustes(); window.Cobranza.unsubscribeAjustes = null; }
         }
+        if (this.currentModule === 'flota' && window.Flota) {
+            if (window.Flota.unsubscribeVehiculos) { window.Flota.unsubscribeVehiculos(); window.Flota.unsubscribeVehiculos = null; }
+            if (window.Flota.unsubscribeMantenimientos) { window.Flota.unsubscribeMantenimientos(); window.Flota.unsubscribeMantenimientos = null; }
+            if (window.Flota.unsubscribeOT) { window.Flota.unsubscribeOT(); window.Flota.unsubscribeOT = null; }
+            if (window.Flota.unsubscribeProveedores) { window.Flota.unsubscribeProveedores(); window.Flota.unsubscribeProveedores = null; }
+        }
 
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
@@ -304,6 +311,9 @@ const App = {
                     break;
                 case 'cobranza':
                     if (window.Cobranza && window.Cobranza.render) await window.Cobranza.render();
+                    break;
+                case 'flota':
+                    if (window.Flota && window.Flota.render) await window.Flota.render();
                     break;
                 default:
                     console.warn(`Unknown module: ${moduleName}`);
