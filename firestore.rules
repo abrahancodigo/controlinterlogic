@@ -47,8 +47,8 @@ service cloud.firestore {
     // Interlogic collection
     match /interlogic/{recordId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
       allow delete: if isAdmin();
     }
     
@@ -99,6 +99,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAdmin() || isEditor();
       allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Notas de Crédito collection
+    match /notasCredito/{ncId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
       allow delete: if isAdmin();
     }
   }

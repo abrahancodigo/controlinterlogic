@@ -858,6 +858,12 @@ tbody tr {
     color: var(--gray-700);
 }
 
+.badge-nc {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
 /* ===================================
    Print Styles
    =================================== */

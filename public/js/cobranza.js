@@ -10,12 +10,14 @@ const Cobranza = {
     cobros: [],
     gestiones: [],
     ajustes: [],
+    notasCredito: [],
     routes: [],
     currentView: 'dashboard',
     unsubscribeRecords: null,
     unsubscribeCobros: null,
     unsubscribeGestiones: null,
     unsubscribeAjustes: null,
+    unsubscribeNC: null,
 
     async render() {
         if (window.innerWidth <= 768) return this.renderMobile();
@@ -61,7 +63,7 @@ const Cobranza = {
         const db = firebase.firestore();
         return new Promise((resolve) => {
             let loaded = 0;
-            const totalNeeded = 5;
+            const totalNeeded = 6;
             const checkDone = () => { loaded++; if (loaded >= totalNeeded) resolve(); };
 
             if (this.unsubscribeRecords) this.unsubscribeRecords();
@@ -99,6 +101,15 @@ const Cobranza = {
                     if (loaded >= totalNeeded) this.renderCurrentView();
                     checkDone();
                 }, err => { console.error('Error loading ajustes:', err); checkDone(); });
+
+            if (this.unsubscribeNC) this.unsubscribeNC();
+            this.unsubscribeNC = db.collection('notasCredito')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snap => {
+                    this.notasCredito = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    if (loaded >= totalNeeded) this.renderCurrentView();
+                    checkDone();
+                }, err => { console.error('Error loading notasCredito:', err); checkDone(); });
 
             db.collection('rutas').orderBy('fecha', 'desc').limit(100).get().then(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -539,18 +550,41 @@ const Cobranza = {
         if (!container) return;
         const records = this.getCreditRecords();
 
+        // Merge ajustes and notasCredito for display
+        const allAjustes = [
+            ...this.ajustes.map(a => ({ ...a, _source: 'ajuste' })),
+            ...this.notasCredito.map(nc => ({
+                ...nc,
+                _source: 'nc',
+                tipo: 'notaCredito',
+                monto: -(nc.monto || 0),
+                guia: nc.guia || ''
+            }))
+        ].sort((a, b) => {
+            const da = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+            const db = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+            return db - da;
+        });
+
         container.innerHTML = `
             <div style="display:flex;gap:1rem;margin-bottom:1rem;">
                 <button class="btn btn-primary" id="cob-btn-nuevo-ajuste">💡 Nuevo Ajuste</button>
+                <button class="btn btn-accent" id="cob-btn-nueva-nc">📄 Nueva Nota de Crédito</button>
             </div>
             <div id="cob-ajustes-list">
-                ${this.ajustes.length===0 ? '<div class="card"><div class="card-body" style="text-align:center;padding:2rem;color:#8e8e93;">No hay ajustes registrados. Usa esta sección para notas de crédito, descuentos, devoluciones o castigos.</div></div>' :
-                `<div class="card"><div class="card-body"><table style="width:100%;font-size:0.85rem;"><thead><tr style="background:#f0f0f0;"><th style="padding:8px;">Fecha</th><th style="padding:8px;">Cliente</th><th style="padding:8px;">Tipo</th><th style="padding:8px;">Guía</th><th style="padding:8px;text-align:right;">Monto</th><th style="padding:8px;">Motivo</th></tr></thead><tbody>${this.ajustes.map(a => `<tr><td style="padding:8px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td><td style="padding:8px;">${sanitizeHTML(a.cliente||'')}</td><td style="padding:8px;"><span class="badge ${a.tipo==='cargoExtra'?'badge-error':'badge-warning'}">${a.tipo||''}</span></td><td style="padding:8px;">${sanitizeHTML(a.guia||'')}</td><td style="padding:8px;text-align:right;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};font-weight:700;">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${sanitizeHTML(a.motivo||'')}</td></tr>`).join('')}</tbody></table></div></div>`
+                ${allAjustes.length===0 ? '<div class="card"><div class="card-body" style="text-align:center;padding:2rem;color:#8e8e93;">No hay ajustes registrados. Usa esta sección para notas de crédito, descuentos, devoluciones o castigos.</div></div>' :
+                `<div class="card"><div class="card-body"><table style="width:100%;font-size:0.85rem;"><thead><tr style="background:#f0f0f0;"><th style="padding:8px;">Fecha</th><th style="padding:8px;">Cliente</th><th style="padding:8px;">Tipo</th><th style="padding:8px;">N° NC</th><th style="padding:8px;">Guía</th><th style="padding:8px;text-align:right;">Monto</th><th style="padding:8px;">Motivo</th></tr></thead><tbody>${allAjustes.map(a => {
+                    const isNC = a._source === 'nc';
+                    const tipoLabel = isNC ? 'Nota de Crédito' : (a.tipo||'');
+                    const badgeClass = isNC ? 'badge-nc' : (a.tipo==='cargoExtra'?'badge-error':'badge-warning');
+                    return `<tr><td style="padding:8px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td><td style="padding:8px;">${sanitizeHTML(a.cliente||'')}</td><td style="padding:8px;"><span class="badge ${badgeClass}">${tipoLabel}</span></td><td style="padding:8px;">${sanitizeHTML(a.ncNum||'-')}</td><td style="padding:8px;">${sanitizeHTML(a.guia||'')}</td><td style="padding:8px;text-align:right;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};font-weight:700;">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${sanitizeHTML(a.motivo||'')}</td></tr>`;
+                }).join('')}</tbody></table></div></div>`
                 }
             </div>
         `;
 
         document.getElementById('cob-btn-nuevo-ajuste').addEventListener('click', () => this.showAjusteModal(records));
+        document.getElementById('cob-btn-nueva-nc').addEventListener('click', () => this.showAjusteModal(records));
     },
 
     showAjusteModal(records) {
@@ -572,6 +606,7 @@ const Cobranza = {
                         </div>
                     </div>
                     <div class="form-group" style="margin-top:1rem;"><label>Tipo de Ajuste</label><select id="aj-tipo" style="width:100%;"><option value="notaCredito">Nota de Crédito (reduce deuda)</option><option value="descuento">Descuento</option><option value="devolucion">Devolución</option><option value="cargoExtra">Cargo Extra (aumenta deuda)</option><option value="castigo">Castigo por Incobrable</option></select></div>
+                    <div id="aj-nc-num-group" class="form-group" style="margin-top:1rem;"><label>N° Nota de Crédito</label><input type="text" id="aj-nc-num" style="width:100%;" placeholder="Ej: NC-001"></div>
                     <div class="form-group" style="margin-top:1rem;">
                         <label>Guía Relacionada</label>
                         <div class="search-container">
@@ -594,6 +629,13 @@ const Cobranza = {
         `;
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target===modal) modal.remove(); };
+
+        // Toggle NC number field visibility
+        const tipoSelect = document.getElementById('aj-tipo');
+        const ncNumGroup = document.getElementById('aj-nc-num-group');
+        const toggleNcNum = () => { ncNumGroup.style.display = tipoSelect.value === 'notaCredito' ? 'block' : 'none'; };
+        tipoSelect.addEventListener('change', toggleNcNum);
+        toggleNcNum();
 
         // Cliente search
         const clienteSearch = document.getElementById('aj-cliente-search');
@@ -722,13 +764,73 @@ const Cobranza = {
                         };
                         const batch = firebase.firestore().batch();
                         batch.set(firebase.firestore().collection('ajustes').doc(), ajusteData);
+
+                        // Also save to notasCredito if tipo is notaCredito
+                        if (tipo === 'notaCredito') {
+                            var ncNum = document.getElementById('aj-nc-num').value.trim();
+                            var ncData = {
+                                ncNum: ncNum || '',
+                                cliente: clienteVal,
+                                monto: Math.abs(monto),
+                                motivo: motivo,
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                empresa: record.empresa || '',
+                                interlogicId: record.id || '',
+                                guia: guiaSel,
+                                docRef: (record.doc || '') + ' #' + (record.docNum || guiaSel),
+                                afectaSaldo: true,
+                                estado: 'activa',
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                createdBy: firebase.auth().currentUser?.uid || ''
+                            };
+                            batch.set(firebase.firestore().collection('notasCredito').doc(), ncData);
+                        }
+
                         batch.update(firebase.firestore().collection('interlogic').doc(record.id), update);
                         await batch.commit();
                     } else {
                         await firebase.firestore().collection('ajustes').add(ajusteData);
+                        // Also save to notasCredito if tipo is notaCredito
+                        if (tipo === 'notaCredito') {
+                            var ncNum2 = document.getElementById('aj-nc-num').value.trim();
+                            await firebase.firestore().collection('notasCredito').add({
+                                ncNum: ncNum2 || '',
+                                cliente: clienteVal,
+                                monto: Math.abs(monto),
+                                motivo: motivo,
+                                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                                empresa: '',
+                                interlogicId: '',
+                                guia: guiaSel,
+                                docRef: '',
+                                afectaSaldo: false,
+                                estado: 'activa',
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                createdBy: firebase.auth().currentUser?.uid || ''
+                            });
+                        }
                     }
                 } else {
                     await firebase.firestore().collection('ajustes').add(ajusteData);
+                    // Also save to notasCredito if tipo is notaCredito
+                    if (tipo === 'notaCredito') {
+                        var ncNum3 = document.getElementById('aj-nc-num').value.trim();
+                        await firebase.firestore().collection('notasCredito').add({
+                            ncNum: ncNum3 || '',
+                            cliente: clienteVal,
+                            monto: Math.abs(monto),
+                            motivo: motivo,
+                            fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                            empresa: '',
+                            interlogicId: '',
+                            guia: '',
+                            docRef: '',
+                            afectaSaldo: false,
+                            estado: 'activa',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: firebase.auth().currentUser?.uid || ''
+                        });
+                    }
                 }
 
                 modal.remove();
@@ -1136,9 +1238,22 @@ const Cobranza = {
                 ${this.gestiones.length===0?'<div class="m-empty"><div class="m-empty-icon">📝</div><div class="m-empty-title">Sin gestiones</div></div>':this.gestiones.slice(0,20).map(g=>`<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(g.cliente||'')}</span><span class="m-card-badge">${g.tipo||''}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">${g.fecha&&g.fecha.toDate?formatDateShort(g.fecha):''}</span><span class="m-card-value">${sanitizeHTML(g.resultado||g.descripcion||'')}</span></div></div></div>`).join('')}
             `;
         } else if (this.currentView === 'ajustes') {
+            // Merge ajustes and notasCredito for mobile display
+            const allItems = [
+                ...this.ajustes.map(a => ({ ...a, _source: 'ajuste' })),
+                ...this.notasCredito.map(nc => ({ ...nc, _source: 'nc', tipo: 'notaCredito', monto: -(nc.monto || 0), guia: nc.guia || '' }))
+            ].sort((a, b) => {
+                const da = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+                const db2 = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
+                return db2 - da;
+            });
             container.innerHTML = `
                 <button class="btn btn-primary" onclick="Cobranza.showAjusteModal(Cobranza.getCreditRecords())" style="width:100%;margin-bottom:10px;border-radius:20px;">💡 Nuevo Ajuste</button>
-                ${this.ajustes.length===0?'<div class="m-empty"><div class="m-empty-icon">💡</div><div class="m-empty-title">Sin ajustes</div></div>':this.ajustes.slice(0,20).map(a=>`<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(a.cliente||'')}</span><span class="m-card-badge">${a.tipo||''}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</span><span class="m-card-value money" style="color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</span></div></div></div>`).join('')}
+                ${allItems.length===0?'<div class="m-empty"><div class="m-empty-icon">💡</div><div class="m-empty-title">Sin ajustes</div></div>':allItems.slice(0,20).map(a=>{
+                    const isNC = a._source === 'nc';
+                    const tipoLabel = isNC ? 'Nota de Crédito' : (a.tipo||'');
+                    return `<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(a.cliente||'')}</span><span class="m-card-badge ${isNC?'badge-nc':''}">${tipoLabel}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</span><span class="m-card-value money" style="color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</span></div>${isNC&&a.ncNum?`<div class="m-card-row"><span class="m-card-label">N° NC</span><span class="m-card-value">${sanitizeHTML(a.ncNum)}</span></div>`:''}</div></div>`;
+                }).join('')}
             `;
         } else {
             const aging = {corriente:0,'1-30':0,'31-60':0,'61-90':0,'90+':0};

@@ -542,10 +542,11 @@ const Interlogic = {
             list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No se encontraron resultados.</div></div>';
         } else {
             list.innerHTML = this.filteredRecords.map(function(r) {
-                var empresaBadge = r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : '');
+                var empresaBadge = r.doc === 'NC' ? 'nc' : (r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : ''));
                 var html = '<div class="m-data-card" onclick="Interlogic.showMobileDetail(\'' + r.id + '\')">';
                 html += '<div class="m-card-header"><span class="m-card-title">#' + (r.guia || r.id.substring(0,6).toUpperCase()) + '</span>';
-                if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + r.empresa + '</span>';
+                if (r.doc === 'NC') html += '<span class="m-card-badge badge-nc">NC</span>';
+                else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + r.empresa + '</span>';
                 html += '</div><div class="m-card-rows">';
                 html += '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>';
@@ -563,9 +564,9 @@ const Interlogic = {
             }).join('');
         }
 
-        var totalVenta = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
-        var totalBultos = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.bultos) || 0); }, 0);
-        var totalEnvio = this.filteredRecords.reduce(function(s, r) { return s + (parseFloat(r.costoEnvio) || 0); }, 0);
+        var totalVenta = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
+        var totalBultos = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.bultos) || 0); }, 0);
+        var totalEnvio = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.costoEnvio) || 0); }, 0);
         var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
 
         var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
@@ -591,8 +592,65 @@ const Interlogic = {
         var self = this;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + (record?.guia || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="Interlogic"' + (record?.empresa === 'Interlogic' ? ' selected' : '') + '>Interlogic</option><option value="Cargo Express"' + (record?.empresa === 'Cargo Express' ? ' selected' : '') + '>Cargo Express</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + (record?.docNum || '') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + (record?.cliente || '') + '"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cajas</label><input type="number" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + (record?.guia || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="Interlogic"' + (record?.empresa === 'Interlogic' ? ' selected' : '') + '>Interlogic</option><option value="Cargo Express"' + (record?.empresa === 'Cargo Express' ? ' selected' : '') + '>Cargo Express</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + (record?.docNum || '') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + (record?.cliente || '') + '"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div id="mf-nc-fields" style="display:none;padding:10px;background:#fffbeb;border-radius:12px;margin-bottom:12px;border:1px solid #f59e0b;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:8px;color:#92400e;">Opciones de Nota de Credito</div><div class="m-form-group"><label>Afecta saldo de CCF/FT</label><select id="mf-nc-afectaSaldo"><option value="no">No - NC general</option><option value="si">Si - Descontar de un CCF/FT</option></select></div><div id="mf-nc-ccf-group" style="display:none;margin-top:8px;"><div class="m-form-group"><label>Seleccionar CCF/FT</label><select id="mf-nc-interlogicId"><option value="">-- Seleccionar --</option></select></div></div></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cajas</label><input type="number" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
         document.body.appendChild(sheet);
+
+        // NC toggle for mobile
+        var mfDoc = document.getElementById('mf-doc');
+        var mfNcFields = document.getElementById('mf-nc-fields');
+        var mfNcAfecta = document.getElementById('mf-nc-afectaSaldo');
+        var mfNcCcfGroup = document.getElementById('mf-nc-ccf-group');
+        var mfNcInterlogicId = document.getElementById('mf-nc-interlogicId');
+        var mfToggleNC = function() {
+            var isNC = mfDoc.value === 'NC';
+            if (mfNcFields) mfNcFields.style.display = isNC ? 'block' : 'none';
+        };
+        mfDoc.addEventListener('change', mfToggleNC);
+        mfToggleNC();
+
+        if (mfNcAfecta) {
+            mfNcAfecta.addEventListener('change', function() {
+                var afecta = mfNcAfecta.value === 'si';
+                if (mfNcCcfGroup) mfNcCcfGroup.style.display = afecta ? 'block' : 'none';
+                if (afecta) mfPopulateCCFList();
+            });
+        }
+
+        // Mobile CCF list population
+        var mfPopulateCCFList = function() {
+            if (!mfNcInterlogicId) return;
+            mfNcInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
+            var clienteActual = document.getElementById('mf-cliente').value.trim();
+            if (!clienteActual) {
+                mfNcInterlogicId.innerHTML = '<option value="">-- Primero ingresa el cliente --</option>';
+                return;
+            }
+            var clienteLower = clienteActual.toLowerCase();
+            var ccfRecords = self.records.filter(function(r) {
+                return (r.doc === 'CCF' || r.doc === 'FT') && (r.cliente || '').toLowerCase().includes(clienteLower);
+            });
+            if (ccfRecords.length === 0) {
+                mfNcInterlogicId.innerHTML = '<option value="">-- No hay CCF/FT para este cliente --</option>';
+                return;
+            }
+            ccfRecords.forEach(function(r) {
+                var estado = r.estadoCobro === 'pagado' ? 'Pagado' : (r.estadoCobro === 'parcial' ? 'Parcial' : 'Pendiente');
+                var opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - $' + formatNumber(r.venta || 0, 2) + ' (' + estado + ')';
+                mfNcInterlogicId.appendChild(opt);
+            });
+        };
+
+        // Repopulate when client changes
+        var mfClienteInput = document.getElementById('mf-cliente');
+        if (mfClienteInput) {
+            mfClienteInput.addEventListener('change', function() {
+                if (mfDoc.value === 'NC' && mfNcAfecta && mfNcAfecta.value === 'si') {
+                    mfPopulateCCFList();
+                }
+            });
+        }
 
         document.getElementById('mf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mf-submit');
@@ -620,7 +678,63 @@ const Interlogic = {
             };
 
             try {
-                if (isEdit) {
+                var isNC = data.doc === 'NC';
+
+                if (isNC) {
+                    var ncAfectaVal = document.getElementById('mf-nc-afectaSaldo') ? document.getElementById('mf-nc-afectaSaldo').value : 'no';
+                    var ncInterlogicIdVal = document.getElementById('mf-nc-interlogicId') ? document.getElementById('mf-nc-interlogicId').value : '';
+
+                    var ncData = {
+                        ncNum: data.docNum,
+                        cliente: data.cliente,
+                        monto: data.venta,
+                        motivo: data.observations,
+                        fecha: data.fecha,
+                        empresa: data.empresa,
+                        interlogicId: ncInterlogicIdVal || '',
+                        guia: data.guia || '',
+                        docRef: ncInterlogicIdVal ? (data.doc + ' #' + data.docNum) : '',
+                        afectaSaldo: ncAfectaVal === 'si',
+                        estado: 'activa',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy: firebase.auth().currentUser.uid
+                    };
+
+                    // Also save to interlogic so it appears in the table
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    data.createdBy = firebase.auth().currentUser.uid;
+
+                    if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
+                        var db = firebase.firestore();
+                        var batch = db.batch();
+                        batch.set(db.collection('notasCredito').doc(), ncData);
+                        batch.set(db.collection('interlogic').doc(), data);
+                        var ccfDoc = await db.collection('interlogic').doc(ncInterlogicIdVal).get();
+                        if (ccfDoc.exists) {
+                            var ccfData = ccfDoc.data();
+                            var cobradoActual = Number(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
+                            var ventaCCF = Number(ccfData.venta || 0);
+                            var nuevoCobrado = cobradoActual + data.venta;
+                            var nuevoPendiente = Math.max(0, ventaCCF - nuevoCobrado);
+                            var nuevoEstado = nuevoCobrado >= ventaCCF ? 'pagado' : (nuevoCobrado > 0 ? 'parcial' : 'pendiente');
+                            batch.update(db.collection('interlogic').doc(ncInterlogicIdVal), {
+                                montoCobrado: nuevoCobrado,
+                                montoPendiente: nuevoPendiente,
+                                estadoCobro: nuevoEstado,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                        await batch.commit();
+                        showToast('Nota de Credito creada y saldo actualizado', 'success');
+                    } else {
+                        var db2 = firebase.firestore();
+                        var batch2 = db2.batch();
+                        batch2.set(db2.collection('notasCredito').doc(), ncData);
+                        batch2.set(db2.collection('interlogic').doc(), data);
+                        await batch2.commit();
+                        showToast('Nota de Credito creada', 'success');
+                    }
+                } else if (isEdit) {
                     await firebase.firestore().collection('interlogic').doc(id).update(data);
                     showToast('Registro actualizado', 'success');
                 } else {
@@ -1075,7 +1189,7 @@ const Interlogic = {
                 <td data-label="Guía"><strong>${record.guia || ''}</strong></td>
                 <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${record.empresa || ''}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
-                <td data-label="Doc">${record.doc || ''} ${record.docNum ? '#' + record.docNum : ''}</td>
+                <td data-label="Doc"><span class="badge ${record.doc === 'NC' ? 'badge-nc' : (record.doc === 'CCF' ? 'badge-primary' : 'badge-accent')}">${record.doc || ''}</span> ${record.docNum ? '#' + record.docNum : ''}</td>
                 <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.7rem; color: #000;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
@@ -1101,7 +1215,7 @@ const Interlogic = {
         `).join('');
 
         // Calculate Totals
-        const totals = this.filteredRecords.reduce((acc, r) => {
+        const totals = this.filteredRecords.filter(r => r.doc !== 'NC').reduce((acc, r) => {
             acc.venta += Number(r.venta || 0);
             acc.bultos += Number(r.bultos || 0);
             acc.cajas += Number(r.cobrador || 0);
@@ -1515,6 +1629,7 @@ const Interlogic = {
                                     <option value="" ${!val('doc') ? 'selected' : ''}>Tipo...</option>
                                     <option value="CCF" ${val('doc') === 'CCF' ? 'selected' : ''}>CCF</option>
                                     <option value="FT" ${val('doc') === 'FT' ? 'selected' : ''}>FT</option>
+                                    <option value="NC" ${val('doc') === 'NC' ? 'selected' : ''}>NC</option>
                                 </select>
                                 <input type="text" id="il-docNum" placeholder="#" value="${sourceRecord ? '' : (record ? record.docNum : '')}" style="flex: 1;">
                             </div>
@@ -1528,8 +1643,28 @@ const Interlogic = {
                     </div>
 
                     <div class="form-group" style="margin-top: 1rem;">
-                        <label>📍 Dirección</label>
+                        <label>Dirección</label>
                         <input type="text" id="il-direccion" placeholder="Dirección del cliente" value="${sanitizeHTML(val('direccion'))}">
+                    </div>
+
+                    <div id="il-nc-fields" style="display: none; margin-top: 1rem; padding: 1rem; background: #fffbeb; border-radius: var(--radius-md); border: 1px solid #f59e0b;">
+                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.75rem; color:#92400e;">📋 Opciones de Nota de Crédito</div>
+                        <div class="form-group">
+                            <label>Afecta saldo de algún CCF/FT</label>
+                            <select id="il-nc-afectaSaldo">
+                                <option value="no">No - NC general (no afecta ningún documento)</option>
+                                <option value="si">Sí - Descontar del saldo de un CCF/FT específico</option>
+                            </select>
+                        </div>
+                        <div id="il-nc-ccf-group" style="display: none; margin-top: 0.75rem;">
+                            <div class="form-group">
+                                <label>Seleccionar CCF/FT del cliente</label>
+                                <select id="il-nc-interlogicId" style="width: 100%;">
+                                    <option value="">-- Seleccionar CCF/FT --</option>
+                                </select>
+                                <div id="il-nc-ccf-info" style="display:none; margin-top:0.5rem; padding:0.5rem; background:white; border-radius:var(--radius-sm); font-size:0.8rem; border:1px solid var(--gray-200);"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
@@ -1596,6 +1731,8 @@ const Interlogic = {
 
         document.body.appendChild(modal);
 
+        var self = this;
+
         var plazoGroup = document.getElementById('il-plazo-group');
         var plazoInput = document.getElementById('il-plazo');
         var condicionSelect = document.getElementById('il-condicionPago');
@@ -1606,6 +1743,92 @@ const Interlogic = {
         };
         condicionSelect.addEventListener('change', togglePlazo);
         togglePlazo();
+
+        // NC fields toggle
+        var docSelect = document.getElementById('il-doc');
+        var ncFields = document.getElementById('il-nc-fields');
+        var ncAfectaSaldo = document.getElementById('il-nc-afectaSaldo');
+        var ncCcfGroup = document.getElementById('il-nc-ccf-group');
+        var ncInterlogicId = document.getElementById('il-nc-interlogicId');
+        var ncCcfInfo = document.getElementById('il-nc-ccf-info');
+        var ventaLabel = document.querySelector('label[for="il-venta"]') || document.getElementById('il-venta')?.closest('.form-group')?.querySelector('label');
+        var bultosGroup = document.getElementById('il-bultos')?.closest('.form-group');
+        var cobradorGroup = document.getElementById('il-cobrador-group');
+        var plazoGroupEl = document.getElementById('il-plazo-group');
+
+        var toggleNCFields = function() {
+            var isNC = docSelect.value === 'NC';
+            if (ncFields) ncFields.style.display = isNC ? 'block' : 'none';
+            if (ventaLabel) ventaLabel.textContent = isNC ? 'Monto NC ($)' : 'Venta ($)';
+            if (bultosGroup) bultosGroup.style.display = isNC ? 'none' : 'block';
+            if (cobradorGroup) cobradorGroup.style.display = isNC ? 'none' : 'block';
+            if (plazoGroupEl) plazoGroupEl.style.display = isNC ? 'none' : (condicionSelect.value === 'Crédito' ? 'block' : 'none');
+        };
+        docSelect.addEventListener('change', toggleNCFields);
+        toggleNCFields();
+
+        // Toggle CCF selector when "afecta saldo" changes
+        var toggleNCCcfGroup = function() {
+            var afecta = ncAfectaSaldo.value === 'si';
+            if (ncCcfGroup) ncCcfGroup.style.display = afecta ? 'block' : 'none';
+            if (afecta) populateCCFList();
+        };
+        ncAfectaSaldo.addEventListener('change', toggleNCCcfGroup);
+
+        // Populate CCF list based on client
+        var populateCCFList = function() {
+            var clienteActual = document.getElementById('il-cliente').value.trim();
+            ncInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
+
+            if (!clienteActual) {
+                ncInterlogicId.innerHTML = '<option value="">-- Primero ingresa el cliente arriba --</option>';
+                return;
+            }
+
+            // Filter records from already loaded data
+            var clienteLower = clienteActual.toLowerCase();
+            var ccfRecords = self.records.filter(function(r) {
+                return (r.doc === 'CCF' || r.doc === 'FT') &&
+                       (r.cliente || '').toLowerCase().includes(clienteLower);
+            });
+
+            if (ccfRecords.length === 0) {
+                ncInterlogicId.innerHTML = '<option value="">-- No hay CCF/FT para este cliente --</option>';
+                return;
+            }
+
+            ccfRecords.forEach(function(r) {
+                var estado = r.estadoCobro === 'pagado' ? '✓ Pagado' : (r.estadoCobro === 'parcial' ? '⚠ Parcial' : '● Pendiente');
+                var opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - $' + formatNumber(r.venta || 0, 2) + ' (' + estado + ')';
+                ncInterlogicId.appendChild(opt);
+            });
+        };
+
+        // Show CCF info when selected
+        ncInterlogicId.addEventListener('change', function() {
+            var selectedId = ncInterlogicId.value;
+            if (selectedId && ncCcfInfo) {
+                var record = self.records.find(function(r) { return r.id === selectedId; });
+                if (record) {
+                    var cobrado = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
+                    var pendiente = Math.max(0, Number(record.venta || 0) - cobrado);
+                    ncCcfInfo.style.display = 'block';
+                    ncCcfInfo.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><strong>Venta:</strong> $' + formatNumber(record.venta || 0, 2) + '</div><div><strong>Cobrado:</strong> $' + formatNumber(cobrado, 2) + '</div><div><strong>Pendiente:</strong> $' + formatNumber(pendiente, 2) + '</div><div><strong>Estado:</strong> ' + (record.estadoCobro || 'pendiente') + '</div></div>';
+                }
+            } else if (ncCcfInfo) {
+                ncCcfInfo.style.display = 'none';
+            }
+        });
+
+        // Also repopulate when client changes
+        var clienteInputNc = document.getElementById('il-cliente');
+        clienteInputNc.addEventListener('change', function() {
+            if (docSelect.value === 'NC' && ncAfectaSaldo.value === 'si') {
+                populateCCFList();
+            }
+        });
 
         // Setup client autocomplete
         const clienteInput = document.getElementById('il-cliente');
@@ -1794,7 +2017,68 @@ const Interlogic = {
                 }
 
                 const db = firebase.firestore();
-                if (recordId) {
+                const isNC = data.doc === 'NC';
+
+                if (isNC) {
+                    // Guardar como Nota de Crédito en colección separada Y en interlogic
+                    var ncAfectaVal = document.getElementById('il-nc-afectaSaldo').value;
+                    var ncInterlogicIdVal = document.getElementById('il-nc-interlogicId').value;
+
+                    var ncData = {
+                        ncNum: data.docNum,
+                        cliente: data.cliente,
+                        monto: venta,
+                        motivo: data.observations,
+                        fecha: data.fecha,
+                        empresa: data.empresa,
+                        interlogicId: ncInterlogicIdVal || '',
+                        guia: data.guia || '',
+                        docRef: ncInterlogicIdVal ? (data.doc + ' #' + data.docNum) : '',
+                        afectaSaldo: ncAfectaVal === 'si',
+                        estado: 'activa',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy: firebase.auth().currentUser.uid
+                    };
+
+                    // Also save to interlogic so it appears in the table
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    data.createdBy = firebase.auth().currentUser.uid;
+
+                    if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
+                        // Batch: crear NC en notasCredito + en interlogic + actualizar saldo del CCF
+                        var batch = db.batch();
+                        batch.set(db.collection('notasCredito').doc(), ncData);
+                        batch.set(db.collection('interlogic').doc(), data);
+
+                        // Buscar el registro CCF para actualizar saldo
+                        var ccfDoc = await db.collection('interlogic').doc(ncInterlogicIdVal).get();
+                        if (ccfDoc.exists) {
+                            var ccfData = ccfDoc.data();
+                            var cobradoActual = Number(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
+                            var ventaCCF = Number(ccfData.venta || 0);
+                            var nuevoCobrado = cobradoActual + venta;
+                            var nuevoPendiente = Math.max(0, ventaCCF - nuevoCobrado);
+                            var nuevoEstado = nuevoCobrado >= ventaCCF ? 'pagado' : (nuevoCobrado > 0 ? 'parcial' : 'pendiente');
+
+                            batch.update(db.collection('interlogic').doc(ncInterlogicIdVal), {
+                                montoCobrado: nuevoCobrado,
+                                montoPendiente: nuevoPendiente,
+                                estadoCobro: nuevoEstado,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+
+                        await batch.commit();
+                        showToast('✓ Nota de Crédito creada y saldo actualizado', 'success');
+                    } else {
+                        // Solo crear NC sin afectar saldo (en ambas colecciones)
+                        var batch2 = db.batch();
+                        batch2.set(db.collection('notasCredito').doc(), ncData);
+                        batch2.set(db.collection('interlogic').doc(), data);
+                        await batch2.commit();
+                        showToast('✓ Nota de Crédito creada', 'success');
+                    }
+                } else if (recordId) {
                     await db.collection('interlogic').doc(recordId).update(data);
                     showToast('✓ Registro actualizado', 'success');
                 } else {
@@ -1825,7 +2109,7 @@ const Interlogic = {
                         condicionPago: data.condicionPago
                     });
 
-                    if (data.condicionPago === 'Crédito') {
+                    if (data.condicionPago === 'Crédito' && !isNC) {
                         setTimeout(async () => {
                             try {
                                 const eqNombre = data.cliente.toLowerCase().trim();
