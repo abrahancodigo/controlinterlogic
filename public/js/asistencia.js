@@ -63,6 +63,13 @@ const Asistencia = {
         });
     },
 
+    autoResizeNameInput(input) {
+        if (!input) return;
+        input.style.width = 'auto';
+        const textWidth = input.scrollWidth + 16;
+        input.style.width = Math.max(180, textWidth) + 'px';
+    },
+
     async loadFromFirestore() {
         const db = firebase.firestore();
         const pk = this.currentPeriodKey();
@@ -364,9 +371,14 @@ const Asistencia = {
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.value = emp.name;
-            nameInput.addEventListener('input', () => { emp.name = nameInput.value; this.markDirty(); });
+            nameInput.addEventListener('input', () => {
+                emp.name = nameInput.value;
+                this.markDirty();
+                this.autoResizeNameInput(nameInput);
+            });
             tdName.appendChild(nameInput);
             tr.appendChild(tdName);
+            requestAnimationFrame(() => this.autoResizeNameInput(nameInput));
 
             this.dateColumns.forEach(col => {
                 const cell = rowData.cells[col.key] || { hours:'', status:null };
