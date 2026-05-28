@@ -4661,14 +4661,13 @@ tbody tr {
    Asistencia Module Styles
    =================================== */
 .asis-save-status {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    padding: 0.4rem 0.8rem;
+    padding: 0.25rem 0.75rem;
     background: var(--bg-secondary);
     border-radius: 999px;
     border: 1px solid var(--border-color);
 }
-
 .asis-save-status:not(:empty) {
     color: var(--success);
     border-color: #99f6e4;
@@ -4677,46 +4676,39 @@ tbody tr {
 
 .asis-toolbar {
     display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
 }
 
 .asis-period-panel {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.5rem;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    padding: 0.6rem 0.8rem;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .asis-field {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    min-width: 100px;
+    gap: 1px;
 }
-
 .asis-field span {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     text-transform: uppercase;
 }
-
 .asis-field select {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.9rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
-    background: var(--bg-secondary);
+    border-radius: 4px;
+    background: var(--bg-primary);
     color: var(--text-primary);
     cursor: pointer;
 }
-
 .asis-field select:focus {
     outline: none;
     border-color: var(--primary-500);
@@ -4726,10 +4718,9 @@ tbody tr {
 .asis-action-btns {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
     align-items: center;
 }
-
 .asis-btn-file {
     cursor: pointer;
 }
@@ -4738,80 +4729,51 @@ tbody tr {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem 1rem;
+    gap: 0.35rem 0.6rem;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.8rem;
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    margin-bottom: 0.4rem;
 }
-
 .asis-sb-label {
-    font-size: 0.8rem;
+    font-size: 0.65rem;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
 }
-
 .asis-chip-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.25rem;
 }
-
 .asis-status-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6rem;
     font-weight: 700;
-    border: 2px solid rgba(0,0,0,0.12);
-    border-radius: 0.375rem;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: transform 0.12s, box-shadow 0.15s;
 }
-
-.asis-status-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.asis-cruce {
-    background-color: #92d050;
-    color: #1a3d0a;
-}
-
-.asis-iss {
-    background-color: #ffff00;
-    color: #5c4d00;
-}
-
-.asis-descuento {
-    background-color: #ff0000;
-    color: #fff;
-    border-color: rgba(0,0,0,0.2);
-}
+.asis-cruce { background-color: #92d050; color: #1a3d0a; }
+.asis-iss { background-color: #ffff00; color: #5c4d00; }
+.asis-descuento { background-color: #ff0000; color: #fff; }
 
 .asis-scope-btn {
-    padding: 0.35rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6rem;
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 999px;
     cursor: pointer;
-    transition: all 0.15s;
 }
-
-.asis-scope-btn:hover {
-    background: var(--gray-200);
-}
-
 .asis-scope-active {
     background: var(--primary-500) !important;
     color: #fff !important;
     border-color: var(--primary-500) !important;
     font-weight: 600;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
-
 .asis-scope-muted {
     color: var(--text-tertiary);
 }
@@ -4819,73 +4781,37 @@ tbody tr {
 .asis-sheet-card {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 280px);
-    min-height: 400px;
+    flex: 1;
+    min-height: 250px;
 }
 
 .asis-sheet-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    flex-shrink: 0;
-}
-
-.asis-sheet-hint {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--text-tertiary);
+    display: none;
 }
 
 .asis-table-wrapper {
     overflow: auto;
     flex: 1;
-    background: #fafbfc;
+    background: #f8f9fa;
     scrollbar-width: thin;
     scrollbar-color: #94a3b8 #e2e8f0;
-    display: flex;
-    flex-direction: column;
-}
-
-.asis-table-wrapper::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
-}
-
-.asis-table-wrapper::-webkit-scrollbar-track {
-    background: #e2e8f0;
-}
-
-.asis-table-wrapper::-webkit-scrollbar-thumb {
-    background: #94a3b8;
-    border-radius: 4px;
 }
 
 .asis-table {
     border-collapse: collapse;
     width: max-content;
     min-width: 100%;
-    height: 100%;
-    table-layout: auto;
     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-    font-size: 0.65rem;
-    color: #000;
+    font-size: 0.7rem;
+    color: #1e293b;
 }
-
 .asis-table th,
 .asis-table td {
-    border: 1px solid #1a1a1a;
+    border: 1px solid #cbd5e1;
     padding: 0;
     vertical-align: middle;
 }
@@ -4893,15 +4819,15 @@ tbody tr {
 .asis-sheet-title {
     text-align: center;
     font-weight: 700;
-    font-size: 0.7rem;
-    padding: 0.3rem;
-    background: #fff;
-    letter-spacing: 0.02em;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+    background: #f1f5f9;
+    color: #334155;
 }
 
 .asis-col-num {
-    width: 30px;
-    min-width: 30px;
+    width: 28px;
+    min-width: 28px;
     font-size: 0.65rem;
     text-align: center;
     font-weight: 700;
@@ -4910,27 +4836,26 @@ tbody tr {
 
 .asis-col-name {
     width: auto;
-    min-width: 135px;
+    min-width: 120px;
     text-align: left;
-    padding: 0.2rem 0.4rem !important;
+    padding: 0.15rem 0.35rem !important;
     font-weight: 700;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     background: #fff;
     white-space: nowrap;
 }
 
 .asis-col-date {
-    width: 30px;
-    min-width: 30px;
-    max-width: 30px;
-    padding: 0.2rem 0.1rem !important;
-    font-size: 0.65rem;
+    width: 26px;
+    min-width: 26px;
+    max-width: 26px;
+    padding: 0.15rem 0.1rem !important;
+    font-size: 0.7rem;
     background: #fff;
     vertical-align: bottom;
 }
-
 #asis-header-row th.asis-col-date {
-    background: #f3f4f6;
+    background: #f1f5f9;
     height: auto;
 }
 
@@ -4939,20 +4864,20 @@ tbody tr {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     white-space: nowrap;
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     font-weight: 600;
     line-height: 1.1;
-    color: #1e293b;
+    color: #475569;
 }
 
 .asis-col-obs {
     width: auto;
-    min-width: 150px;
+    min-width: 120px;
     text-align: center;
     font-weight: 700;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     background: #fff;
-    padding: 0.2rem !important;
+    padding: 0.15rem !important;
     white-space: nowrap;
 }
 
@@ -4961,47 +4886,37 @@ tbody tr {
     left: 0;
     z-index: 2;
     background: #fff;
-    box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+    box-shadow: 1px 0 3px rgba(0,0,0,0.06);
 }
+.asis-sticky-name { left: 28px; z-index: 3; }
 
-.asis-sticky-name {
-    left: 40px;
-    z-index: 3;
-}
-
-.asis-row-alt {
-    background: #efefef;
-}
-
+.asis-row-alt { background: #f1f5f9; }
 .asis-row-alt td.asis-col-num,
-.asis-row-alt td.asis-col-name {
-    background: #efefef;
-}
+.asis-row-alt td.asis-col-name { background: #f1f5f9; }
 
 .asis-row-num {
     text-align: center;
     font-weight: 600;
-    padding: 0.15rem !important;
-    color: #1e293b;
+    padding: 0.12rem 0 !important;
+    color: #475569;
 }
 
 .asis-cell-name input {
     width: auto;
-    min-width: 135px;
+    min-width: 120px;
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 0.15rem 0.3rem;
-    border-radius: 3px;
+    padding: 0.1rem 0.25rem;
+    border-radius: 2px;
     color: #1e293b;
 }
-
 .asis-cell-name input:focus {
     outline: none;
     background: #fff;
-    box-shadow: inset 0 0 0 2px var(--primary-100);
+    box-shadow: inset 0 0 0 1.5px var(--primary-200);
 }
 
 .asis-cell-date {
@@ -5009,14 +4924,13 @@ tbody tr {
     padding: 0 !important;
     background: #fff;
 }
-
 .asis-row-alt .asis-cell-date:not([class*='status-']) {
-    background: #efefef;
+    background: #f1f5f9;
 }
-
 .asis-cell-date input {
     width: 100%;
     height: 100%;
+    min-height: 24px;
     border: none;
     background: transparent;
     text-align: center;
@@ -5026,27 +4940,17 @@ tbody tr {
     padding: 1px;
     color: #1e293b;
 }
-
 .asis-cell-date input:focus {
     outline: none;
-    background: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.7);
 }
 
 .asis-cell-date.status-cruce,
-.asis-cell-date.status-cruce input {
-    background-color: #92d050 !important;
-}
-
+.asis-cell-date.status-cruce input { background-color: #92d050 !important; }
 .asis-cell-date.status-iss,
-.asis-cell-date.status-iss input {
-    background-color: #ffff00 !important;
-}
-
+.asis-cell-date.status-iss input { background-color: #ffff00 !important; }
 .asis-cell-date.status-descuento,
-.asis-cell-date.status-descuento input {
-    background-color: #ff0000 !important;
-    color: #fff;
-}
+.asis-cell-date.status-descuento input { background-color: #ff0000 !important; color: #fff; }
 
 .asis-selected {
     outline: 2px solid var(--primary-500);
@@ -5055,127 +4959,95 @@ tbody tr {
     box-shadow: inset 0 0 0 1px var(--primary-500);
 }
 
-.asis-cell-obs {
-    padding: 0 !important;
-}
-
+.asis-cell-obs { padding: 0 !important; }
 .asis-cell-obs input {
     width: auto;
-    min-width: 150px;
+    min-width: 120px;
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: 500;
-    padding: 0.15rem 0.3rem;
-    border-radius: 3px;
+    padding: 0.1rem 0.3rem;
+    border-radius: 2px;
     color: #1e293b;
 }
-
 .asis-cell-obs input:focus {
     outline: none;
     background: #fff;
-    box-shadow: inset 0 0 0 2px var(--primary-100);
+    box-shadow: inset 0 0 0 1.5px var(--primary-200);
 }
-
-.asis-row-alt .asis-cell-obs input {
-    background: transparent;
-}
-
-.asis-row-alt .asis-cell-obs input:focus {
-    background: #fff;
-}
+.asis-row-alt .asis-cell-obs input { background: transparent; }
+.asis-row-alt .asis-cell-obs input:focus { background: #fff; }
 
 .asis-legend-row td {
     border: none;
-    padding: 0.6rem 0 0.2rem;
+    padding: 0.2rem 0 0.1rem;
 }
-
 .asis-legend-wrap {
     border: none !important;
-    padding: 0.5rem 0 0.4rem 0.4rem !important;
+    padding: 0.2rem 0 0.2rem 0.3rem !important;
     vertical-align: top;
     background: transparent !important;
 }
-
 .asis-legend-filler {
     border: none !important;
     background: transparent !important;
 }
-
 .asis-legend-inner {
     border-collapse: collapse;
     width: auto;
-    border-radius: 0.375rem;
+    border-radius: 3px;
     overflow: hidden;
 }
-
 .asis-legend-inner td {
-    border: 1px solid #1a1a1a;
-    padding: 0.4rem 0.8rem;
+    border: 1px solid #cbd5e1;
+    padding: 0.2rem 0.6rem;
     font-weight: 700;
-    font-size: 0.7rem;
-    min-width: 140px;
+    font-size: 0.55rem;
+    min-width: 100px;
 }
-
-.asis-legend-sample.asis-descuento {
-    color: #fff;
-}
+.asis-legend-sample.asis-descuento { color: #fff; }
 
 @media (max-width: 768px) {
-    .asis-sheet-card {
-        height: calc(100vh - 240px);
-        min-height: 300px;
-    }
-
     .asis-table-mobile {
         font-size: 0.65rem;
     }
-
     .asis-table-mobile .asis-col-name {
-        width: auto;
         min-width: 100px;
-        white-space: nowrap;
     }
-
     .asis-table-mobile .asis-col-date {
         width: 22px;
         min-width: 22px;
     }
-
     .asis-table-mobile .asis-col-obs {
-        width: auto;
         min-width: 100px;
     }
-
     .asis-table-mobile .asis-date-header {
         font-size: 0.45rem;
     }
-
-    .asis-table-mobile .asis-cell-name input,
-    .asis-table-mobile .asis-cell-obs input {
+    .asis-table-mobile .asis-cell-name input {
+        min-width: 100px;
         font-size: 0.65rem;
+    }
+    .asis-table-mobile .asis-cell-obs input {
+        min-width: 100px;
+        font-size: 0.6rem;
+    }
+    .asis-table-mobile .asis-cell-date input {
+        font-size: 0.6rem;
     }
 }
 
 @media print {
     .asis-toolbar,
-    .asis-status-bar,
-    .asis-sheet-header {
+    .asis-status-bar {
         display: none;
     }
-
     .asis-sheet-card {
         border: none;
-        box-shadow: none;
-        height: auto;
-        min-height: 0;
     }
-
     .asis-table-wrapper {
-        margin: 0;
-        max-height: none;
         overflow: visible;
-        flex: none;
     }
 }

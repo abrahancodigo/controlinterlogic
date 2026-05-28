@@ -66,15 +66,15 @@ const Asistencia = {
     autoResizeNameInput(input) {
         if (!input) return;
         input.style.width = 'auto';
-        const textWidth = input.scrollWidth + 12;
-        input.style.width = Math.max(135, textWidth) + 'px';
+        const textWidth = input.scrollWidth + 10;
+        input.style.width = Math.max(120, textWidth) + 'px';
     },
 
     autoResizeObsInput(input) {
         if (!input) return;
         input.style.width = 'auto';
-        const textWidth = input.scrollWidth + 12;
-        input.style.width = Math.max(150, textWidth) + 'px';
+        const textWidth = input.scrollWidth + 10;
+        input.style.width = Math.max(120, textWidth) + 'px';
     },
 
     async loadFromFirestore() {
@@ -148,14 +148,15 @@ const Asistencia = {
         const contentArea = document.getElementById('content-area');
         const canEdit = window.permissions?.canCreate || window.permissions?.canEdit;
         contentArea.innerHTML = `
-            <div class="module-header">
+            <div style="display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 100px);">
+            <div class="module-header" style="flex-shrink:0;">
                 <div>
                     <h1>📅 Asistencia</h1>
                     <p>Control de horas y permisos — BOD Despacho</p>
                 </div>
                 <span id="asis-status" class="asis-save-status"></span>
             </div>
-            <div class="asis-toolbar">
+            <div class="asis-toolbar" style="flex-shrink:0;">
                 <div class="asis-period-panel">
                     <label class="asis-field">
                         <span>Mes</span>
@@ -172,64 +173,49 @@ const Asistencia = {
                             <option value="2">Del 16 al fin de mes</option>
                         </select>
                     </label>
-                    <button class="btn btn-primary" id="asis-btn-apply">Aplicar</button>
+                    <button class="btn btn-sm btn-primary" id="asis-btn-apply">Aplicar</button>
                 </div>
                 <div class="asis-action-btns">
-                    <button class="btn btn-secondary" id="asis-btn-save">💾 Guardar</button>
-                    <button class="btn btn-secondary" id="asis-btn-export">📥 Exportar Excel</button>
-                    <label class="btn btn-secondary asis-btn-file">
-                        📤 Importar Excel
+                    <button class="btn btn-sm btn-secondary" id="asis-btn-save">💾 Guardar</button>
+                    <button class="btn btn-sm btn-secondary" id="asis-btn-export">📥 Exportar</button>
+                    <label class="btn btn-sm btn-secondary asis-btn-file">
+                        📤 Importar
                         <input type="file" id="asis-input-import" accept=".xlsx" hidden>
                     </label>
-                    ${canEdit ? '<button class="btn btn-secondary" id="asis-btn-add">+ Empleado</button>' : ''}
-                    ${canEdit ? '<button class="btn btn-danger" id="asis-btn-delete">Eliminar fila</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-sm btn-secondary" id="asis-btn-add">+ Empleado</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-sm btn-danger" id="asis-btn-delete">Eliminar</button>' : ''}
                 </div>
             </div>
-            <div class="asis-status-bar">
+            <div class="asis-status-bar" style="flex-shrink:0;">
                 <span class="asis-sb-label">Estado:</span>
                 <div class="asis-chip-row">
-                    <button class="asis-status-btn asis-cruce" data-status="cruce">CRUCE DE HORAS</button>
+                    <button class="asis-status-btn asis-cruce" data-status="cruce">CRUCE</button>
                     <button class="asis-status-btn asis-iss" data-status="iss">ISS 75%</button>
-                    <button class="asis-status-btn asis-descuento" data-status="descuento">DESCUENTO DE HORAS</button>
+                    <button class="asis-status-btn asis-descuento" data-status="descuento">DESC.</button>
                 </div>
-                <span class="asis-sb-label">Aplicar a:</span>
+                <span class="asis-sb-label">Aplicar:</span>
                 <div class="asis-chip-row">
                     <button class="asis-scope-btn asis-scope-active" data-scope="cell">Celda</button>
-                    <button class="asis-scope-btn" data-scope="from-cell">Desde celda</button>
-                    <button class="asis-scope-btn" data-scope="row">Fila completa</button>
-                    <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear">Quitar color</button>
+                    <button class="asis-scope-btn" data-scope="from-cell">Desde</button>
+                    <button class="asis-scope-btn" data-scope="row">Fila</button>
+                    <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear">Quitar</button>
                 </div>
             </div>
-            <div class="asis-sheet-card">
-                <div class="asis-sheet-header">
-                    <span>Hoja de registro</span>
-                    <span class="asis-sheet-hint">Desplaza horizontalmente para ver todas las fechas</span>
-                </div>
+            <div class="asis-sheet-card" style="flex:1;min-height:200px;">
                 <div class="asis-table-wrapper">
                     <table class="asis-table" id="asis-table">
                         <thead>
-                            <tr><th colspan="100" class="asis-sheet-title">DETALLE DE HORAS O DIAS DE PERMISOS BOD DESPACHO</th></tr>
+                            <tr><th colspan="100" class="asis-sheet-title">HORAS / PERMISOS — BOD DESPACHO</th></tr>
                             <tr id="asis-header-row">
                                 <th class="asis-col-num asis-sticky">#</th>
-                                <th class="asis-col-name asis-sticky asis-sticky-name">Nombre de Empleados</th>
-                                <th class="asis-col-obs">OBSERVACIONES</th>
+                                <th class="asis-col-name asis-sticky asis-sticky-name">Empleado</th>
+                                <th class="asis-col-obs">OBS</th>
                             </tr>
                         </thead>
                         <tbody id="asis-tbody"></tbody>
-                        <tfoot>
-                            <tr class="asis-legend-row">
-                                <td colspan="2" class="asis-legend-wrap">
-                                    <table class="asis-legend-inner">
-                                        <tr><td class="asis-cruce asis-legend-sample">CRUCE DE HORAS</td></tr>
-                                        <tr><td class="asis-iss asis-legend-sample">ISS 75%</td></tr>
-                                        <tr><td class="asis-descuento asis-legend-sample">DESCUENTO DE HORAS</td></tr>
-                                    </table>
-                                </td>
-                                <td id="asis-legend-filler" colspan="100" class="asis-legend-filler"></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
+            </div>
             </div>
         `;
         this.initControls();
@@ -244,44 +230,40 @@ const Asistencia = {
         const contentArea = document.getElementById('content-area');
         const canEdit = window.permissions?.canCreate || window.permissions?.canEdit;
         contentArea.innerHTML = `
-            <div style="padding:0.5rem;">
-                <h2 style="font-size:1.1rem;margin:0 0 0.5rem;">📅 Asistencia</h2>
-                <span id="asis-status" class="asis-save-status" style="font-size:0.75rem;"></span>
-                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin:0.5rem 0;">
-                    <select id="asis-month" style="font-size:0.8rem;padding:0.3rem;"></select>
-                    <select id="asis-year" style="font-size:0.8rem;padding:0.3rem;"></select>
-                    <select id="asis-half" style="font-size:0.8rem;padding:0.3rem;">
+            <div style="display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 150px);padding:0.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+                    <h2 style="font-size:1rem;margin:0;">📅 Asistencia</h2>
+                    <span id="asis-status" class="asis-save-status" style="font-size:0.7rem;"></span>
+                </div>
+                <div style="display:flex;gap:0.25rem;flex-wrap:wrap;margin:0.35rem 0;flex-shrink:0;">
+                    <select id="asis-month" style="font-size:0.7rem;padding:0.2rem;"></select>
+                    <select id="asis-year" style="font-size:0.7rem;padding:0.2rem;"></select>
+                    <select id="asis-half" style="font-size:0.7rem;padding:0.2rem;">
                         <option value="1">1-15</option>
                         <option value="2">16-fin</option>
                     </select>
-                    <button class="btn btn-primary" id="asis-btn-apply" style="font-size:0.75rem;padding:0.3rem 0.5rem;">OK</button>
-                </div>
-                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.5rem;">
-                    <button class="btn btn-secondary" id="asis-btn-save" style="font-size:0.75rem;padding:0.3rem 0.5rem;">💾</button>
-                    <button class="btn btn-secondary" id="asis-btn-export" style="font-size:0.75rem;padding:0.3rem 0.5rem;">📥</button>
-                    <label class="btn btn-secondary asis-btn-file" style="font-size:0.75rem;padding:0.3rem 0.5rem;">
+                    <button class="btn btn-sm btn-primary" id="asis-btn-apply" style="padding:0.2rem 0.4rem;">OK</button>
+                    <button class="btn btn-sm btn-secondary" id="asis-btn-save" style="padding:0.2rem 0.4rem;">💾</button>
+                    <button class="btn btn-sm btn-secondary" id="asis-btn-export" style="padding:0.2rem 0.4rem;">📥</button>
+                    <label class="btn btn-sm btn-secondary asis-btn-file" style="padding:0.2rem 0.4rem;">
                         📤<input type="file" id="asis-input-import" accept=".xlsx" hidden>
                     </label>
-                    ${canEdit ? '<button class="btn btn-secondary" id="asis-btn-add" style="font-size:0.75rem;padding:0.3rem 0.5rem;">+ Emp</button>' : ''}
-                    ${canEdit ? '<button class="btn btn-danger" id="asis-btn-delete" style="font-size:0.75rem;padding:0.3rem 0.5rem;">🗑</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-sm btn-secondary" id="asis-btn-add" style="padding:0.2rem 0.4rem;">+Emp</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-sm btn-danger" id="asis-btn-delete" style="padding:0.2rem 0.4rem;">🗑</button>' : ''}
                 </div>
-                <div class="asis-status-bar" style="flex-direction:column;gap:0.3rem;padding:0.4rem;">
-                    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
-                        <button class="asis-status-btn asis-cruce" data-status="cruce" style="font-size:0.65rem;padding:0.25rem 0.4rem;">CRUCE</button>
-                        <button class="asis-status-btn asis-iss" data-status="iss" style="font-size:0.65rem;padding:0.25rem 0.4rem;">ISS</button>
-                        <button class="asis-status-btn asis-descuento" data-status="descuento" style="font-size:0.65rem;padding:0.25rem 0.4rem;">DESC.</button>
-                    </div>
-                    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
-                        <button class="asis-scope-btn asis-scope-active" data-scope="cell" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Celda</button>
-                        <button class="asis-scope-btn" data-scope="from-cell" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Desde</button>
-                        <button class="asis-scope-btn" data-scope="row" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Fila</button>
-                        <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Quitar</button>
-                    </div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.25rem;padding:0.25rem;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:4px;flex-shrink:0;">
+                    <button class="asis-status-btn asis-cruce" data-status="cruce" style="font-size:0.55rem;padding:0.15rem 0.35rem;">CRUCE</button>
+                    <button class="asis-status-btn asis-iss" data-status="iss" style="font-size:0.55rem;padding:0.15rem 0.35rem;">ISS</button>
+                    <button class="asis-status-btn asis-descuento" data-status="descuento" style="font-size:0.55rem;padding:0.15rem 0.35rem;">DESC</button>
+                    <button class="asis-scope-btn asis-scope-active" data-scope="cell" style="font-size:0.55rem;padding:0.12rem 0.35rem;">Celda</button>
+                    <button class="asis-scope-btn" data-scope="from-cell" style="font-size:0.55rem;padding:0.12rem 0.35rem;">Desde</button>
+                    <button class="asis-scope-btn" data-scope="row" style="font-size:0.55rem;padding:0.12rem 0.35rem;">Fila</button>
+                    <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear" style="font-size:0.55rem;padding:0.12rem 0.35rem;">Quitar</button>
                 </div>
-                <div class="asis-table-wrapper" style="max-height:calc(100vh - 340px);margin-top:0.5rem;">
+                <div class="asis-table-wrapper" style="flex:1;min-height:200px;margin-top:0.25rem;">
                     <table class="asis-table asis-table-mobile" id="asis-table">
                         <thead>
-                            <tr><th colspan="100" class="asis-sheet-title" style="font-size:0.75rem;padding:0.4rem;">HORAS / PERMISOS</th></tr>
+                            <tr><th colspan="100" class="asis-sheet-title" style="font-size:0.65rem;padding:0.2rem;">HORAS / PERMISOS</th></tr>
                             <tr id="asis-header-row">
                                 <th class="asis-col-num asis-sticky">#</th>
                                 <th class="asis-col-name asis-sticky asis-sticky-name">Empleado</th>
@@ -353,8 +335,6 @@ const Asistencia = {
         const total = 2 + this.dateColumns.length + 1;
         const title = document.querySelector('.asis-sheet-title');
         if (title) title.colSpan = total;
-        const filler = document.getElementById('asis-legend-filler');
-        if (filler) filler.colSpan = this.dateColumns.length + 1;
     },
 
     renderBody() {
