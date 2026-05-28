@@ -66,15 +66,15 @@ const Asistencia = {
     autoResizeNameInput(input) {
         if (!input) return;
         input.style.width = 'auto';
-        const textWidth = input.scrollWidth + 16;
-        input.style.width = Math.max(180, textWidth) + 'px';
+        const textWidth = input.scrollWidth + 12;
+        input.style.width = Math.max(135, textWidth) + 'px';
     },
 
     autoResizeObsInput(input) {
         if (!input) return;
         input.style.width = 'auto';
-        const textWidth = input.scrollWidth + 16;
-        input.style.width = Math.max(200, textWidth) + 'px';
+        const textWidth = input.scrollWidth + 12;
+        input.style.width = Math.max(150, textWidth) + 'px';
     },
 
     async loadFromFirestore() {
