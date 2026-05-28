@@ -4854,6 +4854,8 @@ tbody tr {
     background: #fafbfc;
     scrollbar-width: thin;
     scrollbar-color: #94a3b8 #e2e8f0;
+    display: flex;
+    flex-direction: column;
 }
 
 .asis-table-wrapper::-webkit-scrollbar {
@@ -4874,6 +4876,7 @@ tbody tr {
     border-collapse: collapse;
     width: max-content;
     min-width: 100%;
+    height: 100%;
     table-layout: auto;
     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
     font-size: 1rem;
@@ -5004,7 +5007,6 @@ tbody tr {
 .asis-cell-date {
     text-align: center;
     padding: 0 !important;
-    height: 36px;
     background: #fff;
 }
 
@@ -5014,7 +5016,7 @@ tbody tr {
 
 .asis-cell-date input {
     width: 100%;
-    height: 36px;
+    height: 100%;
     border: none;
     background: transparent;
     text-align: center;
@@ -5150,12 +5152,7 @@ tbody tr {
         font-size: 0.65rem;
     }
 
-    .asis-table-mobile .asis-cell-date {
-        height: 30px;
-    }
-
     .asis-table-mobile .asis-cell-date input {
-        height: 30px;
         font-size: 0.85rem;
     }
 
