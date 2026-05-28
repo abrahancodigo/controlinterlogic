@@ -31,7 +31,8 @@ const Interlogic = {
         cobrador: [],
         bultos: [],
         costoEnvio: [],
-        costoPorcentaje: []
+        costoPorcentaje: [],
+        observations: []
     },
     currentSort: {
         field: '',
@@ -879,9 +880,9 @@ const Interlogic = {
     toggleFilter(event, field) {
         event.stopPropagation();
         const popup = document.getElementById(`filter-popup-${field}`);
+        if (!popup) return;
         const isShowing = popup.classList.contains('show');
 
-        // Hide all popups
         document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
 
         if (!isShowing) {
@@ -1019,51 +1020,8 @@ const Interlogic = {
             </div>
         `;
 
-        // SMART FILTERS: Get records that pass all filters EXCEPT this field
-        const recordsPassingOtherFilters = this.records.filter(record => {
-            for (let f in this.filters) {
-                if (f === field) continue;
-                const activeValues = this.filters[f];
-
-                if (f === 'startDate' || f === 'endDate') {
-                    const recordDate = record.fecha ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0] : '';
-                    if (!recordDate) continue; // Allow records without date to pass through
-                    if (this.filters.startDate && recordDate < this.filters.startDate) return false;
-                    if (this.filters.endDate && recordDate > this.filters.endDate) return false;
-                    continue;
-                }
-
-                if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
-                    if (f === 'search') {
-                        const recordValue = String(record.cliente || '').toLowerCase();
-                        if (!recordValue.includes(activeValues.toLowerCase())) return false;
-                        continue;
-                    }
-
-                    // For fields that might be formatted (Dates) in the table but plain in the record
-                    let recordValue;
-                    if (f === 'fecha') {
-                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
-                    } else if (f === 'venta' || f === 'costoEnvio') {
-                        recordValue = formatNumber(record[f] || 0, 2);
-                    } else if (f === 'costoPorcentaje') {
-                        recordValue = formatNumber(record[f] || 0, 2) + '%';
-                    } else {
-                        recordValue = String(record[f] || ' (Vacío)');
-                    }
-
-                    if (Array.isArray(activeValues)) {
-                        if (!activeValues.includes(recordValue)) return false;
-                    } else if (typeof activeValues === 'string' && activeValues) {
-                        if (!recordValue.toLowerCase().includes(activeValues.toLowerCase())) return false;
-                    }
-                }
-            }
-            return true;
-        });
-
-        // Get unique values from the subset of records, formatted as they appear in the table
-        const uniqueValues = [...new Set(recordsPassingOtherFilters.map(r => {
+        // Always show ALL unique values from ALL records for this field
+        const uniqueValues = [...new Set(this.records.map(r => {
             if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
             if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
             if (field === 'costoPorcentaje') return formatNumber(r[field] || 0, 2) + '%';
@@ -1072,15 +1030,16 @@ const Interlogic = {
 
         const activeValues = this.filters[field] || [];
 
-        const optionsHtml = uniqueValues.map(val => {
+        const optionsHtml = uniqueValues.map((val, idx) => {
             const valHtml = sanitizeHTML(val);
-            const valAttr = String(val).replace(/"/g, '&quot;');
             const valJs = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const valAttr = String(val).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+            const safeId = `chk-${field}-${idx}`;
             return `
             <div class="filter-option-item" onclick="event.stopPropagation()">
-                <input type="checkbox" id="chk-${field}-${valAttr}" ${Array.isArray(activeValues) && activeValues.includes(val) ? 'checked' : ''} 
+                <input type="checkbox" id="${safeId}" data-value="${valAttr}" ${Array.isArray(activeValues) && activeValues.includes(val) ? 'checked' : ''} 
                        onchange="Interlogic.updateFilterValue('${field}', '${valJs}', this.checked)">
-                <label for="chk-${field}-${valAttr}">${valHtml}</label>
+                <label for="${safeId}">${valHtml}</label>
             </div>
         `}).join('');
 
@@ -1091,14 +1050,9 @@ const Interlogic = {
         if (!checked) {
             this.filters[field] = [];
         } else {
-            // Get all visible options for this field
             const list = document.getElementById(`filter-options-${field}`);
             const checkboxes = list.querySelectorAll('input[type="checkbox"]');
-            this.filters[field] = Array.from(checkboxes).map(cb => {
-                // Get the value from the ID (format: chk-field-value)
-                const idParts = cb.id.split('-');
-                return idParts.slice(2).join('-');
-            });
+            this.filters[field] = Array.from(checkboxes).map(cb => cb.dataset.value);
         }
         this.applyFilters();
         this.populateFilterOptions(field);
@@ -1122,12 +1076,20 @@ const Interlogic = {
             search: '',
             startDate: today,
             endDate: today,
+            guia: [],
             empresa: [],
+            fecha: [],
+            doc: [],
+            cliente: [],
             zona: [],
             vendedor: [],
+            condicionPago: [],
+            venta: [],
             cobrador: [],
-            cliente: [],
-            condicionPago: []
+            bultos: [],
+            costoEnvio: [],
+            costoPorcentaje: [],
+            observations: []
         };
         this.currentSort = { field: '', direction: '' };
 
