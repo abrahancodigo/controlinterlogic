@@ -12,7 +12,7 @@ const KpiEvaluation = {
     },
 
     kpiAspects: [
-        { key: 'asistencia', label: 'Asistencia', icon: '📅' },
+
         { key: 'puntualidad', label: 'Puntualidad', icon: '⏰' },
         { key: 'productividad', label: 'Productividad', icon: '📈' },
         { key: 'calidad', label: 'Calidad', icon: '⭐' },

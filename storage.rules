@@ -24,12 +24,12 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
-    // Reglas para asistencia (Corregidas para permitir subcarpetas)
+
+    // Reglas para asistencia
     match /asistencia/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if (isAdmin() || isEditor())
-                   && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && request.resource.size < 10 * 1024 * 1024;
     }
 
     // Reglas para problemas
@@ -38,6 +38,13 @@ service firebase.storage {
       allow write: if (isAdmin() || isEditor())
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+    }
+
+    // Reglas para fotos de vehículos
+    match /vehiculos/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && request.resource.size < 10 * 1024 * 1024;
     }
   }
 }

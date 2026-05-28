@@ -185,11 +185,12 @@ const App = {
         const items = [
             { icon: '🚨', label: 'Problemas', module: 'problemas' },
             { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
-            { icon: '📅', label: 'Asistencia', module: 'asistencia' },
+
             { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
             { icon: '🚚', label: 'Flota y Manto.', module: 'flota' },
             { icon: '🧾', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
             { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
+            { icon: '📅', label: 'Asistencia', module: 'asistencia' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
             { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
         ];
@@ -300,9 +301,7 @@ const App = {
                 case 'kpi':
                     if (window.KpiEvaluation && window.KpiEvaluation.render) await window.KpiEvaluation.render();
                     break;
-                case 'asistencia':
-                    if (window.Asistencia && window.Asistencia.render) await window.Asistencia.render();
-                    break;
+
                 case 'clientes':
                     if (window.Clientes && window.Clientes.render) await window.Clientes.render();
                     break;
@@ -314,6 +313,9 @@ const App = {
                     break;
                 case 'flota':
                     if (window.Flota && window.Flota.render) await window.Flota.render();
+                    break;
+                case 'asistencia':
+                    if (window.Asistencia && window.Asistencia.render) await window.Asistencia.render();
                     break;
                 default:
                     console.warn(`Unknown module: ${moduleName}`);

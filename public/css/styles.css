@@ -700,16 +700,16 @@ tbody tr {
 }
 
 .data-table {
-    font-size: 0.78rem;
+    font-size: 0.85rem;
 }
 
 .data-table th {
-    font-size: 0.68rem;
-    padding: 0.2rem 0.35rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
 }
 
 .data-table td {
-    padding: 0.2rem 0.35rem;
+    padding: 0.25rem 0.4rem;
 }
 
 /* Dynamic Totals Footer */
@@ -4545,11 +4545,6 @@ tbody tr {
         border-radius: 8px;
     }
 
-    /* ---------- Asistencia table (keep scrollable) ---------- */
-    /* The asistencia module has a complex table - keep it scrollable */
-    #content-area table:not(.data-table) {
-        min-width: 600px;
-    }
 
     /* ---------- Safe area - bottom padding ---------- */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
@@ -4599,5 +4594,576 @@ tbody tr {
         font-size: 0.65rem;
         padding: 0.35rem 0.5rem;
         min-height: 34px;
+    }
+}
+
+/* ========== DETAIL VIEW (showVehiculoDetail) ========== */
+.dv-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.dv-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dv-value {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.dv-fotos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.dv-foto-thumb {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid var(--gray-200);
+    transition: border-color 0.15s, transform 0.15s;
+    aspect-ratio: 4/3;
+}
+
+.dv-foto-thumb:hover {
+    border-color: var(--primary-500);
+    transform: scale(1.03);
+}
+
+.dv-foto-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.dv-foto-thumb span {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+/* ===================================
+   Asistencia Module Styles
+   =================================== */
+.asis-save-status {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0.4rem 0.8rem;
+    background: var(--bg-secondary);
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+}
+
+.asis-save-status:not(:empty) {
+    color: var(--success);
+    border-color: #99f6e4;
+    background: #ccfbf1;
+}
+
+.asis-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+}
+
+.asis-period-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.8rem;
+}
+
+.asis-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 100px;
+}
+
+.asis-field span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.asis-field select {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.asis-field select:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px var(--primary-50);
+}
+
+.asis-action-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.asis-btn-file {
+    cursor: pointer;
+}
+
+.asis-status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.8rem;
+}
+
+.asis-sb-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.asis-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.asis-status-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 2px solid rgba(0,0,0,0.12);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.15s;
+}
+
+.asis-status-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.asis-cruce {
+    background-color: #92d050;
+    color: #1a3d0a;
+}
+
+.asis-iss {
+    background-color: #ffff00;
+    color: #5c4d00;
+}
+
+.asis-descuento {
+    background-color: #ff0000;
+    color: #fff;
+    border-color: rgba(0,0,0,0.2);
+}
+
+.asis-scope-btn {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.asis-scope-btn:hover {
+    background: var(--gray-200);
+}
+
+.asis-scope-active {
+    background: var(--primary-500) !important;
+    color: #fff !important;
+    border-color: var(--primary-500) !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.asis-scope-muted {
+    color: var(--text-tertiary);
+}
+
+.asis-sheet-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.asis-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.asis-sheet-hint {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-tertiary);
+}
+
+.asis-table-wrapper {
+    overflow: auto;
+    max-height: calc(100vh - 380px);
+    background: #fafbfc;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #e2e8f0;
+}
+
+.asis-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.asis-table-wrapper::-webkit-scrollbar-track {
+    background: #e2e8f0;
+}
+
+.asis-table-wrapper::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+
+.asis-table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    table-layout: fixed;
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 0.85rem;
+    color: #000;
+}
+
+.asis-table th,
+.asis-table td {
+    border: 1px solid #1a1a1a;
+    padding: 0;
+    vertical-align: middle;
+}
+
+.asis-sheet-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 0.6rem;
+    background: #fff;
+    letter-spacing: 0.02em;
+}
+
+.asis-col-num {
+    width: 40px;
+    min-width: 40px;
+    font-size: 0.85rem;
+    text-align: center;
+    font-weight: 700;
+    background: #fff;
+}
+
+.asis-col-name {
+    width: 220px;
+    min-width: 220px;
+    text-align: left;
+    padding: 0.4rem 0.6rem !important;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background: #fff;
+}
+
+.asis-col-date {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    height: 140px;
+    padding: 0.4rem 0.2rem !important;
+    font-size: 0.85rem;
+    background: #fff;
+    vertical-align: bottom;
+}
+
+#asis-header-row th.asis-col-date {
+    background: #f3f4f6;
+}
+
+.asis-date-header {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    font-size: 0.65rem;
+    font-weight: 500;
+    line-height: 1.2;
+    max-height: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #374151;
+}
+
+.asis-col-obs {
+    width: 200px;
+    min-width: 200px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    background: #fff;
+    padding: 0.4rem !important;
+}
+
+.asis-sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+}
+
+.asis-sticky-name {
+    left: 40px;
+    z-index: 3;
+}
+
+.asis-row-alt {
+    background: #efefef;
+}
+
+.asis-row-alt td.asis-col-num,
+.asis-row-alt td.asis-col-name {
+    background: #efefef;
+}
+
+.asis-row-num {
+    text-align: center;
+    font-weight: 500;
+    padding: 0.3rem !important;
+    color: #4b5563;
+}
+
+.asis-cell-name input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 3px;
+}
+
+.asis-cell-name input:focus {
+    outline: none;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px var(--primary-100);
+}
+
+.asis-cell-date {
+    text-align: center;
+    padding: 0 !important;
+    height: 30px;
+    background: #fff;
+}
+
+.asis-row-alt .asis-cell-date:not([class*='status-']) {
+    background: #efefef;
+}
+
+.asis-cell-date input {
+    width: 100%;
+    height: 30px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-family: inherit;
+    font-size: 0.85rem;
+    padding: 1px;
+}
+
+.asis-cell-date input:focus {
+    outline: none;
+    background: rgba(255,255,255,0.5);
+}
+
+.asis-cell-date.status-cruce,
+.asis-cell-date.status-cruce input {
+    background-color: #92d050 !important;
+}
+
+.asis-cell-date.status-iss,
+.asis-cell-date.status-iss input {
+    background-color: #ffff00 !important;
+}
+
+.asis-cell-date.status-descuento,
+.asis-cell-date.status-descuento input {
+    background-color: #ff0000 !important;
+    color: #fff;
+}
+
+.asis-selected {
+    outline: 2px solid var(--primary-500);
+    outline-offset: -2px;
+    z-index: 1;
+    box-shadow: inset 0 0 0 1px var(--primary-500);
+}
+
+.asis-cell-obs {
+    padding: 0 !important;
+}
+
+.asis-cell-obs input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+}
+
+.asis-cell-obs input:focus {
+    outline: none;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px var(--primary-100);
+}
+
+.asis-row-alt .asis-cell-obs input {
+    background: transparent;
+}
+
+.asis-row-alt .asis-cell-obs input:focus {
+    background: #fff;
+}
+
+.asis-legend-row td {
+    border: none;
+    padding: 0.6rem 0 0.2rem;
+}
+
+.asis-legend-wrap {
+    border: none !important;
+    padding: 0.5rem 0 0.4rem 0.4rem !important;
+    vertical-align: top;
+    background: transparent !important;
+}
+
+.asis-legend-filler {
+    border: none !important;
+    background: transparent !important;
+}
+
+.asis-legend-inner {
+    border-collapse: collapse;
+    width: auto;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.asis-legend-inner td {
+    border: 1px solid #1a1a1a;
+    padding: 0.4rem 0.8rem;
+    font-weight: 700;
+    font-size: 0.8rem;
+    min-width: 160px;
+}
+
+.asis-legend-sample.asis-descuento {
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .asis-table-mobile {
+        font-size: 0.7rem;
+    }
+
+    .asis-table-mobile .asis-col-name {
+        width: 120px;
+        min-width: 120px;
+    }
+
+    .asis-table-mobile .asis-col-date {
+        width: 30px;
+        min-width: 30px;
+        height: 100px;
+    }
+
+    .asis-table-mobile .asis-col-obs {
+        width: 100px;
+        min-width: 100px;
+    }
+
+    .asis-table-mobile .asis-date-header {
+        font-size: 0.55rem;
+        max-height: 90px;
+    }
+
+    .asis-table-mobile .asis-cell-date {
+        height: 26px;
+    }
+
+    .asis-table-mobile .asis-cell-date input {
+        height: 26px;
+        font-size: 0.7rem;
+    }
+
+    .asis-table-mobile .asis-cell-name input,
+    .asis-table-mobile .asis-cell-obs input {
+        font-size: 0.7rem;
+    }
+}
+
+@media print {
+    .asis-toolbar,
+    .asis-status-bar,
+    .asis-sheet-header {
+        display: none;
+    }
+
+    .asis-sheet-card {
+        border: none;
+        box-shadow: none;
+    }
+
+    .asis-table-wrapper {
+        margin: 0;
+        max-height: none;
+        overflow: visible;
     }
 }

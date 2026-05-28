@@ -187,7 +187,7 @@ const Flota = {
                             const vencClase = dias <= 0 ? 'badge-error' : (dias <= 30 ? 'badge-warning' : 'badge-success');
                             const vencTexto = dias <= 0 ? 'VENCIDA' : (dias === 9999 ? 'Sin fecha' : `${dias} días`);
                             const estadoBadge = v.estado === 'activo' ? 'badge-success' : (v.estado === 'en_mantenimiento' ? 'badge-warning' : 'badge-error');
-                            return `<tr>
+                            return `<tr class="vehiculo-row" data-id="${v.id}" style="cursor:pointer;">
                                 <td><strong>${this.sanitize(v.nombre || '')}</strong></td>
                                 <td>${this.sanitize(v.numeroPlaca || '-')}</td>
                                 <td><span class="badge badge-accent">${this.sanitize(v.tipoVehiculo || '-')}</span></td>
@@ -209,21 +209,31 @@ const Flota = {
         `;
 
         if (canEdit) document.getElementById('btn-nuevo-vehiculo')?.addEventListener('click', () => this.showModalVehiculo());
+        document.querySelectorAll('.vehiculo-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.actions-cell')) return;
+                const v = this.vehiculos.find(x => x.id === row.dataset.id);
+                if (v) this.showVehiculoDetail(v);
+            });
+        });
         document.querySelectorAll('.btn-edit-vehiculo').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const v = this.vehiculos.find(x => x.id === btn.dataset.id);
                 if (v) this.showModalVehiculo(v);
             });
         });
         document.querySelectorAll('.btn-ver-mantenimiento').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.selectedVehiculoId = btn.dataset.id;
                 this.currentView = 'mantenimiento';
                 this.renderDesktop();
             });
         });
         document.querySelectorAll('.btn-delete-vehiculo').forEach(btn => {
-            btn.addEventListener('click', async () => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
                 if (await showConfirm('¿Eliminar vehículo?', 'Esta acción no se puede deshacer.')) {
                     await firebase.firestore().collection('vehiculos').doc(btn.dataset.id).delete();
                     showToast('Vehículo eliminado', 'success');
@@ -244,7 +254,7 @@ const Flota = {
             ${this.vehiculos.map(v => {
                 const dias = this.diasParaVencimiento(v.fechaVencimientoCirculacion);
                 const vencClase = dias <= 0 ? '#ef4444' : (dias <= 30 ? '#f59e0b' : '#22c55e');
-                return `<div class="m-data-card" style="margin-bottom:0.5rem;padding:0.5rem;">
+                return `<div class="m-data-card m-vehiculo-card" data-id="${v.id}" style="margin-bottom:0.5rem;padding:0.5rem;cursor:pointer;">
                     <div style="display:flex;justify-content:space-between;">
                         <strong>${this.sanitize(v.nombre || '')}</strong>
                         <span class="badge ${v.estado === 'activo' ? 'badge-success' : 'badge-warning'}">${v.estado === 'activo' ? 'Activo' : 'Taller'}</span>
@@ -263,14 +273,23 @@ const Flota = {
             }).join('')}
         `;
         document.getElementById('btn-nuevo-vehiculo-m')?.addEventListener('click', () => this.showModalVehiculo());
+        document.querySelectorAll('.m-vehiculo-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                const v = this.vehiculos.find(x => x.id === card.dataset.id);
+                if (v) this.showVehiculoDetail(v);
+            });
+        });
         document.querySelectorAll('.btn-edit-vehiculo-m').forEach(b => {
-            b.addEventListener('click', () => {
+            b.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const v = this.vehiculos.find(x => x.id === b.dataset.id);
                 if (v) this.showModalVehiculo(v);
             });
         });
         document.querySelectorAll('.btn-ver-manto-m').forEach(b => {
-            b.addEventListener('click', () => {
+            b.addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.selectedVehiculoId = b.dataset.id;
                 this.currentView = 'mantenimiento';
                 this.renderMobile();
@@ -280,6 +299,8 @@ const Flota = {
 
     showModalVehiculo(vehiculo) {
         const isEdit = !!vehiculo;
+        const existingFotosVehiculo = vehiculo?.fotosVehiculo || (vehiculo?.fotoVehiculo ? [vehiculo.fotoVehiculo] : []);
+        const existingFotosTarjeta = vehiculo?.fotosTarjeta || (vehiculo?.fotoTarjetaCirculacion ? [vehiculo.fotoTarjetaCirculacion] : []);
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
@@ -347,14 +368,16 @@ const Flota = {
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-top:0.5rem;">
                     <div class="form-group">
-                        <label>Foto del Vehículo</label>
-                        <input type="file" id="fv-foto" accept="image/*" style="width:100%;padding:0.3rem;">
-                        ${vehiculo?.fotoVehiculo ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoVehiculo}" style="max-height:80px;border-radius:4px;"></div>` : ''}
+                        <label>Fotos del Vehículo <span style="font-weight:400;color:var(--text-secondary);font-size:0.75rem;">(máx 4)</span></label>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.4rem;" id="fv-fotos-slots">
+                            ${this.buildFotoySlotsHTML(existingFotosVehiculo)}
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Foto Tarjeta de Circulación</label>
-                        <input type="file" id="fv-fotoTarjeta" accept="image/*" style="width:100%;padding:0.3rem;">
-                        ${vehiculo?.fotoTarjetaCirculacion ? `<div style="margin-top:0.3rem;"><img src="${vehiculo.fotoTarjetaCirculacion}" style="max-height:80px;border-radius:4px;"></div>` : ''}
+                        <label>Fotos Tarjeta de Circulación <span style="font-weight:400;color:var(--text-secondary);font-size:0.75rem;">(máx 4)</span></label>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.4rem;" id="fv-tarjeta-slots">
+                            ${this.buildFotoySlotsHTML(existingFotosTarjeta)}
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
@@ -366,35 +389,80 @@ const Flota = {
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
-        modal.querySelector('#fv-save')?.addEventListener('click', async () => {
-            const data = {
-                nombre: document.getElementById('fv-nombre').value.trim(),
-                numeroPlaca: document.getElementById('fv-placa').value.trim().toUpperCase(),
-                tipoVehiculo: document.getElementById('fv-tipo').value,
-                capacidad: document.getElementById('fv-capacidad').value.trim(),
-                tipoCombustible: document.getElementById('fv-combustible').value,
-                kilometrajeActual: parseInt(document.getElementById('fv-kilometraje').value) || 0,
-                estado: document.getElementById('fv-estado').value,
-                numeroCirculacion: document.getElementById('fv-numCirculacion').value.trim(),
-                fechaVencimientoCirculacion: document.getElementById('fv-vencimiento').value ? new Date(document.getElementById('fv-vencimiento').value).toISOString() : null,
-                updatedAt: new Date().toISOString()
-            };
+        const slotContainers = ['fv-fotos-slots', 'fv-tarjeta-slots'];
+        slotContainers.forEach(id => {
+            document.getElementById(id)?.addEventListener('click', (e) => {
+                const btn = e.target.closest('.fv-slot-remove');
+                if (!btn) return;
+                const slot = btn.closest('.fv-slot-existing');
+                if (!slot) return;
+                slot.className = 'fv-slot fv-slot-new';
+                slot.innerHTML = '<input type="file" accept="image/*" style="width:100%;padding:0.2rem;border:2px dashed var(--gray-300);border-radius:6px;font-size:0.75rem;">';
+            });
+        });
 
-            if (!data.nombre || !data.numeroPlaca) {
-                showToast('Nombre y placa son obligatorios', 'error');
-                return;
-            }
+        modal.querySelector('#fv-save')?.addEventListener('click', async () => {
+            const saveBtn = document.getElementById('fv-save');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Guardando...';
 
             try {
-                const fotoFile = document.getElementById('fv-foto').files[0];
-                const fotoTarjetaFile = document.getElementById('fv-fotoTarjeta').files[0];
+                const data = {
+                    nombre: document.getElementById('fv-nombre').value.trim(),
+                    numeroPlaca: document.getElementById('fv-placa').value.trim().toUpperCase(),
+                    tipoVehiculo: document.getElementById('fv-tipo').value,
+                    capacidad: document.getElementById('fv-capacidad').value.trim(),
+                    tipoCombustible: document.getElementById('fv-combustible').value,
+                    kilometrajeActual: parseInt(document.getElementById('fv-kilometraje').value) || 0,
+                    estado: document.getElementById('fv-estado').value,
+                    numeroCirculacion: document.getElementById('fv-numCirculacion').value.trim(),
+                    fechaVencimientoCirculacion: document.getElementById('fv-vencimiento').value ? new Date(document.getElementById('fv-vencimiento').value).toISOString() : null,
+                    updatedAt: new Date().toISOString()
+                };
 
-                if (fotoFile) {
-                    data.fotoVehiculo = await this.uploadImage(fotoFile, `vehiculos/${isEdit ? vehiculo.id : 'nuevo'}/foto`);
+                if (!data.nombre || !data.numeroPlaca) {
+                    showToast('Nombre y placa son obligatorios', 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = isEdit ? 'Guardar Cambios' : 'Crear Vehículo';
+                    return;
                 }
-                if (fotoTarjetaFile) {
-                    data.fotoTarjetaCirculacion = await this.uploadImage(fotoTarjetaFile, `vehiculos/${isEdit ? vehiculo.id : 'nuevo'}/tarjeta`);
+
+                const fotosVehiculo = [];
+                document.querySelectorAll('#fv-fotos-slots .fv-slot-existing').forEach(el => {
+                    fotosVehiculo.push(el.dataset.url);
+                });
+                const fotosTarjeta = [];
+                document.querySelectorAll('#fv-tarjeta-slots .fv-slot-existing').forEach(el => {
+                    fotosTarjeta.push(el.dataset.url);
+                });
+
+                const collectFilesFromSlots = (containerId) => {
+                    const files = [];
+                    document.querySelectorAll(`#${containerId} .fv-slot-new input[type="file"]`).forEach(input => {
+                        if (input.files[0]) files.push(input.files[0]);
+                    });
+                    return files;
+                };
+
+                const fotoFiles = collectFilesFromSlots('fv-fotos-slots');
+                const fotoTarjetaFiles = collectFilesFromSlots('fv-tarjeta-slots');
+
+                for (let i = 0; i < fotoFiles.length; i++) {
+                    if (fotosVehiculo.length < 4) {
+                        const url = await this.uploadImage(fotoFiles[i], `vehiculos/${isEdit ? vehiculo.id : 'nuevo'}/foto_${Date.now()}`);
+                        fotosVehiculo.push(url);
+                    }
                 }
+
+                for (let i = 0; i < fotoTarjetaFiles.length; i++) {
+                    if (fotosTarjeta.length < 4) {
+                        const url = await this.uploadImage(fotoTarjetaFiles[i], `vehiculos/${isEdit ? vehiculo.id : 'nuevo'}/tarjeta_${Date.now()}`);
+                        fotosTarjeta.push(url);
+                    }
+                }
+
+                data.fotosVehiculo = fotosVehiculo;
+                data.fotosTarjeta = fotosTarjeta;
 
                 const db = firebase.firestore();
                 if (isEdit) {
@@ -408,7 +476,13 @@ const Flota = {
                 modal.remove();
             } catch (err) {
                 console.error('Error saving vehiculo:', err);
-                showToast('Error al guardar el vehículo', 'error');
+                showToast('Error al guardar el vehículo: ' + err.message, 'error');
+            } finally {
+                const saveBtn = document.getElementById('fv-save');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = isEdit ? 'Guardar Cambios' : 'Crear Vehículo';
+                }
             }
         });
     },
@@ -418,6 +492,43 @@ const Flota = {
         const ref = storage.ref(`${path}_${Date.now()}_${file.name}`);
         await ref.put(file);
         return await ref.getDownloadURL();
+    },
+
+    buildFotoySlotsHTML(existingUrls) {
+        const urls = existingUrls || [];
+        let html = '';
+        for (let i = 0; i < 4; i++) {
+            const url = urls[i];
+            if (url) {
+                html += `<div class="fv-slot fv-slot-existing" data-url="${url}">
+                    <div style="position:relative;">
+                        <img src="${url}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);">
+                        <button type="button" class="fv-slot-remove" style="position:absolute;top:2px;right:2px;width:22px;height:22px;background:#ef4444;color:white;border:none;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;">×</button>
+                        <span style="display:block;text-align:center;font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">${i + 1}</span>
+                    </div>
+                </div>`;
+            } else {
+                html += `<div class="fv-slot fv-slot-new">
+                    <input type="file" accept="image/*" style="width:100%;padding:0.2rem;border:2px dashed var(--gray-300);border-radius:6px;font-size:0.75rem;">
+                </div>`;
+            }
+        }
+        return html;
+    },
+
+    renderFotoPreviews(fotosArray, legacySingleFoto, inputId) {
+        const urls = [];
+        if (fotosArray && Array.isArray(fotosArray)) {
+            fotosArray.forEach((url, i) => {
+                if (url) urls.push(`<div style="position:relative;"><img src="${url}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);"><span style="display:block;text-align:center;font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">${i + 1}</span></div>`);
+            });
+        } else if (legacySingleFoto) {
+            urls.push(`<div style="position:relative;"><img src="${legacySingleFoto}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);"><span style="display:block;text-align:center;font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">1</span></div>`);
+        }
+        if (urls.length === 0) {
+            return '<span style="font-size:0.75rem;color:var(--text-secondary);">Sin fotos</span>';
+        }
+        return urls.join('');
     },
 
     // ========== MANTENIMIENTO ==========
@@ -471,6 +582,7 @@ const Flota = {
                                 <td>${m.kilometraje ? this.formatNumber(m.kilometraje) + ' km' : '-'}</td>
                                 <td>${this.sanitize(m.tallerNombre || '-')}</td>
                                 <td class="actions-cell">
+                                    <button class="btn-icon btn-secondary btn-edit-manto" data-id="${m.id}" title="Editar">✏️</button>
                                     ${window.permissions?.canDelete ? `<button class="btn-icon btn-danger btn-delete-manto" data-id="${m.id}" title="Eliminar">🗑️</button>` : ''}
                                 </td>
                             </tr>`;
@@ -493,9 +605,21 @@ const Flota = {
         document.querySelectorAll('.btn-delete-manto').forEach(btn => {
             btn.addEventListener('click', async () => {
                 if (await showConfirm('¿Eliminar registro de mantenimiento?', 'Esta acción no se puede deshacer.')) {
-                    await firebase.firestore().collection('mantenimientos').doc(btn.dataset.id).delete();
+                    const mantoId = btn.dataset.id;
+                    const ot = this.ordenesTrabajo.find(o => o.mantenimientoId === mantoId);
+                    const db = firebase.firestore();
+                    const batch = db.batch();
+                    batch.delete(db.collection('mantenimientos').doc(mantoId));
+                    if (ot) batch.delete(db.collection('ordenesTrabajo').doc(ot.id));
+                    await batch.commit();
                     showToast('Registro eliminado', 'success');
                 }
+            });
+        });
+        document.querySelectorAll('.btn-edit-manto').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const m = this.mantenimientos.find(x => x.id === btn.dataset.id);
+                if (m) this.showModalMantenimiento(m);
             });
         });
     },
@@ -527,6 +651,7 @@ const Flota = {
                         ${m.fecha ? this.formatDate(m.fecha) : ''} · $${this.formatNumber(m.costo || 0, 2)} · ${m.kilometraje ? this.formatNumber(m.kilometraje) + ' km' : '-'}
                     </div>
                     <div style="font-size:0.72rem;">${this.sanitize(m.descripcion || '-')}</div>
+                    ${canEdit ? `<div style="display:flex;gap:0.3rem;margin-top:0.4rem;"><button class="btn btn-secondary btn-sm btn-edit-manto-m" data-id="${m.id}">✏️ Editar</button><button class="btn btn-danger btn-sm btn-delete-manto-m" data-id="${m.id}">🗑️</button></div>` : ''}
                 </div>`;
             }).join('')}
         `;
@@ -535,15 +660,38 @@ const Flota = {
             this.renderMantenimientoMobile();
         });
         document.getElementById('btn-nuevo-manto-m')?.addEventListener('click', () => this.showModalMantenimiento());
+        document.querySelectorAll('.btn-edit-manto-m').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const m = this.mantenimientos.find(x => x.id === btn.dataset.id);
+                if (m) this.showModalMantenimiento(m);
+            });
+        });
+        document.querySelectorAll('.btn-delete-manto-m').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (await showConfirm('¿Eliminar registro de mantenimiento?', 'Esta acción no se puede deshacer.')) {
+                    const mantoId = btn.dataset.id;
+                    const ot = this.ordenesTrabajo.find(o => o.mantenimientoId === mantoId);
+                    const db = firebase.firestore();
+                    const batch = db.batch();
+                    batch.delete(db.collection('mantenimientos').doc(mantoId));
+                    if (ot) batch.delete(db.collection('ordenesTrabajo').doc(ot.id));
+                    await batch.commit();
+                    showToast('Registro eliminado', 'success');
+                }
+            });
+        });
     },
 
-    showModalMantenimiento() {
+    showModalMantenimiento(mantenimiento) {
+        const isEdit = !!mantenimiento;
+        const existingOT = isEdit ? this.ordenesTrabajo.find(o => o.mantenimientoId === mantenimiento.id) : null;
+
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
             <div class="modal-content" style="max-width:550px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                    <h2 style="margin:0;">🔧 Registrar Servicio</h2>
+                    <h2 style="margin:0;">${isEdit ? '✏️ Editar Servicio' : '🔧 Registrar Servicio'}</h2>
                     <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()" style="padding:0.2rem 0.6rem;font-size:1.2rem;">&times;</button>
                 </div>
                 <div class="form-group">
@@ -551,7 +699,7 @@ const Flota = {
                     <select id="fm-vehiculo" class="form-control">
                         <option value="">Seleccionar vehículo</option>
                         ${this.vehiculos.filter(v => v.estado !== 'fuera_servicio').map(v =>
-                            `<option value="${v.id}" ${this.selectedVehiculoId === v.id ? 'selected' : ''}>${this.sanitize(v.nombre)} - ${this.sanitize(v.numeroPlaca)}</option>`
+                            `<option value="${v.id}" ${(isEdit ? mantenimiento.vehiculoId === v.id : this.selectedVehiculoId === v.id) ? 'selected' : ''}>${this.sanitize(v.nombre)} - ${this.sanitize(v.numeroPlaca)}</option>`
                         ).join('')}
                     </select>
                 </div>
@@ -559,31 +707,46 @@ const Flota = {
                     <div class="form-group">
                         <label>Tipo de Servicio *</label>
                         <select id="fm-tipo" class="form-control">
-                            <option value="preventivo">Preventivo</option>
-                            <option value="correctivo">Correctivo</option>
+                            <option value="preventivo" ${isEdit && mantenimiento.tipo === 'preventivo' ? 'selected' : ''}>Preventivo</option>
+                            <option value="correctivo" ${isEdit && mantenimiento.tipo === 'correctivo' ? 'selected' : ''}>Correctivo</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Fecha *</label>
-                        <input type="date" id="fm-fecha" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                    </div>
-                    <div class="form-group">
-                        <label>Costo ($)</label>
-                        <input type="number" id="fm-costo" class="form-control" step="0.01" min="0" value="0">
+                        <input type="date" id="fm-fecha" class="form-control" value="${isEdit && mantenimiento.fecha ? mantenimiento.fecha.split('T')[0] : new Date().toISOString().split('T')[0]}">
                     </div>
                     <div class="form-group">
                         <label>Kilometraje</label>
-                        <input type="number" id="fm-kilometraje" class="form-control" min="0" value="">
+                        <input type="number" id="fm-kilometraje" class="form-control" min="0" value="${isEdit ? (mantenimiento.kilometraje || '') : ''}">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Descripción del Servicio *</label>
-                    <textarea id="fm-descripcion" class="form-control" rows="3" placeholder="Describa el servicio realizado..."></textarea>
+                <div class="form-group" style="margin-top:0.5rem;">
+                    <label style="display:flex;justify-content:space-between;align-items:center;">
+                        Servicios realizados
+                        <span style="font-size:0.75rem;color:var(--text-secondary);font-weight:400;">Usa + para agregar más</span>
+                    </label>
+                    <div id="fm-servicios-container">
+                        <div class="fm-servicio-header" style="display:flex;gap:0.5rem;padding:0.25rem 0;font-weight:600;font-size:0.75rem;color:var(--text-secondary);border-bottom:1px solid var(--gray-200);margin-bottom:0.25rem;">
+                            <span style="flex:2;">Descripción</span>
+                            <span style="width:110px;text-align:right;">Costo ($)</span>
+                            <span style="width:36px;"></span>
+                        </div>
+                        <div class="fm-servicio-item" style="display:flex;gap:0.5rem;margin-bottom:0.4rem;align-items:center;" data-index="0">
+                            <input type="text" class="fm-servicio-desc form-control" style="flex:2;" placeholder="Ej: Cambio de aceite">
+                            <input type="number" class="fm-servicio-costo form-control" style="width:110px;" step="0.01" min="0" value="0">
+                            <button class="fm-remove-servicio" style="width:36px;height:36px;background:#fee2e2;border:none;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;color:#dc2626;" disabled title="Mínimo un servicio">&times;</button>
+                        </div>
+                    </div>
+                    <button type="button" id="fm-add-servicio" style="margin-top:0.5rem;background:var(--primary-50);border:2px dashed var(--primary-300);border-radius:8px;padding:0.4rem 1rem;cursor:pointer;color:var(--primary-600);font-weight:600;font-size:0.85rem;width:100%;">+ Agregar servicio</button>
+                    <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:0.5rem;padding:0.5rem;background:var(--gray-50);border-radius:8px;">
+                        <span style="font-weight:600;color:var(--text-secondary);margin-right:0.5rem;">Total:</span>
+                        <span style="font-size:1.1rem;font-weight:700;color:var(--primary-600);">$<span id="fm-total-servicios">0.00</span></span>
+                    </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
                     <div class="form-group">
                         <label>Taller / Mecánico</label>
-                        <input type="text" id="fm-taller" class="form-control" placeholder="Nombre del taller" list="fl-taller-list">
+                        <input type="text" id="fm-taller" class="form-control" placeholder="Nombre del taller" value="${isEdit ? this.sanitize(mantenimiento.tallerNombre || '') : ''}" list="fl-taller-list">
                         <datalist id="fl-taller-list">
                             ${this.proveedores.map(p => `<option value="${this.sanitize(p.nombre)}">`).join('')}
                         </datalist>
@@ -591,32 +754,129 @@ const Flota = {
                     <div class="form-group">
                         <label>Generar Orden de Trabajo</label>
                         <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
-                            <input type="checkbox" id="fm-generar-ot" checked>
+                            <input type="checkbox" id="fm-generar-ot" ${isEdit && existingOT ? 'checked' : (!isEdit ? 'checked' : '')}>
                             <span style="font-size:0.85rem;">Crear OT para llevar al taller</span>
                         </label>
                     </div>
                 </div>
                 <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
-                    <button class="btn btn-primary" id="fm-save">Registrar Servicio</button>
+                    <button class="btn btn-primary" id="fm-save">${isEdit ? 'Guardar Cambios' : 'Registrar Servicio'}</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
         modal.onclick = e => { if (e.target === modal) modal.remove(); };
 
+        const serviciosContainer = document.getElementById('fm-servicios-container');
+        const totalSpan = document.getElementById('fm-total-servicios');
+        let itemCount = 1;
+
+        const buildServiciosRows = (serviciosArr) => {
+            if (!serviciosArr || serviciosArr.length === 0) return '';
+            return serviciosArr.map((s, i) => `
+                <div class="fm-servicio-item" style="display:flex;gap:0.5rem;margin-bottom:0.4rem;align-items:center;" data-index="${i}">
+                    <input type="text" class="fm-servicio-desc form-control" style="flex:2;" placeholder="Ej: Cambio de aceite" value="${this.sanitize(s.descripcion || '')}">
+                    <input type="number" class="fm-servicio-costo form-control" style="width:110px;" step="0.01" min="0" value="${s.costo || 0}">
+                    <button class="fm-remove-servicio" style="width:36px;height:36px;background:#fee2e2;border:none;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;color:#dc2626;" ${i === 0 ? 'disabled title="Mínimo un servicio"' : 'title="Eliminar"'}>×</button>
+                </div>
+            `).join('');
+        };
+
+        const preFillServicios = () => {
+            if (!isEdit) return;
+            let serviciosData = [];
+            if (mantenimiento.servicios && Array.isArray(mantenimiento.servicios) && mantenimiento.servicios.length > 0) {
+                serviciosData = mantenimiento.servicios;
+            } else if (mantenimiento.descripcion) {
+                const lines = mantenimiento.descripcion.split('\n').filter(l => l.trim());
+                serviciosData = lines.map(l => ({ descripcion: l.trim(), costo: 0 }));
+            }
+            if (serviciosData.length > 0) {
+                const header = serviciosContainer.querySelector('.fm-servicio-header');
+                serviciosContainer.innerHTML = '';
+                serviciosContainer.appendChild(header);
+                itemCount = serviciosData.length;
+                serviciosData.forEach((s, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'fm-servicio-item';
+                    div.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.4rem;align-items:center;';
+                    div.dataset.index = i;
+                    div.innerHTML = `
+                        <input type="text" class="fm-servicio-desc form-control" style="flex:2;" placeholder="Ej: Cambio de aceite" value="${this.sanitize(s.descripcion || '')}">
+                        <input type="number" class="fm-servicio-costo form-control" style="width:110px;" step="0.01" min="0" value="${s.costo || 0}">
+                        <button class="fm-remove-servicio" style="width:36px;height:36px;background:#fee2e2;border:none;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;color:#dc2626;" ${i === 0 ? 'disabled title="Mínimo un servicio"' : 'title="Eliminar"'}>×</button>
+                    `;
+                    serviciosContainer.appendChild(div);
+                });
+                setTimeout(() => recalcularTotal(), 0);
+            }
+        };
+
+        const recalcularTotal = () => {
+            const costos = serviciosContainer.querySelectorAll('.fm-servicio-costo');
+            let total = 0;
+            costos.forEach(el => { total += parseFloat(el.value) || 0; });
+            totalSpan.textContent = total.toFixed(2);
+        };
+
+        document.getElementById('fm-add-servicio')?.addEventListener('click', () => {
+            const newIndex = itemCount++;
+            const itemHtml = `
+                <div class="fm-servicio-item" style="display:flex;gap:0.5rem;margin-bottom:0.4rem;align-items:center;" data-index="${newIndex}">
+                    <input type="text" class="fm-servicio-desc form-control" style="flex:2;" placeholder="Ej: Cambio de aceite">
+                    <input type="number" class="fm-servicio-costo form-control" style="width:110px;" step="0.01" min="0" value="0">
+                    <button class="fm-remove-servicio" style="width:36px;height:36px;background:#fee2e2;border:none;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;color:#dc2626;" title="Eliminar">&times;</button>
+                </div>
+            `;
+            serviciosContainer.insertAdjacentHTML('beforeend', itemHtml);
+            recalcularTotal();
+        });
+
+        serviciosContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.fm-remove-servicio');
+            if (!btn) return;
+            const items = serviciosContainer.querySelectorAll('.fm-servicio-item');
+            if (items.length <= 1) return;
+            btn.closest('.fm-servicio-item').remove();
+            recalcularTotal();
+        });
+
+        serviciosContainer.addEventListener('input', (e) => {
+            if (e.target.classList.contains('fm-servicio-costo')) {
+                recalcularTotal();
+            }
+        });
+
+        preFillServicios();
+
         modal.querySelector('#fm-save')?.addEventListener('click', async () => {
             const vehiculoId = document.getElementById('fm-vehiculo').value;
             const tipo = document.getElementById('fm-tipo').value;
             const fecha = document.getElementById('fm-fecha').value;
-            const costo = parseFloat(document.getElementById('fm-costo').value) || 0;
             const kilometraje = parseInt(document.getElementById('fm-kilometraje').value) || 0;
-            const descripcion = document.getElementById('fm-descripcion').value.trim();
             const tallerNombre = document.getElementById('fm-taller').value.trim();
             const generarOT = document.getElementById('fm-generar-ot').checked;
 
-            if (!vehiculoId || !fecha || !descripcion) {
-                showToast('Vehículo, fecha y descripción son obligatorios', 'error');
+            const descInputs = serviciosContainer.querySelectorAll('.fm-servicio-desc');
+            const costoInputs = serviciosContainer.querySelectorAll('.fm-servicio-costo');
+
+            const servicios = [];
+            let descripcion = '';
+            let costoTotal = 0;
+
+            for (let i = 0; i < descInputs.length; i++) {
+                const desc = descInputs[i].value.trim();
+                const costo = parseFloat(costoInputs[i].value) || 0;
+                if (desc) {
+                    servicios.push({ descripcion: desc, costo });
+                    descripcion += (descripcion ? '\n' : '') + desc;
+                    costoTotal += costo;
+                }
+            }
+
+            if (!vehiculoId || !fecha || servicios.length === 0) {
+                showToast('Vehículo, fecha y al menos un servicio son obligatorios', 'error');
                 return;
             }
 
@@ -624,44 +884,68 @@ const Flota = {
                 const db = firebase.firestore();
                 const batch = db.batch();
 
-                const mantoRef = db.collection('mantenimientos').doc();
-                batch.set(mantoRef, {
+                const mantoData = {
                     vehiculoId,
                     tipo,
                     fecha: new Date(fecha).toISOString(),
-                    costo,
+                    costo: costoTotal,
                     kilometraje,
                     descripcion,
+                    servicios,
                     tallerNombre,
-                    createdAt: new Date().toISOString(),
-                    createdBy: firebase.auth().currentUser?.uid || 'unknown'
-                });
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (isEdit) {
+                    batch.update(db.collection('mantenimientos').doc(mantenimiento.id), mantoData);
+                } else {
+                    mantoData.createdAt = new Date().toISOString();
+                    mantoData.createdBy = firebase.auth().currentUser?.uid || 'unknown';
+                    const mantoRef = db.collection('mantenimientos').doc();
+                    batch.set(mantoRef, mantoData);
+                }
+
+                const mantoId = isEdit ? mantenimiento.id : mantoRef.id;
 
                 if (generarOT) {
-                    const otRef = db.collection('ordenesTrabajo').doc();
-                    const count = this.ordenesTrabajo.length + 1;
-                    const year = new Date().getFullYear();
-                    batch.set(otRef, {
-                        numeroOrden: `OT-${year}-${String(count).padStart(5, '0')}`,
-                        vehiculoId,
-                        fecha: new Date(fecha).toISOString(),
-                        tipoServicio: tipo === 'preventivo' ? 'mantenimiento_preventivo' : 'reparacion',
-                        descripcion,
-                        kilometrajeActual: kilometraje || 0,
-                        tallerNombre,
-                        estado: 'pendiente',
-                        mantenimientoId: mantoRef.id,
-                        createdAt: new Date().toISOString(),
-                        createdBy: firebase.auth().currentUser?.uid || 'unknown'
-                    });
+                    if (existingOT) {
+                        batch.update(db.collection('ordenesTrabajo').doc(existingOT.id), {
+                            vehiculoId,
+                            fecha: new Date(fecha).toISOString(),
+                            tipoServicio: tipo === 'preventivo' ? 'mantenimiento_preventivo' : 'reparacion',
+                            descripcion,
+                            kilometrajeActual: kilometraje || 0,
+                            tallerNombre,
+                            updatedAt: new Date().toISOString()
+                        });
+                    } else {
+                        const otRef = db.collection('ordenesTrabajo').doc();
+                        const count = this.ordenesTrabajo.length + 1;
+                        const year = new Date().getFullYear();
+                        batch.set(otRef, {
+                            numeroOrden: `OT-${year}-${String(count).padStart(5, '0')}`,
+                            vehiculoId,
+                            fecha: new Date(fecha).toISOString(),
+                            tipoServicio: tipo === 'preventivo' ? 'mantenimiento_preventivo' : 'reparacion',
+                            descripcion,
+                            kilometrajeActual: kilometraje || 0,
+                            tallerNombre,
+                            estado: 'pendiente',
+                            mantenimientoId: mantoId,
+                            createdAt: new Date().toISOString(),
+                            createdBy: firebase.auth().currentUser?.uid || 'unknown'
+                        });
+                    }
+                } else if (isEdit && existingOT) {
+                    batch.delete(db.collection('ordenesTrabajo').doc(existingOT.id));
                 }
 
                 await batch.commit();
-                showToast('Servicio registrado exitosamente', 'success');
+                showToast(isEdit ? 'Cambios guardados' : 'Servicio registrado exitosamente', 'success');
                 modal.remove();
             } catch (err) {
                 console.error('Error saving mantenimiento:', err);
-                showToast('Error al registrar servicio', 'error');
+                showToast('Error al guardar servicio', 'error');
             }
         });
     },
@@ -960,6 +1244,92 @@ const Flota = {
                 showToast('Error al guardar', 'error');
             }
         });
+    },
+
+    // ========== DETALLE DE VEHÍCULO ==========
+    showVehiculoDetail(vehiculo) {
+        const fotosVehiculo = vehiculo.fotosVehiculo || (vehiculo.fotoVehiculo ? [vehiculo.fotoVehiculo] : []);
+        const fotosTarjeta = vehiculo.fotosTarjeta || (vehiculo.fotoTarjetaCirculacion ? [vehiculo.fotoTarjetaCirculacion] : []);
+        const dias = this.diasParaVencimiento(vehiculo.fechaVencimientoCirculacion);
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:650px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h2 style="margin:0;">🚛 ${this.sanitize(vehiculo.nombre || 'Vehículo')}</h2>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()" style="padding:0.2rem 0.6rem;font-size:1.2rem;">&times;</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                    <div class="dv-field"><span class="dv-label">Placa</span><span class="dv-value">${this.sanitize(vehiculo.numeroPlaca || '-')}</span></div>
+                    <div class="dv-field"><span class="dv-label">Tipo</span><span class="dv-value">${this.sanitize(vehiculo.tipoVehiculo || '-')}</span></div>
+                    <div class="dv-field"><span class="dv-label">Capacidad</span><span class="dv-value">${this.sanitize(vehiculo.capacidad || '-')}</span></div>
+                    <div class="dv-field"><span class="dv-label">Combustible</span><span class="dv-value">${this.sanitize(vehiculo.tipoCombustible || '-')}</span></div>
+                    <div class="dv-field"><span class="dv-label">Kilometraje</span><span class="dv-value">${this.formatNumber(vehiculo.kilometrajeActual || 0)} km</span></div>
+                    <div class="dv-field"><span class="dv-label">Estado</span><span class="dv-value"><span class="badge ${vehiculo.estado === 'activo' ? 'badge-success' : (vehiculo.estado === 'en_mantenimiento' ? 'badge-warning' : 'badge-error')}">${vehiculo.estado === 'activo' ? 'Activo' : (vehiculo.estado === 'en_mantenimiento' ? 'En Taller' : 'Fuera Servicio')}</span></span></div>
+                    <div class="dv-field" style="grid-column:1/-1;border-top:1px solid var(--gray-200);padding-top:0.5rem;"><span class="dv-label">No. Circulación</span><span class="dv-value">${this.sanitize(vehiculo.numeroCirculacion || '-')}</span></div>
+                    <div class="dv-field"><span class="dv-label">Venc. Circulación</span><span class="dv-value"><span class="badge ${dias <= 0 ? 'badge-error' : (dias <= 30 ? 'badge-warning' : 'badge-success')}">${dias <= 0 ? 'VENCIDA' : (dias === 9999 ? 'Sin fecha' : `${dias} días restantes`)}</span></span></div>
+                    <div class="dv-field"><span class="dv-label">F. Vencimiento</span><span class="dv-value">${vehiculo.fechaVencimientoCirculacion ? this.formatDate(vehiculo.fechaVencimientoCirculacion) : '-'}</span></div>
+                </div>
+                <hr style="margin:1rem 0;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div>
+                        <h4 style="margin:0 0 0.5rem;">Fotos del Vehículo</h4>
+                        <div class="dv-fotos-grid" id="dv-fotos-vehiculo">
+                            ${fotosVehiculo.length === 0 ? '<span style="font-size:0.8rem;color:var(--text-secondary);">Sin fotos</span>' :
+                            fotosVehiculo.map((url, i) => `
+                                <div class="dv-foto-thumb" data-url="${url}">
+                                    <img src="${url}" alt="Foto vehículo ${i+1}" loading="lazy">
+                                    <span>${i+1}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 0.5rem;">Fotos Tarjeta de Circulación</h4>
+                        <div class="dv-fotos-grid" id="dv-fotos-tarjeta">
+                            ${fotosTarjeta.length === 0 ? '<span style="font-size:0.8rem;color:var(--text-secondary);">Sin fotos</span>' :
+                            fotosTarjeta.map((url, i) => `
+                                <div class="dv-foto-thumb" data-url="${url}">
+                                    <img src="${url}" alt="Foto tarjeta ${i+1}" loading="lazy">
+                                    <span>${i+1}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cerrar</button>
+                    <button class="btn btn-primary" id="dv-edit">✏️ Editar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+        modal.querySelectorAll('.dv-foto-thumb').forEach(el => {
+            el.addEventListener('click', () => {
+                this.showImageModal(el.dataset.url);
+            });
+        });
+
+        modal.querySelector('#dv-edit')?.addEventListener('click', () => {
+            modal.remove();
+            this.showModalVehiculo(vehiculo);
+        });
+    },
+
+    showImageModal(url) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.style.cursor = 'zoom-out';
+        modal.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:2rem;">
+                <img src="${url}" style="max-width:95%;max-height:95%;object-fit:contain;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.onclick = () => modal.remove();
     },
 
     // ========== UTILITIES ==========

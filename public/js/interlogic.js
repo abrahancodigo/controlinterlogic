@@ -1210,7 +1210,7 @@ const Interlogic = {
                 <td data-label="Guía"><strong>${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
-                <td data-label="Doc"><span class="badge ${record.doc === 'NC' ? 'badge-nc' : (record.doc === 'CCF' ? 'badge-primary' : 'badge-accent')}">${sanitizeHTML(record.doc || '')}</span> ${record.docNum ? '#' + sanitizeHTML(record.docNum) : ''}</td>
+                <td data-label="Doc">${sanitizeHTML(record.doc || '')}${record.docNum ? ' #' + sanitizeHTML(record.docNum) : ''}</td>
                 <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: #444;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
@@ -1856,6 +1856,31 @@ const Interlogic = {
         const suggestionsBox = document.getElementById('il-cliente-suggestions');
         let debounceTimer = null;
 
+        // Helper: apply selected suggestion to the form
+        const selectSuggestionItem = (item) => {
+            clienteInput.value = item.dataset.nombre;
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+            setVal('il-direccion', item.dataset.direccion);
+            setVal('il-telefono', item.dataset.telefono);
+            setVal('il-zona', item.dataset.zona);
+            setVal('il-vendedor', item.dataset.vendedor);
+            // NOTA: empresa y condicionPago NO se auto‑llenan para que el usuario los elija manualmente
+            suggestionsBox.style.display = 'none';
+            suggestionsBox._highlightedIndex = -1;
+        };
+
+        // Helper to highlight a suggestion by index
+        const highlightSuggestion = (index) => {
+            const items = suggestionsBox.querySelectorAll('[data-index]');
+            items.forEach((el, i) => {
+                if (i === index) {
+                    el.style.background = 'var(--primary-200)';
+                } else {
+                    el.style.background = '';
+                }
+            });
+        };
+
         // Helper to render suggestions
         const renderSuggestions = (matches) => {
             if (matches.length === 0) {
@@ -1863,10 +1888,9 @@ const Interlogic = {
                 return;
             }
 
-            suggestionsBox.innerHTML = matches.map(c => `
+            suggestionsBox.innerHTML = matches.map((c, i) => `
                 <div style="padding: 0.5rem 0.75rem; cursor: pointer; border-bottom: 1px solid var(--gray-100); font-size: 0.85rem; transition: background 0.15s;"
-                     onmouseover="this.style.background='var(--primary-50)'"
-                     onmouseout="this.style.background='white'"
+                     data-index="${i}"
                      data-nombre="${sanitizeHTML(c.nombre || '')}"
                      data-direccion="${sanitizeHTML(c.direccion || '')}"
                      data-telefono="${c.telefono || ''}"
@@ -1880,23 +1904,54 @@ const Interlogic = {
                 </div>
             `).join('');
 
+            suggestionsBox._highlightedIndex = -1;
             suggestionsBox.style.display = 'block';
 
             // Add click handlers to suggestions
-            suggestionsBox.querySelectorAll('div').forEach(item => {
+            suggestionsBox.querySelectorAll('[data-index]').forEach(item => {
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault();
-                    clienteInput.value = item.dataset.nombre;
-                    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-                    setVal('il-direccion', item.dataset.direccion);
-                    setVal('il-telefono', item.dataset.telefono);
-                    setVal('il-zona', item.dataset.zona);
-                    setVal('il-vendedor', item.dataset.vendedor);
-                    // NOTA: empresa y condicionPago NO se auto‑llenan para que el usuario los elija manualmente
-                    suggestionsBox.style.display = 'none';
+                    selectSuggestionItem(item);
+                });
+                item.addEventListener('mouseenter', () => {
+                    const idx = parseInt(item.dataset.index);
+                    highlightSuggestion(idx);
+                    suggestionsBox._highlightedIndex = idx;
                 });
             });
         };
+
+        // Keyboard navigation for suggestions
+        clienteInput.addEventListener('keydown', (e) => {
+            const items = suggestionsBox.querySelectorAll('[data-index]');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                let idx = suggestionsBox._highlightedIndex;
+                idx = (idx + 1) % items.length;
+                highlightSuggestion(idx);
+                suggestionsBox._highlightedIndex = idx;
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                let idx = suggestionsBox._highlightedIndex;
+                idx = (idx <= 0) ? items.length - 1 : idx - 1;
+                highlightSuggestion(idx);
+                suggestionsBox._highlightedIndex = idx;
+                items[idx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                const idx = suggestionsBox._highlightedIndex;
+                if (idx >= 0 && idx < items.length) {
+                    e.preventDefault();
+                    selectSuggestionItem(items[idx]);
+                    clienteInput.focus();
+                }
+            } else if (e.key === 'Escape') {
+                suggestionsBox.style.display = 'none';
+                suggestionsBox._highlightedIndex = -1;
+            }
+        });
 
         // Helper: elimina tildes/diacríticos para búsqueda insensible a acentos
         const normalizeText = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

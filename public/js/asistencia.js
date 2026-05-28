@@ -1,480 +1,726 @@
-/**
- * Módulo de Asistencia - Experiencia Excel Pro v13 (Gestión de Imágenes: Subida y Borrado)
- */
 const Asistencia = {
-    db: null,
-    storage: null,
-    currentYear: new Date().getFullYear(),
-    currentMonth: new Date().getMonth(),
-    currentFortnight: new Date().getDate() <= 15 ? 1 : 2,
-    
-    dayWidth: 32, 
-    filterText: '',
-    
-    data: {},
-    observations: {},
-    colors: {}, 
-    images: {}, 
+    MONTH_NAMES: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
+    STATUS_CLASSES: ['status-cruce','status-iss','status-descuento'],
+    EXCEL_COLORS: { cruce:'FF92D050', iss:'FFFFFF00', descuento:'FFFF0000', altRow:'FFEFEFEF', white:'FFFFFFFF', black:'FF000000' },
+
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    periodHalf: 2,
     employees: [],
-    
-    isSelecting: false,
-    hasDragged: false,
-    selectionStart: null,
-    selectionEnd: null,
-    selectedColor: '#fde047',
-    
-    async render() {
-        this.db = firebase.firestore();
-        this.storage = firebase.storage();
-        const contentArea = document.getElementById('content-area');
-        const isMobile = window.innerWidth <= 768;
-        this.isMobile = isMobile;
+    dateColumns: [],
+    byEmployee: {},
+    selectedCell: null,
+    applyScope: 'cell',
+    dirty: false,
+    saveTimer: null,
 
-        contentArea.innerHTML = `
-            <div class="module-header" style="${isMobile ? 'flex-direction:column;align-items:stretch;gap:0.5rem;' : ''}">
-                <div>
-                    <h1 style="${isMobile ? 'font-size:1.35rem;font-weight:800;' : ''}">📅 Control de Asistencia Pro</h1>
-                    <p style="${isMobile ? 'font-size:0.78rem;' : ''}">Gestiona horas, colores y adjuntos.</p>
-                </div>
-                ${isMobile ? '' : ''}
-            </div>
-
-            <div class="filters-card" style="${isMobile ? 'padding:0.75rem;border-radius:var(--m-radius);background:white;margin-bottom:0.75rem;' : ''}">
-                <div class="filters-grid" style="${isMobile ? 'display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;' : ''}">
-                    <div class="filter-group" style="${isMobile ? 'grid-column:1/-1;' : ''}">
-                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Buscar Empleado</label>
-                        <input type="text" id="asis-search" placeholder="Filtrar por nombre..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 5px;${isMobile ? 'min-height:40px;font-size:0.9rem;' : ''}">
-                    </div>
-                    <div class="filter-group">
-                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Ancho (<span id="width-val">${this.dayWidth}</span>px)</label>
-                        <input type="range" id="asis-width-slider" min="20" max="80" value="${this.dayWidth}" style="width: 100%;">
-                    </div>
-                    <div class="filter-group">
-                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Periodo</label>
-                        <div style="display: flex; gap: 5px;">
-                            <select id="asis-month" style="${isMobile ? 'min-height:40px;font-size:0.85rem;flex:1;' : ''}">${this.getMonthsOptions()}</select>
-                            <select id="asis-fortnight" style="${isMobile ? 'min-height:40px;font-size:0.85rem;flex:1;' : ''}">
-                                <option value="1" ${this.currentFortnight === 1 ? 'selected' : ''}>Q1</option>
-                                <option value="2" ${this.currentFortnight === 2 ? 'selected' : ''}>Q2</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <label style="${isMobile ? 'font-size:0.7rem;' : ''}">Color</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="color" id="asis-color-picker" value="${this.selectedColor}" style="width: 40px; height: 35px; border: none; padding: 0;">
-                            <button id="apply-color-btn" class="btn btn-primary" style="display:none; padding: 8px 12px; ${isMobile ? 'min-height:36px;font-size:0.75rem;' : ''}">Pintar</button>
-                            <button id="clear-color-btn" class="btn btn-outline" style="display:none; padding: 8px 12px; ${isMobile ? 'min-height:36px;font-size:0.75rem;' : ''}">Borrar</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="filter-actions" style="margin-top: 15px; display: flex; gap: 10px; ${isMobile ? 'flex-wrap:wrap;' : ''}">
-                    <button id="add-employee-btn" class="btn btn-secondary" style="${isMobile ? 'flex:1;min-height:40px;font-size:0.8rem;border-radius:10px;' : ''}">+ Nuevo Empleado</button>
-                    <button id="export-excel-btn" class="btn btn-outline" style="${isMobile ? 'flex:1;min-height:40px;font-size:0.8rem;border-radius:10px;' : ''}">📊 Excel</button>
-                </div>
-            </div>
-
-            <div class="card table-container-asis" style="overflow: auto; margin-top: 15px; padding: 0; max-height: ${isMobile ? '60vh' : '70vh'}; border: 1px solid #cbd5e1; ${isMobile ? 'border-radius:var(--m-radius);box-shadow:none;' : ''}">
-                <table class="excel-table" id="attendance-table" style="${isMobile ? 'font-size:0.7rem;' : ''}">
-                    <thead><tr id="table-header-days"></tr></thead>
-                    <tbody id="table-body-employees"></tbody>
-                </table>
-            </div>
-
-            <!-- Visor de Imagen Full -->
-            <div id="asis-img-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; cursor: zoom-out;" onclick="this.style.display='none'">
-                <img id="asis-img-full" style="max-width: 90%; max-height: 90%; border-radius: 8px;">
-            </div>
-
-            <style>
-                input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-                input[type=number] { -moz-appearance: textfield; }
-                .excel-table { border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 0.8rem; background: white; user-select: none; table-layout: auto; width: max-content; min-width: 100%; }
-                .excel-table th, .excel-table td { border: 1px solid #94a3b8; padding: 0; text-align: center; height: 35px; position: relative; }
-                .excel-table th { background: #f1f5f9; font-weight: 700; color: #1e293b; position: sticky; top: 0; z-index: 10; }
-                .day-col { width: var(--col-width, 32px); min-width: var(--col-width, 32px); max-width: var(--col-width, 32px); }
-                .emp-name-col { width: auto; min-width: 150px; text-align: left; padding: 0 15px !important; position: sticky; left: 0; background: white; z-index: 11; box-shadow: 2px 0 4px rgba(0,0,0,0.1); white-space: nowrap; cursor: cell; }
-                .excel-table th.emp-name-col { background: #cbd5e1; z-index: 12; height: 110px; }
-                .day-name-vert { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-block; font-size: 0.7rem; color: #475569; margin-bottom: 3px; }
-                .day-number { display: block; font-size: 0.95rem; font-weight: 700; }
-                .asis-input, .obs-input { width: 100%; height: 100%; border: none; text-align: center; outline: none; background: transparent; font-size: 0.8rem; pointer-events: none; }
-                .obs-input { text-align: left; padding: 0 8px; min-width: 200px; }
-                .asis-input:focus, .obs-input:focus { pointer-events: auto !important; background: white !important; box-shadow: inset 0 0 0 2px #2563eb; }
-                .cell-selected { background-color: rgba(59, 130, 246, 0.3) !important; box-shadow: inset 0 0 0 2px #2563eb; }
-                .row-total { font-weight: bold; background: #f8fafc; min-width: 50px; padding: 0 5px; cursor: cell; }
-                .day-weekend { background: #fee2e2 !important; }
-                ${this.isMobile ? `
-                .excel-table { font-size: 0.65rem !important; }
-                .excel-table th, .excel-table td { height: 30px !important; }
-                .day-col { width: var(--col-width, 28px) !important; min-width: var(--col-width, 28px) !important; max-width: var(--col-width, 28px) !important; }
-                .emp-name-col { min-width: 110px !important; padding: 0 8px !important; font-size: 0.7rem !important; }
-                .excel-table th.emp-name-col { height: 80px !important; }
-                .day-name-vert { font-size: 0.55rem !important; }
-                .day-number { font-size: 0.75rem !important; }
-                .row-total { min-width: 35px !important; font-size: 0.65rem !important; }
-                .asis-input, .obs-input { font-size: 0.7rem !important; }
-                .obs-input { min-width: 120px !important; font-size: 0.65rem !important; }
-                ` : ''}
-                @media (hover: none) {
-                    .excel-table { -webkit-overflow-scrolling: touch; }
-                    .asis-input:focus, .obs-input:focus { pointer-events: auto !important; }
-                }
-                .col-obs { width: auto; min-width: 200px; padding: 0 !important; cursor: cell; }
-                
-                /* IMÁGENES Y BORRADO */
-                .col-images { min-width: 100px; padding: 2px 5px !important; }
-                .img-list { display: flex; gap: 4px; overflow-x: auto; max-width: 120px; align-items: center; height: 30px; }
-                .img-item { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
-                .img-thumb { width: 100%; height: 100%; border-radius: 4px; object-fit: cover; cursor: pointer; border: 1px solid #cbd5e1; }
-                .btn-del-img { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 14px; height: 14px; font-size: 10px; display: none; align-items: center; justify-content: center; cursor: pointer; border: 1px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-                .img-item:hover .btn-del-img { display: flex; }
-                .add-img-btn { font-size: 1.2rem; cursor: pointer; color: #64748b; margin-left: 5px; }
-                .delete-emp { color: #ef4444; cursor: pointer; border: none; background: none; font-size: 1.1rem; padding: 0 10px; pointer-events: auto; }
-            </style>
-        `;
-
-        this.setupEventListeners();
-        await this.loadData();
+    periodKey(y, m, h) {
+        return `${y}-${String(m).padStart(2,'0')}-${h}`;
     },
 
-    setupEventListeners() {
-        document.getElementById('asis-search').oninput = (e) => { this.filterText = e.target.value.toLowerCase(); this.renderTableBody(); };
-        const slider = document.getElementById('asis-width-slider');
-        slider.oninput = (e) => {
-            this.dayWidth = e.target.value;
-            document.getElementById('width-val').textContent = this.dayWidth;
-            document.getElementById('attendance-table').style.setProperty('--col-width', this.dayWidth + 'px');
-        };
-        document.getElementById('asis-month').onchange = (e) => { this.currentMonth = parseInt(e.target.value); this.loadData(); };
-        document.getElementById('asis-fortnight').onchange = (e) => { this.currentFortnight = parseInt(e.target.value); this.loadData(); };
-        document.getElementById('asis-color-picker').onchange = (e) => this.selectedColor = e.target.value;
-        document.getElementById('apply-color-btn').onclick = () => this.applyColorToSelection(this.selectedColor);
-        document.getElementById('clear-color-btn').onclick = () => this.applyColorToSelection('');
-        document.getElementById('add-employee-btn').onclick = () => this.addNewEmployee();
-        document.getElementById('export-excel-btn').onclick = () => this.exportToExcel();
-        if (this._mouseupListener) document.removeEventListener('mouseup', this._mouseupListener);
-        this._mouseupListener = () => { if (this.isSelecting) { this.isSelecting = false; this.showColorButtons(true); } };
-        document.addEventListener('mouseup', this._mouseupListener);
+    currentPeriodKey() {
+        return this.periodKey(this.year, this.month, this.periodHalf);
     },
 
-    showColorButtons(show) {
-        const hasSel = document.querySelector('.cell-selected');
-        const display = (show && hasSel) ? 'inline-block' : 'none';
-        document.getElementById('apply-color-btn').style.display = display;
-        document.getElementById('clear-color-btn').style.display = display;
+    getHalfDayRange(y, m, h) {
+        const lastDay = new Date(y, m, 0).getDate();
+        return h === 1 ? { startDay:1, endDay:Math.min(15,lastDay) } : { startDay:16, endDay:lastDay };
     },
 
-    async loadData() {
-        const loading = document.getElementById('loading-screen');
-        if (loading) loading.style.display = 'flex';
+    getDateColumns(y, m, h) {
+        const fmt = new Intl.DateTimeFormat('es-MX',{ weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        const { startDay, endDay } = this.getHalfDayRange(y, m, h);
+        const cols = [];
+        for (let d = startDay; d <= endDay; d++) {
+            const date = new Date(y, m-1, d);
+            cols.push({ day:d, date, label:fmt.format(date), key:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` });
+        }
+        return cols;
+    },
+
+    periodRangeLabel(h) {
+        return h === 1 ? 'del 1 al 15' : 'del 16 al fin de mes';
+    },
+
+    createEmployeeId() {
+        return `e${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    },
+
+    emptyEmployeeData(dateKeys) {
+        const cells = {};
+        dateKeys.forEach(k => { cells[k] = { hours:'', status:null }; });
+        return { observations:'', cells };
+    },
+
+    ensureEmployeeData(empId) {
+        if (!this.byEmployee[empId]) {
+            this.byEmployee[empId] = this.emptyEmployeeData(this.dateColumns.map(c => c.key));
+        }
+        this.dateColumns.forEach(col => {
+            if (!this.byEmployee[empId].cells[col.key]) {
+                this.byEmployee[empId].cells[col.key] = { hours:'', status:null };
+            }
+        });
+    },
+
+    async loadFromFirestore() {
+        const db = firebase.firestore();
+        const pk = this.currentPeriodKey();
         try {
-            const periodId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-            const empSnap = await this.db.collection('empleados').orderBy('nombre').get();
-            this.employees = empSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const configDoc = await db.collection('asistencia').doc('_config').get();
+            if (configDoc.exists && configDoc.data().employees?.length) {
+                this.employees = configDoc.data().employees;
+            } else {
+                this.employees = [];
+            }
+        } catch(e) {
+            console.warn('Error loading config:', e);
+            this.employees = [];
+        }
+        try {
+            const periodDoc = await db.collection('asistencia').doc(pk).get();
+            if (periodDoc.exists) {
+                const data = periodDoc.data();
+                if (data.employees?.length) this.employees = data.employees;
+                this.byEmployee = data.byEmployee || {};
+            } else {
+                this.byEmployee = {};
+            }
+        } catch(e) {
+            console.warn('Error loading period:', e);
+            this.byEmployee = {};
+        }
+        this.dateColumns = this.getDateColumns(this.year, this.month, this.periodHalf);
+        this.employees.forEach(emp => this.ensureEmployeeData(emp.id));
+    },
 
-            const asisDoc = await this.db.collection('asistencia').doc(periodId).get();
-            const docData = asisDoc.exists ? asisDoc.data() : {};
-            this.data = docData.records || {};
-            this.observations = docData.observations || {};
-            this.colors = docData.colors || {};
-            this.images = docData.images || {};
+    async saveToFirestore() {
+        const db = firebase.firestore();
+        const pk = this.currentPeriodKey();
+        const empList = this.employees.map(e => ({ id:e.id, name:e.name }));
+        try {
+            await db.collection('asistencia').doc('_config').set({ employees: empList }, { merge:true });
+            await db.collection('asistencia').doc(pk).set({
+                employees: empList,
+                byEmployee: this.byEmployee
+            }, { merge:true });
+        } catch(e) {
+            console.error('Error saving:', e);
+            if (typeof showToast === 'function') showToast('Error al guardar','error');
+        }
+        this.dirty = false;
+    },
+
+    markDirty() {
+        this.dirty = true;
+        if (this.saveTimer) clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => {
+            this.saveToFirestore();
+            this.updateStatus('Guardado automáticamente');
+        }, 800);
+    },
+
+    updateStatus(msg) {
+        const el = document.getElementById('asis-status');
+        if (el) el.textContent = msg;
+    },
+
+    async render() {
+        if (window.innerWidth <= 768) return this.renderMobile();
+        return this.renderDesktop();
+    },
+
+    renderDesktop() {
+        const contentArea = document.getElementById('content-area');
+        const canEdit = window.permissions?.canCreate || window.permissions?.canEdit;
+        contentArea.innerHTML = `
+            <div class="module-header">
+                <div>
+                    <h1>📅 Asistencia</h1>
+                    <p>Control de horas y permisos — BOD Despacho</p>
+                </div>
+                <span id="asis-status" class="asis-save-status"></span>
+            </div>
+            <div class="asis-toolbar">
+                <div class="asis-period-panel">
+                    <label class="asis-field">
+                        <span>Mes</span>
+                        <select id="asis-month"></select>
+                    </label>
+                    <label class="asis-field">
+                        <span>Año</span>
+                        <select id="asis-year"></select>
+                    </label>
+                    <label class="asis-field">
+                        <span>Rango</span>
+                        <select id="asis-half">
+                            <option value="1">Del 1 al 15</option>
+                            <option value="2">Del 16 al fin de mes</option>
+                        </select>
+                    </label>
+                    <button class="btn btn-primary" id="asis-btn-apply">Aplicar</button>
+                </div>
+                <div class="asis-action-btns">
+                    <button class="btn btn-secondary" id="asis-btn-save">💾 Guardar</button>
+                    <button class="btn btn-secondary" id="asis-btn-export">📥 Exportar Excel</button>
+                    <label class="btn btn-secondary asis-btn-file">
+                        📤 Importar Excel
+                        <input type="file" id="asis-input-import" accept=".xlsx" hidden>
+                    </label>
+                    ${canEdit ? '<button class="btn btn-secondary" id="asis-btn-add">+ Empleado</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-danger" id="asis-btn-delete">Eliminar fila</button>' : ''}
+                </div>
+            </div>
+            <div class="asis-status-bar">
+                <span class="asis-sb-label">Estado:</span>
+                <div class="asis-chip-row">
+                    <button class="asis-status-btn asis-cruce" data-status="cruce">CRUCE DE HORAS</button>
+                    <button class="asis-status-btn asis-iss" data-status="iss">ISS 75%</button>
+                    <button class="asis-status-btn asis-descuento" data-status="descuento">DESCUENTO DE HORAS</button>
+                </div>
+                <span class="asis-sb-label">Aplicar a:</span>
+                <div class="asis-chip-row">
+                    <button class="asis-scope-btn asis-scope-active" data-scope="cell">Celda</button>
+                    <button class="asis-scope-btn" data-scope="from-cell">Desde celda</button>
+                    <button class="asis-scope-btn" data-scope="row">Fila completa</button>
+                    <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear">Quitar color</button>
+                </div>
+            </div>
+            <div class="asis-sheet-card">
+                <div class="asis-sheet-header">
+                    <span>Hoja de registro</span>
+                    <span class="asis-sheet-hint">Desplaza horizontalmente para ver todas las fechas</span>
+                </div>
+                <div class="asis-table-wrapper">
+                    <table class="asis-table" id="asis-table">
+                        <thead>
+                            <tr><th colspan="100" class="asis-sheet-title">DETALLE DE HORAS O DIAS DE PERMISOS BOD DESPACHO</th></tr>
+                            <tr id="asis-header-row">
+                                <th class="asis-col-num asis-sticky">#</th>
+                                <th class="asis-col-name asis-sticky asis-sticky-name">Nombre de Empleados</th>
+                                <th class="asis-col-obs">OBSERVACIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="asis-tbody"></tbody>
+                        <tfoot>
+                            <tr class="asis-legend-row">
+                                <td colspan="2" class="asis-legend-wrap">
+                                    <table class="asis-legend-inner">
+                                        <tr><td class="asis-cruce asis-legend-sample">CRUCE DE HORAS</td></tr>
+                                        <tr><td class="asis-iss asis-legend-sample">ISS 75%</td></tr>
+                                        <tr><td class="asis-descuento asis-legend-sample">DESCUENTO DE HORAS</td></tr>
+                                    </table>
+                                </td>
+                                <td id="asis-legend-filler" colspan="100" class="asis-legend-filler"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+        this.initControls();
+        this.loadFromFirestore().then(() => {
+            this.populateSelects();
             this.renderTable();
-        } catch (e) { console.error(e); }
-        finally { if (loading) loading.style.display = 'none'; }
+            this.updateStatus(`${this.month}/${this.year}, ${this.periodRangeLabel(this.periodHalf)}`);
+        });
+    },
+
+    renderMobile() {
+        const contentArea = document.getElementById('content-area');
+        const canEdit = window.permissions?.canCreate || window.permissions?.canEdit;
+        contentArea.innerHTML = `
+            <div style="padding:0.5rem;">
+                <h2 style="font-size:1.1rem;margin:0 0 0.5rem;">📅 Asistencia</h2>
+                <span id="asis-status" class="asis-save-status" style="font-size:0.75rem;"></span>
+                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin:0.5rem 0;">
+                    <select id="asis-month" style="font-size:0.8rem;padding:0.3rem;"></select>
+                    <select id="asis-year" style="font-size:0.8rem;padding:0.3rem;"></select>
+                    <select id="asis-half" style="font-size:0.8rem;padding:0.3rem;">
+                        <option value="1">1-15</option>
+                        <option value="2">16-fin</option>
+                    </select>
+                    <button class="btn btn-primary" id="asis-btn-apply" style="font-size:0.75rem;padding:0.3rem 0.5rem;">OK</button>
+                </div>
+                <div style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                    <button class="btn btn-secondary" id="asis-btn-save" style="font-size:0.75rem;padding:0.3rem 0.5rem;">💾</button>
+                    <button class="btn btn-secondary" id="asis-btn-export" style="font-size:0.75rem;padding:0.3rem 0.5rem;">📥</button>
+                    <label class="btn btn-secondary asis-btn-file" style="font-size:0.75rem;padding:0.3rem 0.5rem;">
+                        📤<input type="file" id="asis-input-import" accept=".xlsx" hidden>
+                    </label>
+                    ${canEdit ? '<button class="btn btn-secondary" id="asis-btn-add" style="font-size:0.75rem;padding:0.3rem 0.5rem;">+ Emp</button>' : ''}
+                    ${canEdit ? '<button class="btn btn-danger" id="asis-btn-delete" style="font-size:0.75rem;padding:0.3rem 0.5rem;">🗑</button>' : ''}
+                </div>
+                <div class="asis-status-bar" style="flex-direction:column;gap:0.3rem;padding:0.4rem;">
+                    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                        <button class="asis-status-btn asis-cruce" data-status="cruce" style="font-size:0.65rem;padding:0.25rem 0.4rem;">CRUCE</button>
+                        <button class="asis-status-btn asis-iss" data-status="iss" style="font-size:0.65rem;padding:0.25rem 0.4rem;">ISS</button>
+                        <button class="asis-status-btn asis-descuento" data-status="descuento" style="font-size:0.65rem;padding:0.25rem 0.4rem;">DESC.</button>
+                    </div>
+                    <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+                        <button class="asis-scope-btn asis-scope-active" data-scope="cell" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Celda</button>
+                        <button class="asis-scope-btn" data-scope="from-cell" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Desde</button>
+                        <button class="asis-scope-btn" data-scope="row" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Fila</button>
+                        <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear" style="font-size:0.65rem;padding:0.2rem 0.4rem;">Quitar</button>
+                    </div>
+                </div>
+                <div class="asis-table-wrapper" style="max-height:calc(100vh - 340px);margin-top:0.5rem;">
+                    <table class="asis-table asis-table-mobile" id="asis-table">
+                        <thead>
+                            <tr><th colspan="100" class="asis-sheet-title" style="font-size:0.75rem;padding:0.4rem;">HORAS / PERMISOS</th></tr>
+                            <tr id="asis-header-row">
+                                <th class="asis-col-num asis-sticky">#</th>
+                                <th class="asis-col-name asis-sticky asis-sticky-name">Empleado</th>
+                                <th class="asis-col-obs">OBS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="asis-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        this.initControls();
+        this.loadFromFirestore().then(() => {
+            this.populateSelects();
+            this.renderTable();
+            this.updateStatus(`${this.month}/${this.year}`);
+        });
+    },
+
+    populateSelects() {
+        const mSel = document.getElementById('asis-month');
+        const ySel = document.getElementById('asis-year');
+        const hSel = document.getElementById('asis-half');
+        if (!mSel || !ySel) return;
+        mSel.innerHTML = '';
+        this.MONTH_NAMES.forEach((name, i) => {
+            const opt = document.createElement('option');
+            opt.value = String(i+1);
+            opt.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+            if (i+1 === this.month) opt.selected = true;
+            mSel.appendChild(opt);
+        });
+        const curYear = new Date().getFullYear();
+        ySel.innerHTML = '';
+        for (let y = curYear-2; y <= curYear+3; y++) {
+            const opt = document.createElement('option');
+            opt.value = String(y);
+            opt.textContent = String(y);
+            if (y === this.year) opt.selected = true;
+            ySel.appendChild(opt);
+        }
+        if (hSel) hSel.value = String(this.periodHalf);
     },
 
     renderTable() {
-        const headerRow = document.getElementById('table-header-days');
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        const startDay = this.currentFortnight === 1 ? 1 : 16;
-        const endDay = this.currentFortnight === 1 ? 15 : daysInMonth;
-        const numDays = (endDay - startDay + 1);
-        let headerHtml = `<th class="emp-name-col">Empleado</th>`;
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-        for (let d = startDay; d <= endDay; d++) {
-            const date = new Date(this.currentYear, this.currentMonth, d);
-            headerHtml += `<th class="th-day day-col ${date.getDay() % 6 === 0 ? 'day-weekend' : ''}" data-select-col="${d - startDay + 1}">
-                <span class="day-name-vert">${dayNames[date.getDay()]}</span><br><span class="day-number">${d}</span></th>`;
-        }
-        headerHtml += `<th data-select-col="${numDays + 1}">Total</th><th class="col-obs" data-select-col="${numDays + 2}">Obs.</th><th class="col-images">Fotos</th><th></th>`;
-        headerRow.innerHTML = headerHtml;
-        document.getElementById('attendance-table').style.setProperty('--col-width', this.dayWidth + 'px');
-        if (!this._headerListenerAdded) {
-            headerRow.addEventListener('click', (e) => {
-                const th = e.target.closest('[data-select-col]');
-                if (th) {
-                    const c = parseInt(th.getAttribute('data-select-col'), 10);
-                    this.selectColumn(c);
-                }
-            });
-            this._headerListenerAdded = true;
-        }
-        this.renderTableBody();
+        this.renderHeaders();
+        this.renderBody();
     },
 
-    renderTableBody() {
-        const body = document.getElementById('table-body-employees');
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        const startDay = this.currentFortnight === 1 ? 1 : 16;
-        const endDay = this.currentFortnight === 1 ? 15 : daysInMonth;
-        const numDays = (endDay - startDay + 1);
-        const filtered = this.employees.filter(e => e.nombre.toLowerCase().includes(this.filterText));
-        
-        const rows = filtered.map((emp, r) => {
-            const empCols = this.colors[emp.id] || {};
-            const empImages = this.images[emp.id] || [];
-            let rowHtml = `<tr data-emp-id="${emp.id}">
-                <td class="emp-name-col" id="cell-${r}-0" style="background-color: ${empCols.name || ''}"
-                    onmousedown="Asistencia.startSelection(${r}, 0, event)" onmouseenter="Asistencia.updateSelection(${r}, 0)">${sanitizeHTML(emp.nombre)}</td>`;
-            
-            let rowTotal = 0;
-            for (let i = 0; i < numDays; i++) {
-                const d = startDay + i; const c = i + 1;
-                const val = this.data[emp.id]?.[d] || ''; rowTotal += parseFloat(val) || 0;
-                rowHtml += `<td class="day-col ${new Date(this.currentYear, this.currentMonth, d).getDay() % 6 === 0 ? 'day-weekend' : ''}" id="cell-${r}-${c}" 
-                                style="background-color: ${empCols[d] || ''}" onmousedown="Asistencia.startSelection(${r}, ${c}, event)" 
-                                onmouseenter="Asistencia.updateSelection(${r}, ${c})" onclick="Asistencia.activateInput(this)">
-                                <input type="number" class="asis-input" value="${String(val).replace(/"/g, '&quot;')}" onchange="Asistencia.saveValue('${emp.id}', ${d}, this.value)" onblur="Asistencia.deactivateInput(this)"></td>`;
-            }
-            
-            rowHtml += `<td class="row-total" id="cell-${r}-${numDays + 1}" style="background-color: ${empCols.total || ''}"
-                            onmousedown="Asistencia.startSelection(${r}, ${numDays + 1}, event)" onmouseenter="Asistencia.updateSelection(${r}, ${numDays + 1})">
-                            <span class="total-val" data-emp-id="${emp.id}">${Math.round(rowTotal * 100) / 100}</span></td>
-                <td class="col-obs" id="cell-${r}-${numDays + 2}" style="background-color: ${empCols.obs || ''}"
-                    onmousedown="Asistencia.startSelection(${r}, ${numDays + 2}, event)" onmouseenter="Asistencia.updateSelection(${r}, ${numDays + 2})"
-                    onclick="Asistencia.activateInput(this)">
-                    <input type="text" class="obs-input" value="${sanitizeHTML(this.observations[emp.id] || '')}" onchange="Asistencia.saveObservation('${emp.id}', this.value)" onblur="Asistencia.deactivateInput(this)"></td>
-                <td class="col-images">
-                    <div class="img-list">
-                        ${empImages.map((url, idx) => `
-                            <div class="img-item">
-                                <img src="${sanitizeHTML(url)}" class="img-thumb" data-action="show-full" data-url="${sanitizeHTML(url)}">
-                                <span class="btn-del-img" data-action="del-img" data-emp-id="${sanitizeHTML(emp.id)}" data-index="${idx}" data-url="${sanitizeHTML(url)}">×</span>
-                            </div>
-                        `).join('')}
-                        <span class="add-img-btn" data-action="add-img" data-emp-id="${sanitizeHTML(emp.id)}">📸</span>
-                    </div>
-                </td>
-                <td><button class="delete-emp" data-action="del-emp" data-emp-id="${sanitizeHTML(emp.id)}" data-emp-name="${sanitizeHTML(emp.nombre)}">×</button></td></tr>`;
-            return rowHtml;
+    renderHeaders() {
+        const headerRow = document.getElementById('asis-header-row');
+        if (!headerRow) return;
+        headerRow.querySelectorAll('.asis-col-date').forEach(el => el.remove());
+        const obsTh = headerRow.querySelector('.asis-col-obs');
+        this.dateColumns.forEach(col => {
+            const th = document.createElement('th');
+            th.className = 'asis-col-date';
+            th.dataset.dateKey = col.key;
+            const span = document.createElement('span');
+            span.className = 'asis-date-header';
+            span.textContent = col.label;
+            th.appendChild(span);
+            headerRow.insertBefore(th, obsTh);
         });
-        body.innerHTML = rows.join('');
-
-        if (!this._bodyListenerAdded) {
-            body.addEventListener('click', (e) => {
-                const target = e.target.closest('[data-action]');
-                if (!target) return;
-                const action = target.getAttribute('data-action');
-                if (action === 'show-full') {
-                    this.showFullImage(target.getAttribute('data-url'));
-                } else if (action === 'del-img') {
-                    this.deleteImage(target.getAttribute('data-emp-id'), parseInt(target.getAttribute('data-index'), 10), target.getAttribute('data-url'));
-                } else if (action === 'add-img') {
-                    this.uploadImage(target.getAttribute('data-emp-id'));
-                } else if (action === 'del-emp') {
-                    this.removeEmployee(target.getAttribute('data-emp-id'), target.getAttribute('data-emp-name'));
-                }
-            });
-            this._bodyListenerAdded = true;
-        }
+        this.syncColspan();
     },
 
-    async uploadImage(empId) {
-        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
-        input.onchange = async (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            showToast("Subiendo imagen...");
-            try {
-                const periodId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-                const ref = this.storage.ref(`asistencia/${periodId}/${empId}_${Date.now()}`);
-                await ref.put(file);
-                const url = await ref.getDownloadURL();
-                if (!this.images[empId]) this.images[empId] = [];
-                this.images[empId].push(url);
-                await this.db.collection('asistencia').doc(periodId).set({ images: this.images }, { merge: true });
-                showToast("¡Subida!"); this.renderTableBody();
-            } catch (err) { showToast("Error", "error"); }
+    syncColspan() {
+        const total = 2 + this.dateColumns.length + 1;
+        const title = document.querySelector('.asis-sheet-title');
+        if (title) title.colSpan = total;
+        const filler = document.getElementById('asis-legend-filler');
+        if (filler) filler.colSpan = this.dateColumns.length + 1;
+    },
+
+    renderBody() {
+        const tbody = document.getElementById('asis-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        this.employees.forEach((emp, idx) => {
+            this.ensureEmployeeData(emp.id);
+            const rowData = this.byEmployee[emp.id];
+            const tr = document.createElement('tr');
+            tr.dataset.employeeId = emp.id;
+            if (idx % 2 === 0) tr.classList.add('asis-row-alt');
+
+            const tdNum = document.createElement('td');
+            tdNum.className = 'asis-col-num asis-sticky asis-row-num';
+            tdNum.textContent = String(idx+1);
+            tr.appendChild(tdNum);
+
+            const tdName = document.createElement('td');
+            tdName.className = 'asis-col-name asis-sticky asis-sticky-name asis-cell-name';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = emp.name;
+            nameInput.addEventListener('input', () => { emp.name = nameInput.value; this.markDirty(); });
+            tdName.appendChild(nameInput);
+            tr.appendChild(tdName);
+
+            this.dateColumns.forEach(col => {
+                const cell = rowData.cells[col.key] || { hours:'', status:null };
+                const td = document.createElement('td');
+                td.className = 'asis-cell-date';
+                td.dataset.employeeId = emp.id;
+                td.dataset.dateKey = col.key;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.inputMode = 'decimal';
+                input.value = cell.hours || '';
+                input.addEventListener('input', () => { cell.hours = input.value; this.markDirty(); });
+                input.addEventListener('focus', () => this.selectCell(td, emp.id, col.key));
+                td.addEventListener('click', () => this.selectCell(td, emp.id, col.key));
+                this.applyStatusClass(td, cell.status);
+                td.appendChild(input);
+                tr.appendChild(td);
+            });
+
+            const tdObs = document.createElement('td');
+            tdObs.className = 'asis-cell-obs asis-col-obs';
+            const obsInput = document.createElement('input');
+            obsInput.type = 'text';
+            obsInput.value = rowData.observations || '';
+            obsInput.addEventListener('input', () => { rowData.observations = obsInput.value; this.markDirty(); });
+            tdObs.appendChild(obsInput);
+            tr.appendChild(tdObs);
+
+            tbody.appendChild(tr);
+        });
+    },
+
+    selectCell(td, employeeId, dateKey) {
+        if (this.selectedCell?.td) this.selectedCell.td.classList.remove('asis-selected');
+        td.classList.add('asis-selected');
+        this.selectedCell = { td, employeeId, dateKey };
+    },
+
+    applyStatusClass(td, status) {
+        this.STATUS_CLASSES.forEach(c => td.classList.remove(c));
+        if (status === 'cruce') td.classList.add('status-cruce');
+        else if (status === 'iss') td.classList.add('status-iss');
+        else if (status === 'descuento') td.classList.add('status-descuento');
+    },
+
+    applyStatusToScope(status) {
+        if (!this.selectedCell) { this.updateStatus('Seleccione una celda de fecha primero'); return; }
+        const { employeeId, dateKey } = this.selectedCell;
+        this.ensureEmployeeData(employeeId);
+        const cells = this.byEmployee[employeeId].cells;
+        const dateKeys = this.dateColumns.map(c => c.key);
+        const startIdx = dateKeys.indexOf(dateKey);
+        const setOn = (key) => {
+            if (!cells[key]) cells[key] = { hours:'', status:null };
+            cells[key].status = status;
         };
-        input.click();
+        if (this.applyScope === 'cell') {
+            setOn(dateKey);
+        } else if (this.applyScope === 'from-cell') {
+            if (startIdx < 0) return;
+            for (let i = startIdx; i < dateKeys.length; i++) setOn(dateKeys[i]);
+        } else if (this.applyScope === 'row') {
+            dateKeys.forEach(setOn);
+        }
+        this.markDirty();
+        this.renderBody();
+        const td = document.querySelector(`#asis-tbody td[data-employee-id="${employeeId}"][data-date-key="${dateKey}"]`);
+        if (td) this.selectCell(td, employeeId, dateKey);
     },
 
-    async deleteImage(empId, index, url) {
-        if (!confirm("¿Deseas eliminar esta foto?")) return;
-        showToast("Eliminando...");
-        try {
-            const periodId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-            // 1. Borrar de Storage
-            try { await this.storage.refFromURL(url).delete(); } catch(e) { console.warn("Storage error o ya borrado"); }
-            // 2. Borrar de Firestore
-            this.images[empId].splice(index, 1);
-            await this.db.collection('asistencia').doc(periodId).set({ images: this.images }, { merge: true });
-            showToast("Eliminada"); this.renderTableBody();
-        } catch (err) { showToast("Error al borrar", "error"); }
+    clearStatusOnScope() {
+        if (!this.selectedCell) { this.updateStatus('Seleccione una celda de fecha primero'); return; }
+        const { employeeId, dateKey } = this.selectedCell;
+        this.ensureEmployeeData(employeeId);
+        const cells = this.byEmployee[employeeId].cells;
+        const dateKeys = this.dateColumns.map(c => c.key);
+        const startIdx = dateKeys.indexOf(dateKey);
+        const clearKey = (key) => { if (cells[key]) cells[key].status = null; };
+        if (this.applyScope === 'cell') {
+            clearKey(dateKey);
+        } else if (this.applyScope === 'from-cell') {
+            for (let i = startIdx; i < dateKeys.length; i++) clearKey(dateKeys[i]);
+        } else {
+            dateKeys.forEach(clearKey);
+        }
+        this.markDirty();
+        this.renderBody();
     },
 
-    showFullImage(url) {
-        const modal = document.getElementById('asis-img-modal');
-        const img = document.getElementById('asis-img-full');
-        img.src = url; modal.style.display = 'flex';
+    async changePeriod(y, m, h) {
+        if (this.dirty) {
+            const ok = confirm('Hay cambios sin guardar. ¿Guardar antes de cambiar?');
+            if (ok) await this.saveToFirestore();
+            else if (!confirm('¿Continuar sin guardar?')) return;
+        }
+        this.year = y; this.month = m; this.periodHalf = h;
+        this.selectedCell = null;
+        await this.loadFromFirestore();
+        this.populateSelects();
+        this.renderTable();
+        this.updateStatus(`Periodo: ${m}/${y}, ${this.periodRangeLabel(h)}`);
     },
 
-    activateInput(td) { if (!this.hasDragged) { const input = td.querySelector('input'); if (input) { input.style.pointerEvents = 'auto'; input.focus(); input.select(); } } },
-    deactivateInput(input) { input.style.pointerEvents = 'none'; },
-    selectColumn(c) {
-        this.clearSelectionVisuals(); this.selectionStart = { r: 0, c: c };
-        const trs = document.querySelectorAll('#table-body-employees tr');
-        this.selectionEnd = { r: trs.length - 1, c: c }; this.updateVisuals(); this.showColorButtons(true);
-    },
-    startSelection(r, c, event) { this.isSelecting = true; this.hasDragged = false; this.selectionStart = { r, c }; this.selectionEnd = { r, c }; this.updateVisuals(); this.showColorButtons(false); },
-    updateSelection(r, c) { if (this.isSelecting) { this.hasDragged = true; this.selectionEnd = { r, c }; this.updateVisuals(); } },
-    updateVisuals() {
-        this.clearSelectionVisuals(); if (!this.selectionStart || !this.selectionEnd) return;
-        const r1 = Math.min(this.selectionStart.r, this.selectionEnd.r), r2 = Math.max(this.selectionStart.r, this.selectionEnd.r);
-        const c1 = Math.min(this.selectionStart.c, this.selectionEnd.c), c2 = Math.max(this.selectionStart.c, this.selectionEnd.c);
-        for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) document.getElementById(`cell-${r}-${c}`)?.classList.add('cell-selected');
-    },
-    clearSelectionVisuals() { document.querySelectorAll('.cell-selected').forEach(el => el.classList.remove('cell-selected')); },
+    initControls() {
+        document.getElementById('asis-btn-apply')?.addEventListener('click', () => {
+            const y = Number(document.getElementById('asis-year').value);
+            const m = Number(document.getElementById('asis-month').value);
+            const h = Number(document.getElementById('asis-half').value);
+            this.changePeriod(y, m, h);
+        });
 
-    async applyColorToSelection(color) {
-        if (!this.selectionStart || !this.selectionEnd) return;
-        const r1 = Math.min(this.selectionStart.r, this.selectionEnd.r), r2 = Math.max(this.selectionStart.r, this.selectionEnd.r);
-        const c1 = Math.min(this.selectionStart.c, this.selectionEnd.c), c2 = Math.max(this.selectionStart.c, this.selectionEnd.c);
-        const startDay = this.currentFortnight === 1 ? 1 : 16;
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        const numDays = (this.currentFortnight === 1 ? 15 : daysInMonth - 15);
-        const pId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-        const updates = {};
-        for (let r = r1; r <= r2; r++) {
-            const tr = document.querySelectorAll('#table-body-employees tr')[r]; if (!tr) continue;
-            const empId = tr.dataset.empId; if (!this.colors[empId]) this.colors[empId] = {};
-            for (let c = c1; c <= c2; c++) {
-                let key;
-                if (c === 0) key = 'name'; else if (c >= 1 && c <= numDays) key = startDay + c - 1;
-                else if (c === numDays + 1) key = 'total'; else if (c === numDays + 2) key = 'obs'; else continue;
-                const path = `colors.${empId}.${key}`;
-                if (color === '') { delete this.colors[empId][key]; updates[path] = firebase.firestore.FieldValue.delete(); }
-                else { this.colors[empId][key] = color; updates[path] = color; }
-                const cell = document.getElementById(`cell-${r}-${c}`); if (cell) cell.style.backgroundColor = color;
+        document.getElementById('asis-btn-save')?.addEventListener('click', async () => {
+            await this.saveToFirestore();
+            this.updateStatus('Guardado correctamente');
+            if (typeof showToast === 'function') showToast('Guardado','success');
+        });
+
+        document.getElementById('asis-btn-add')?.addEventListener('click', () => {
+            const id = this.createEmployeeId();
+            this.employees.push({ id, name:'Nuevo empleado' });
+            this.byEmployee[id] = this.emptyEmployeeData(this.dateColumns.map(c => c.key));
+            this.markDirty();
+            this.renderBody();
+            this.updateStatus('Empleado agregado');
+        });
+
+        document.getElementById('asis-btn-delete')?.addEventListener('click', () => {
+            if (!this.selectedCell) { this.updateStatus('Seleccione una fila'); return; }
+            const { employeeId } = this.selectedCell;
+            const emp = this.employees.find(e => e.id === employeeId);
+            if (!emp || !confirm(`¿Eliminar a "${emp.name}"?`)) return;
+            this.employees = this.employees.filter(e => e.id !== employeeId);
+            delete this.byEmployee[employeeId];
+            this.selectedCell = null;
+            this.markDirty();
+            this.renderBody();
+            this.updateStatus('Fila eliminada');
+        });
+
+        document.getElementById('asis-btn-export')?.addEventListener('click', async () => {
+            this.updateStatus('Generando Excel...');
+            try {
+                await this.exportToExcel();
+                this.updateStatus('Excel exportado');
+            } catch(e) {
+                this.updateStatus(`Error al exportar: ${e.message}`);
             }
-        }
-        try {
-            await this.db.collection('asistencia').doc(pId).update(updates).catch(async (e) => {
-                if (e.code === 'not-found') await this.db.collection('asistencia').doc(pId).set({ colors: this.colors }, { merge: true });
+        });
+
+        document.getElementById('asis-input-import')?.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            this.updateStatus('Leyendo Excel...');
+            try {
+                const buffer = await file.arrayBuffer();
+                const imported = await this.importFromExcel(buffer);
+                if (!imported) { this.updateStatus('No se pudo importar'); e.target.value=''; return; }
+                if (!confirm(`Se importarán ${imported.employees.length} filas. ¿Reemplazar datos?`)) { e.target.value=''; return; }
+                this.employees = imported.employees;
+                this.byEmployee = imported.byEmployee;
+                this.markDirty();
+                this.renderBody();
+                await this.saveToFirestore();
+                this.updateStatus('Excel importado correctamente');
+            } catch(err) {
+                this.updateStatus(`Error al importar: ${err.message}`);
+            }
+            e.target.value = '';
+        });
+
+        document.querySelectorAll('.asis-status-btn[data-status]').forEach(btn => {
+            btn.addEventListener('click', () => this.applyStatusToScope(btn.dataset.status));
+        });
+
+        document.querySelectorAll('.asis-scope-btn[data-scope]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.asis-scope-btn[data-scope]').forEach(b => b.classList.remove('asis-scope-active'));
+                btn.classList.add('asis-scope-active');
+                this.applyScope = btn.dataset.scope;
             });
-            this.clearSelectionVisuals(); this.showColorButtons(false);
-        } catch (e) { console.error(e); }
+        });
+
+        document.getElementById('asis-btn-clear')?.addEventListener('click', () => this.clearStatusOnScope());
     },
 
-    async saveValue(id, d, v) {
-        const pId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-        try {
-            const snapshot = { ...this.data };
-            if (!snapshot[id]) snapshot[id] = {};
-            if (v === "") delete snapshot[id][d]; else snapshot[id][d] = v;
-            await this.db.collection('asistencia').doc(pId).set({ records: snapshot }, { merge: true });
-            this.data = snapshot;
-            this.updateRowTotal(id);
-        } catch (e) {
-            console.error(e);
-            showToast('Error al guardar valor', 'error');
-        }
+    thinBorder() {
+        const s = { style:'thin', color:{ argb:this.EXCEL_COLORS.black } };
+        return { top:s, left:s, bottom:s, right:s };
     },
 
-    async saveObservation(id, v) {
-        const pId = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-Q${this.currentFortnight}`;
-        try {
-            const snapshot = { ...this.observations, [id]: v };
-            await this.db.collection('asistencia').doc(pId).set({ observations: snapshot }, { merge: true });
-            this.observations = snapshot;
-        } catch (e) {
-            console.error(e);
-            showToast('Error al guardar observación', 'error');
-        }
+    statusFill(status) {
+        if (status === 'cruce') return this.EXCEL_COLORS.cruce;
+        if (status === 'iss') return this.EXCEL_COLORS.iss;
+        if (status === 'descuento') return this.EXCEL_COLORS.descuento;
+        return null;
     },
 
-    updateRowTotal(id) {
-        let t = 0; if (this.data[id]) Object.values(this.data[id]).forEach(v => t += parseFloat(v) || 0);
-        const el = document.querySelector(`.total-val[data-emp-id="${id}"]`);
-        if (el) el.textContent = Math.round(t * 100) / 100;
+    normalizeArgb(color) {
+        if (!color) return null;
+        let argb = String(color.argb || color.rgb || '').toUpperCase().replace('#','');
+        if (argb.length === 6) argb = `FF${argb}`;
+        return argb || null;
     },
 
-    getMonthsOptions() { return ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((m, i) => `<option value="${i}" ${this.currentMonth === i ? 'selected' : ''}>${m}</option>`).join(''); },
-    getYearsOptions() { let o = ''; for (let y = 2024; y <= new Date().getFullYear() + 1; y++) o += `<option value="${y}" ${this.currentYear === y ? 'selected' : ''}>${y}</option>`; return o; },
-    async addNewEmployee() {
-        const n = prompt("Nombre:"); if (!n) return;
-        try {
-            await this.db.collection('empleados').add({ nombre: n.trim(), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            this.loadData();
-        } catch (e) {
-            console.error(e);
-            showToast('Error al agregar empleado', 'error');
-        }
+    statusFromFill(fill) {
+        if (!fill || fill.type !== 'pattern') return null;
+        const argb = this.normalizeArgb(fill.fgColor);
+        if (!argb) return null;
+        if (argb === this.EXCEL_COLORS.cruce || argb.endsWith('92D050')) return 'cruce';
+        if (argb === this.EXCEL_COLORS.iss || argb.endsWith('FFFF00')) return 'iss';
+        if (argb === this.EXCEL_COLORS.descuento || argb.endsWith('FF0000')) return 'descuento';
+        return null;
     },
-    async removeEmployee(id, n) {
-        if (!confirm(`¿Eliminar a ${n}?`)) return;
-        try {
-            await this.db.collection('empleados').doc(id).delete();
-            this.loadData();
-        } catch (e) {
-            console.error(e);
-            showToast('Error al eliminar empleado', 'error');
+
+    cellText(value) {
+        if (value == null || value === '') return '';
+        if (typeof value === 'number') return String(value);
+        if (typeof value === 'object') {
+            if (Array.isArray(value.richText)) return value.richText.map(t => t.text).join('').trim();
+            if (value.result != null) return String(value.result).trim();
+            if (value.text != null) return String(value.text).trim();
         }
+        return String(value).trim();
+    },
+
+    applyExcelCellStyle(cell, { fillArgb, bold, rotation, align, fontColor }) {
+        cell.border = this.thinBorder();
+        cell.alignment = { vertical:'middle', horizontal:align||'center', wrapText:Boolean(rotation), textRotation:rotation||0 };
+        cell.font = { name:'Arial', size:rotation?9:11, bold:Boolean(bold), color:fontColor?{argb:fontColor}:{argb:this.EXCEL_COLORS.black} };
+        if (fillArgb) cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:fillArgb } };
     },
 
     async exportToExcel() {
-        const loading = document.getElementById('loading-screen'); if (loading) loading.style.display = 'flex';
-        try {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Asistencia');
-            const monthName = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][this.currentMonth];
-            worksheet.getCell('A1').value = `AÑO: ${this.currentYear}`; worksheet.getCell('A2').value = `MES: ${monthName}`;
-            worksheet.getCell('A3').value = `QUINCENA: ${this.currentFortnight === 1 ? '1ra' : '2da'}`;
-            [1, 2, 3].forEach(r => { worksheet.getCell(`A${r}`).font = { bold: true }; });
-            const startDay = this.currentFortnight === 1 ? 1 : 16;
-            const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-            const endDay = this.currentFortnight === 1 ? 15 : daysInMonth;
-            const numDays = (endDay - startDay + 1);
-            const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-            const row5 = worksheet.getRow(5); const row6 = worksheet.getRow(6);
-            row5.getCell(1).value = 'Empleado'; worksheet.mergeCells('A5:A6');
-            for (let i = 0; i < numDays; i++) {
-                const day = startDay + i; const date = new Date(this.currentYear, this.currentMonth, day);
-                const colIdx = i + 2;
-                row5.getCell(colIdx).value = dayNamesShort[date.getDay()]; row6.getCell(colIdx).value = day;
-                row5.getCell(colIdx).alignment = { textRotation: 90, vertical: 'middle', horizontal: 'center' };
-                if (date.getDay() === 0 || date.getDay() === 6) {
-                    const fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE2E2' } };
-                    row5.getCell(colIdx).fill = fill; row6.getCell(colIdx).fill = fill;
-                }
-            }
-            const totalCol = numDays + 2; const obsCol = numDays + 3;
-            row5.getCell(totalCol).value = 'Total'; worksheet.mergeCells(5, totalCol, 6, totalCol);
-            row5.getCell(obsCol).value = 'Observaciones'; worksheet.mergeCells(5, obsCol, 6, obsCol);
-            this.employees.forEach((emp, rIdx) => {
-                const row = worksheet.getRow(rIdx + 7); const empCols = this.colors[emp.id] || {};
-                row.getCell(1).value = emp.nombre; if (empCols.name) this.applyExcelColor(row.getCell(1), empCols.name);
-                let t = 0;
-                for (let i = 0; i < numDays; i++) {
-                    const d = startDay + i; const v = parseFloat(this.data[emp.id]?.[d]) || 0;
-                    row.getCell(i + 2).value = v || ''; t += v;
-                    if (empCols[d]) this.applyExcelColor(row.getCell(i + 2), empCols[d]);
-                }
-                row.getCell(totalCol).value = Math.round(t * 100) / 100; if (empCols.total) this.applyExcelColor(row.getCell(totalCol), empCols.total);
-                row.getCell(obsCol).value = this.observations[emp.id] || ''; if (empCols.obs) this.applyExcelColor(row.getCell(obsCol), empCols.obs);
-                row.eachCell(c => { c.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }; });
+        if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS no disponible');
+        const { employees, dateColumns, byEmployee } = this;
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Asistencia', { views:[{ state:'frozen', xSplit:2, ySplit:2 }] });
+        const totalCols = 2 + dateColumns.length + 1;
+        const titleRow = 1, headerRow = 2;
+
+        sheet.mergeCells(titleRow, 1, titleRow, totalCols);
+        const titleCell = sheet.getCell(titleRow, 1);
+        titleCell.value = 'DETALLE DE HORAS O DIAS DE PERMISOS BOD DESPACHO';
+        this.applyExcelCellStyle(titleCell, { fillArgb:this.EXCEL_COLORS.white, bold:true, align:'center' });
+        sheet.getRow(titleRow).height = 22;
+
+        const headers = ['#','Nombre de Empleados', ...dateColumns.map(c => c.label), 'OBSERVACIONES'];
+        headers.forEach((text, idx) => {
+            const col = idx + 1;
+            const cell = sheet.getCell(headerRow, col);
+            cell.value = text;
+            const isDate = col >= 3 && col < totalCols;
+            this.applyExcelCellStyle(cell, { fillArgb:this.EXCEL_COLORS.white, bold:true, rotation:isDate?90:0, align:col===2?'left':'center' });
+        });
+        sheet.getRow(headerRow).height = 118;
+        sheet.getColumn(1).width = 5;
+        sheet.getColumn(2).width = 32;
+        for (let c = 3; c < totalCols; c++) sheet.getColumn(c).width = 5.5;
+        sheet.getColumn(totalCols).width = 26;
+
+        let rowNum = 3;
+        employees.forEach((emp, index) => {
+            const rowData = byEmployee[emp.id] || { observations:'', cells:{} };
+            const isAlt = index % 2 === 0;
+            const rowFill = isAlt ? this.EXCEL_COLORS.altRow : this.EXCEL_COLORS.white;
+
+            const numCell = sheet.getCell(rowNum, 1);
+            numCell.value = index + 1;
+            this.applyExcelCellStyle(numCell, { fillArgb:rowFill, align:'center' });
+
+            const nameCell = sheet.getCell(rowNum, 2);
+            nameCell.value = emp.name;
+            this.applyExcelCellStyle(nameCell, { fillArgb:rowFill, align:'left' });
+
+            dateColumns.forEach((col, dateIdx) => {
+                const cellData = rowData.cells?.[col.key] || { hours:'', status:null };
+                const excelCol = 3 + dateIdx;
+                const cell = sheet.getCell(rowNum, excelCol);
+                cell.value = cellData.hours || '';
+                const sc = this.statusFill(cellData.status);
+                this.applyExcelCellStyle(cell, { fillArgb:sc||rowFill, align:'center', fontColor:cellData.status==='descuento'?this.EXCEL_COLORS.white:this.EXCEL_COLORS.black });
             });
-            worksheet.getColumn(1).width = 30; worksheet.getColumn(obsCol).width = 40;
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `Asistencia_${monthName}_${this.currentYear}.xlsx`; a.click();
-        } catch (e) { console.error(e); } finally { if (loading) loading.style.display = 'none'; }
+
+            const obsCell = sheet.getCell(rowNum, totalCols);
+            obsCell.value = rowData.observations || '';
+            this.applyExcelCellStyle(obsCell, { fillArgb:rowFill, align:'left' });
+            sheet.getRow(rowNum).height = 18;
+            rowNum++;
+        });
+
+        const legendStart = rowNum + 1;
+        [{ text:'CRUCE DE HORAS', status:'cruce' },{ text:'ISS 75%', status:'iss' },{ text:'DESCUENTO DE HORAS', status:'descuento' }].forEach((item, i) => {
+            const r = legendStart + i;
+            sheet.mergeCells(r, 1, r, 2);
+            const cell = sheet.getCell(r, 1);
+            cell.value = item.text;
+            this.applyExcelCellStyle(cell, { fillArgb:this.statusFill(item.status), bold:true, align:'left', fontColor:item.status==='descuento'?this.EXCEL_COLORS.white:this.EXCEL_COLORS.black });
+            sheet.getRow(r).height = 18;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `asistencia-${this.currentPeriodKey()}.xlsx`; a.click();
+        URL.revokeObjectURL(url);
     },
 
-    applyExcelColor(cell, hex) {
-        if (!hex || hex === '') return;
-        const argb = 'FF' + hex.replace('#', '').toUpperCase();
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+    async importFromExcel(arrayBuffer) {
+        if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS no disponible');
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const sheet = workbook.worksheets[0];
+        if (!sheet) return null;
+
+        let headerRow = 2;
+        for (let r = 1; r <= Math.min(10, sheet.rowCount||10); r++) {
+            const a = this.cellText(sheet.getCell(r,1).value).toLowerCase();
+            const b = this.cellText(sheet.getCell(r,2).value).toLowerCase();
+            if (a === '#' || b.includes('nombre')) { headerRow = r; break; }
+        }
+
+        const dataStart = headerRow + 1;
+        const totalCols = 2 + this.dateColumns.length + 1;
+        const employees = [];
+        const byEmployee = {};
+
+        const isLegendOrEmpty = (row) => {
+            const a = this.cellText(sheet.getCell(row,1).value);
+            const b = this.cellText(sheet.getCell(row,2).value);
+            if (['CRUCE DE HORAS','ISS 75%','DESCUENTO DE HORAS'].some(h => a.includes(h)||b.includes(h))) return true;
+            if (!a && !b) {
+                return !Array.from({length:totalCols-2},(_,i) => sheet.getCell(row,3+i).value).some(v => v!=null && this.cellText(v)!=='');
+            }
+            return !b;
+        };
+
+        const maxRow = Math.max(sheet.rowCount||0, dataStart+100);
+        for (let r = dataStart; r <= maxRow; r++) {
+            if (isLegendOrEmpty(r)) { if (employees.length > 0) break; continue; }
+            const name = this.cellText(sheet.getCell(r,2).value);
+            if (!name) { if (employees.length > 0) break; continue; }
+            const id = `import-${r}-${Date.now()}`;
+            employees.push({ id, name });
+            const cells = {};
+            this.dateColumns.forEach((col, idx) => {
+                const excelCell = sheet.getCell(r, 3+idx);
+                cells[col.key] = { hours:this.cellText(excelCell.value), status:this.statusFromFill(excelCell.fill) };
+            });
+            byEmployee[id] = { observations:this.cellText(sheet.getCell(r,totalCols).value), cells };
+        }
+
+        if (employees.length === 0) return null;
+        return { employees, byEmployee };
     }
 };
 
