@@ -1277,9 +1277,7 @@ tbody tr {
 }
 
 .filter-popup {
-    position: absolute;
-    top: 100%;
-    left: 0;
+    position: fixed;
     min-width: 250px;
     max-width: 400px;
     max-height: 70vh;
@@ -1295,7 +1293,6 @@ tbody tr {
 
 .filter-popup.show {
     display: flex;
-    animation: slideDown 0.2s ease-out;
 }
 
 .filter-popup-search {

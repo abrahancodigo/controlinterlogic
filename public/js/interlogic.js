@@ -882,12 +882,63 @@ const Interlogic = {
         const popup = document.getElementById(`filter-popup-${field}`);
         if (!popup) return;
         const isShowing = popup.classList.contains('show');
+        const headerEl = event.currentTarget;
 
         document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+        this._detachPopupScroll();
 
         if (!isShowing) {
             popup.classList.add('show');
             this.populateFilterOptions(field);
+            this._positionPopup(headerEl, popup);
+        }
+    },
+
+    _positionPopup(headerEl, popup) {
+        var self = this;
+        var tableContainer = headerEl.closest('.table-container');
+
+        var reposition = function() {
+            if (!popup.classList.contains('show')) {
+                self._detachPopupScroll();
+                return;
+            }
+            var rect = headerEl.getBoundingClientRect();
+            var spaceBelow = window.innerHeight - rect.bottom;
+            var maxH = Math.min(window.innerHeight * 0.7, 400);
+            var left = Math.max(8, Math.min(rect.left, window.innerWidth - 260));
+
+            popup.style.minWidth = Math.max(250, rect.width) + 'px';
+            popup.style.maxWidth = Math.min(400, window.innerWidth - 16) + 'px';
+            popup.style.left = left + 'px';
+
+            if (spaceBelow > 200) {
+                popup.style.top = rect.bottom + 2 + 'px';
+                popup.style.bottom = 'auto';
+                popup.style.maxHeight = Math.min(maxH, window.innerHeight - rect.bottom - 16) + 'px';
+            } else {
+                popup.style.top = 'auto';
+                popup.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+                popup.style.maxHeight = Math.min(maxH, rect.top - 16) + 'px';
+            }
+        };
+
+        reposition();
+
+        this._popupScrollHandler = reposition;
+        if (tableContainer) tableContainer.addEventListener('scroll', reposition, { passive: true });
+        window.addEventListener('resize', reposition, { passive: true });
+        window.addEventListener('scroll', reposition, { passive: true });
+    },
+
+    _detachPopupScroll() {
+        if (this._popupScrollHandler) {
+            document.querySelectorAll('.table-container').forEach(function(tc) {
+                tc.removeEventListener('scroll', this._popupScrollHandler);
+            }.bind(this));
+            window.removeEventListener('resize', this._popupScrollHandler);
+            window.removeEventListener('scroll', this._popupScrollHandler);
+            this._popupScrollHandler = null;
         }
     },
 
@@ -1115,6 +1166,9 @@ const Interlogic = {
     },
 
     clearAllFilters() {
+        document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+        this._detachPopupScroll();
+
         const today = getLocalDateString();
         this.filters = {
             search: '',
