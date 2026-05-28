@@ -4822,6 +4822,10 @@ tbody tr {
     border-radius: 0.75rem;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 280px);
+    min-height: 400px;
 }
 
 .asis-sheet-header {
@@ -4835,6 +4839,7 @@ tbody tr {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-primary);
+    flex-shrink: 0;
 }
 
 .asis-sheet-hint {
@@ -4845,7 +4850,7 @@ tbody tr {
 
 .asis-table-wrapper {
     overflow: auto;
-    max-height: calc(100vh - 380px);
+    flex: 1;
     background: #fafbfc;
     scrollbar-width: thin;
     scrollbar-color: #94a3b8 #e2e8f0;
@@ -5114,6 +5119,11 @@ tbody tr {
 }
 
 @media (max-width: 768px) {
+    .asis-sheet-card {
+        height: calc(100vh - 240px);
+        min-height: 300px;
+    }
+
     .asis-table-mobile {
         font-size: 0.85rem;
     }
@@ -5163,11 +5173,14 @@ tbody tr {
     .asis-sheet-card {
         border: none;
         box-shadow: none;
+        height: auto;
+        min-height: 0;
     }
 
     .asis-table-wrapper {
         margin: 0;
         max-height: none;
         overflow: visible;
+        flex: none;
     }
 }
