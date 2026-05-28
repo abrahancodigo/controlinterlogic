@@ -70,6 +70,13 @@ const Asistencia = {
         input.style.width = Math.max(200, textWidth) + 'px';
     },
 
+    autoResizeObsInput(input) {
+        if (!input) return;
+        input.style.width = 'auto';
+        const textWidth = input.scrollWidth + 20;
+        input.style.width = Math.max(230, textWidth) + 'px';
+    },
+
     async loadFromFirestore() {
         const db = firebase.firestore();
         const pk = this.currentPeriodKey();
@@ -403,9 +410,14 @@ const Asistencia = {
             const obsInput = document.createElement('input');
             obsInput.type = 'text';
             obsInput.value = rowData.observations || '';
-            obsInput.addEventListener('input', () => { rowData.observations = obsInput.value; this.markDirty(); });
+            obsInput.addEventListener('input', () => {
+                rowData.observations = obsInput.value;
+                this.markDirty();
+                this.autoResizeObsInput(obsInput);
+            });
             tdObs.appendChild(obsInput);
             tr.appendChild(tdObs);
+            requestAnimationFrame(() => this.autoResizeObsInput(obsInput));
 
             tbody.appendChild(tr);
         });

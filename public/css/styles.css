@@ -4943,13 +4943,14 @@ tbody tr {
 }
 
 .asis-col-obs {
-    width: 230px;
+    width: auto;
     min-width: 230px;
     text-align: center;
     font-weight: 700;
     font-size: 1rem;
     background: #fff;
     padding: 0.5rem !important;
+    white-space: nowrap;
 }
 
 .asis-sticky {
@@ -5057,7 +5058,8 @@ tbody tr {
 }
 
 .asis-cell-obs input {
-    width: 100%;
+    width: auto;
+    min-width: 230px;
     border: none;
     background: transparent;
     font-family: inherit;
