@@ -4871,7 +4871,7 @@ tbody tr {
     min-width: 100%;
     table-layout: auto;
     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-    font-size: 0.85rem;
+    font-size: 1rem;
     color: #000;
 }
 
@@ -4885,16 +4885,16 @@ tbody tr {
 .asis-sheet-title {
     text-align: center;
     font-weight: 700;
-    font-size: 1rem;
-    padding: 0.6rem;
+    font-size: 1.15rem;
+    padding: 0.75rem;
     background: #fff;
     letter-spacing: 0.02em;
 }
 
 .asis-col-num {
-    width: 40px;
-    min-width: 40px;
-    font-size: 0.85rem;
+    width: 48px;
+    min-width: 48px;
+    font-size: 1rem;
     text-align: center;
     font-weight: 700;
     background: #fff;
@@ -4902,21 +4902,21 @@ tbody tr {
 
 .asis-col-name {
     width: auto;
-    min-width: 180px;
+    min-width: 200px;
     text-align: left;
-    padding: 0.4rem 0.6rem !important;
+    padding: 0.5rem 0.8rem !important;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1rem;
     background: #fff;
     white-space: nowrap;
 }
 
 .asis-col-date {
-    width: 38px;
-    min-width: 38px;
-    max-width: 38px;
-    padding: 0.4rem 0.2rem !important;
-    font-size: 0.85rem;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 1rem;
     background: #fff;
     vertical-align: bottom;
 }
@@ -4931,20 +4931,20 @@ tbody tr {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     white-space: nowrap;
-    font-size: 0.65rem;
-    font-weight: 500;
-    line-height: 1.2;
-    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #1e293b;
 }
 
 .asis-col-obs {
-    width: 200px;
-    min-width: 200px;
+    width: 230px;
+    min-width: 230px;
     text-align: center;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 1rem;
     background: #fff;
-    padding: 0.4rem !important;
+    padding: 0.5rem !important;
 }
 
 .asis-sticky {
@@ -4971,20 +4971,22 @@ tbody tr {
 
 .asis-row-num {
     text-align: center;
-    font-weight: 500;
-    padding: 0.3rem !important;
-    color: #4b5563;
+    font-weight: 600;
+    padding: 0.4rem !important;
+    color: #1e293b;
 }
 
 .asis-cell-name input {
     width: auto;
-    min-width: 180px;
+    min-width: 200px;
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 0.85rem;
-    padding: 0.25rem 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.35rem 0.5rem;
     border-radius: 3px;
+    color: #1e293b;
 }
 
 .asis-cell-name input:focus {
@@ -4996,7 +4998,7 @@ tbody tr {
 .asis-cell-date {
     text-align: center;
     padding: 0 !important;
-    height: 30px;
+    height: 36px;
     background: #fff;
 }
 
@@ -5006,13 +5008,15 @@ tbody tr {
 
 .asis-cell-date input {
     width: 100%;
-    height: 30px;
+    height: 36px;
     border: none;
     background: transparent;
     text-align: center;
     font-family: inherit;
-    font-size: 0.85rem;
-    padding: 1px;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 2px;
+    color: #1e293b;
 }
 
 .asis-cell-date input:focus {
@@ -5052,9 +5056,11 @@ tbody tr {
     border: none;
     background: transparent;
     font-family: inherit;
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
     border-radius: 3px;
+    color: #1e293b;
 }
 
 .asis-cell-obs input:focus {
@@ -5097,10 +5103,10 @@ tbody tr {
 
 .asis-legend-inner td {
     border: 1px solid #1a1a1a;
-    padding: 0.4rem 0.8rem;
+    padding: 0.5rem 1rem;
     font-weight: 700;
-    font-size: 0.8rem;
-    min-width: 160px;
+    font-size: 0.95rem;
+    min-width: 180px;
 }
 
 .asis-legend-sample.asis-descuento {
@@ -5109,41 +5115,41 @@ tbody tr {
 
 @media (max-width: 768px) {
     .asis-table-mobile {
-        font-size: 0.7rem;
+        font-size: 0.85rem;
     }
 
     .asis-table-mobile .asis-col-name {
         width: auto;
-        min-width: 100px;
+        min-width: 120px;
         white-space: nowrap;
     }
 
     .asis-table-mobile .asis-col-date {
-        width: 30px;
-        min-width: 30px;
+        width: 34px;
+        min-width: 34px;
     }
 
     .asis-table-mobile .asis-col-obs {
-        width: 100px;
-        min-width: 100px;
+        width: 120px;
+        min-width: 120px;
     }
 
     .asis-table-mobile .asis-date-header {
-        font-size: 0.55rem;
+        font-size: 0.65rem;
     }
 
     .asis-table-mobile .asis-cell-date {
-        height: 26px;
+        height: 30px;
     }
 
     .asis-table-mobile .asis-cell-date input {
-        height: 26px;
-        font-size: 0.7rem;
+        height: 30px;
+        font-size: 0.85rem;
     }
 
     .asis-table-mobile .asis-cell-name input,
     .asis-table-mobile .asis-cell-obs input {
-        font-size: 0.7rem;
+        font-size: 0.85rem;
     }
 }
 
