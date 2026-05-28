@@ -993,7 +993,7 @@ const Interlogic = {
         this.applyFilters();
     },
 
-    // Populate dynamic filter options in popup
+    // Populate dynamic filter options in popup (Excel-style: show values from current data context)
     populateFilterOptions(field) {
         const list = document.getElementById(`filter-options-${field}`);
         if (!list) return;
@@ -1020,8 +1020,52 @@ const Interlogic = {
             </div>
         `;
 
-        // Always show ALL unique values from ALL records for this field
-        const uniqueValues = [...new Set(this.records.map(r => {
+        // Excel-style: show unique values from records that pass ALL OTHER active filters (excluding this field)
+        const recordsForOptions = this.records.filter(record => {
+            for (let f in this.filters) {
+                if (f === field) continue;
+                const activeValues = this.filters[f];
+
+                if (f === 'startDate' || f === 'endDate') {
+                    const recordDate = record.fecha ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0] : '';
+                    if (!recordDate) continue;
+                    if (this.filters.startDate && recordDate < this.filters.startDate) return false;
+                    if (this.filters.endDate && recordDate > this.filters.endDate) return false;
+                    continue;
+                }
+
+                if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
+                    if (f === 'search') {
+                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations'];
+                        const match = searchFields.some(sf => String(record[sf] || '').toLowerCase().includes(activeValues.toLowerCase()));
+                        if (!match) return false;
+                        continue;
+                    }
+
+                    let recordValue;
+                    if (f === 'fecha') {
+                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    } else if (f === 'venta' || f === 'costoEnvio') {
+                        recordValue = formatNumber(record[f] || 0, 2);
+                    } else if (f === 'costoPorcentaje') {
+                        recordValue = formatNumber(record[f] || 0, 2) + '%';
+                    } else {
+                        recordValue = String(record[f] || ' (Vacío)');
+                    }
+
+                    if (Array.isArray(activeValues)) {
+                        if (!activeValues.includes(recordValue)) return false;
+                    } else if (typeof activeValues === 'string' && activeValues) {
+                        if (!recordValue.toLowerCase().includes(activeValues.toLowerCase())) return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        // If no records pass other filters, fall back to all records
+        const sourceRecords = recordsForOptions.length > 0 ? recordsForOptions : this.records;
+        const uniqueValues = [...new Set(sourceRecords.map(r => {
             if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
             if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
             if (field === 'costoPorcentaje') return formatNumber(r[field] || 0, 2) + '%';
