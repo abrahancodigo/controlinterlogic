@@ -576,9 +576,17 @@ const Interlogic = {
             }).join('');
         }
 
-        var totalVenta = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
-        var totalBultos = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.bultos) || 0); }, 0);
-        var totalEnvio = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; }).reduce(function(s, r) { return s + (parseFloat(r.costoEnvio) || 0); }, 0);
+        var totals = this.filteredRecords.reduce(function(acc, r) {
+            if (r.doc !== 'NC') {
+                acc.venta += parseFloat(r.venta) || 0;
+                acc.bultos += parseFloat(r.bultos) || 0;
+                acc.envio += parseFloat(r.costoEnvio) || 0;
+            }
+            return acc;
+        }, { venta: 0, bultos: 0, envio: 0 });
+        var totalVenta = totals.venta;
+        var totalBultos = totals.bultos;
+        var totalEnvio = totals.envio;
         var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
 
         var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
@@ -721,9 +729,8 @@ const Interlogic = {
                         var batch = db.batch();
                         batch.set(db.collection('notasCredito').doc(), ncData);
                         batch.set(db.collection('interlogic').doc(), data);
-                        var ccfDoc = await db.collection('interlogic').doc(ncInterlogicIdVal).get();
-                        if (ccfDoc.exists) {
-                            var ccfData = ccfDoc.data();
+                        var ccfData = this.records.find(function(r) { return r.id === ncInterlogicIdVal; });
+                        if (ccfData) {
                             var cobradoActualCents = toCents(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
                             var ventaCCFCents = toCents(ccfData.venta || 0);
                             var dataVentaCents = toCents(data.venta);
@@ -1071,51 +1078,8 @@ const Interlogic = {
             </div>
         `;
 
-        // Excel-style: show unique values from records that pass ALL OTHER active filters (excluding this field)
-        const recordsForOptions = this.records.filter(record => {
-            for (let f in this.filters) {
-                if (f === field) continue;
-                const activeValues = this.filters[f];
-
-                if (f === 'startDate' || f === 'endDate') {
-                    const recordDate = record.fecha ? (record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha)).toISOString().split('T')[0] : '';
-                    if (!recordDate) continue;
-                    if (this.filters.startDate && recordDate < this.filters.startDate) return false;
-                    if (this.filters.endDate && recordDate > this.filters.endDate) return false;
-                    continue;
-                }
-
-                if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
-                    if (f === 'search') {
-                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations'];
-                        const match = searchFields.some(sf => String(record[sf] || '').toLowerCase().includes(activeValues.toLowerCase()));
-                        if (!match) return false;
-                        continue;
-                    }
-
-                    let recordValue;
-                    if (f === 'fecha') {
-                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
-                    } else if (f === 'venta' || f === 'costoEnvio') {
-                        recordValue = formatNumber(record[f] || 0, 2);
-                    } else if (f === 'costoPorcentaje') {
-                        recordValue = formatNumber(record[f] || 0, 2) + '%';
-                    } else {
-                        recordValue = String(record[f] || ' (Vacío)');
-                    }
-
-                    if (Array.isArray(activeValues)) {
-                        if (!activeValues.includes(recordValue)) return false;
-                    } else if (typeof activeValues === 'string' && activeValues) {
-                        if (!recordValue.toLowerCase().includes(activeValues.toLowerCase())) return false;
-                    }
-                }
-            }
-            return true;
-        });
-
-        // If no records pass other filters, fall back to all records
-        const sourceRecords = recordsForOptions.length > 0 ? recordsForOptions : this.records;
+        // Use already-filtered records (avoids re-computing all filters)
+        const sourceRecords = this.filteredRecords.length > 0 ? this.filteredRecords : this.records;
         const uniqueValues = [...new Set(sourceRecords.map(r => {
             if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
             if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
@@ -1237,14 +1201,14 @@ const Interlogic = {
         if (!tableBody) return;
 
         // Update header active states
-        for (let field in this.filters) {
-            const header = document.querySelector(`[onclick*="toggleFilter(event, '${field}')"]`);
-            if (header) {
-                const isActive = Array.isArray(this.filters[field]) ? this.filters[field].length > 0 : !!this.filters[field];
-                if (isActive) header.classList.add('filter-active');
-                else header.classList.remove('filter-active');
+        document.querySelectorAll('th[onclick]').forEach(function(header) {
+            var onclick = header.getAttribute('onclick');
+            var match = onclick && onclick.match(/toggleFilter\s*\(\s*event\s*,\s*'([^']+)'\s*\)/);
+            if (match && Interlogic.filters && Interlogic.filters.hasOwnProperty(match[1])) {
+                var isActive = Array.isArray(Interlogic.filters[match[1]]) ? Interlogic.filters[match[1]].length > 0 : !!Interlogic.filters[match[1]];
+                header.classList.toggle('filter-active', isActive);
             }
-        }
+        });
 
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
@@ -2258,13 +2222,12 @@ const Interlogic = {
                                     const cliData = cliSnap.docs[0].data();
                                     const limite = parseFloat(cliData.limiteCredito) || 0;
                                     if (limite > 0) {
-                                        const crSnap = await firebase.firestore().collection('interlogic')
-                                            .where('cliente', '==', data.cliente)
-                                            .where('condicionPago', '==', 'Crédito').get();
-                                        const deudaTotal = crSnap.docs.reduce((s, doc) => {
-                                            const d = doc.data();
-                                            const cob = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
-                                            return s + Math.max(0, Number(d.venta || 0) - cob);
+                                        const deudaTotal = Interlogic.records.reduce(function(s, r) {
+                                            if (r.cliente === data.cliente && r.condicionPago === 'Crédito') {
+                                                var cob = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
+                                                return s + Math.max(0, Number(r.venta || 0) - cob);
+                                            }
+                                            return s;
                                         }, 0);
                                         if (deudaTotal > limite) {
                                             showToast('⚠️ ATENCIÓN: La deuda total de ' + data.cliente + ' ($' + formatNumber(deudaTotal, 2) + ') excede su límite de crédito ($' + formatNumber(limite, 2) + ')', 'warning');
@@ -2280,13 +2243,11 @@ const Interlogic = {
                 if (this._saveAndAddAnother) {
                     this._saveAndAddAnother = false;
                     modal.remove();
-                    await this.loadRecords();
                     this.showForm(); // Re-open form with last values
                     return;
                 }
 
                 modal.remove();
-                await this.loadRecords();
             } catch (error) {
                 console.error('Error saving record:', error);
                 showToast('Error al guardar: ' + error.message, 'error');

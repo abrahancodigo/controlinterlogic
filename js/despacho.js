@@ -39,6 +39,11 @@ const Despacho = {
     },
 
     async renderDesktop() {
+        if (this._clickListener) {
+            document.removeEventListener('click', this._clickListener);
+            this._clickListener = null;
+        }
+
         const contentArea = document.getElementById('content-area');
 
         contentArea.innerHTML = `
@@ -270,12 +275,13 @@ const Despacho = {
             });
         }
 
-        // Close filters when clicking outside
-        document.addEventListener('click', (e) => {
+        var closeFilters = function(e) {
             if (!e.target.closest('.filter-header')) {
-                document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+                document.querySelectorAll('.filter-popup').forEach(function(p) { p.classList.remove('show'); });
             }
-        });
+        };
+        document.addEventListener('click', closeFilters);
+        Despacho._clickListener = closeFilters;
 
         this.applyDespachoStyles();
     },
@@ -301,8 +307,11 @@ const Despacho = {
 
     async loadRoutes() {
         const db = firebase.firestore();
-        db.collection('rutas').orderBy('fecha', 'desc').onSnapshot(snap => {
+        if (this._unsubRoutes) this._unsubRoutes();
+        this._unsubRoutes = db.collection('rutas').orderBy('fecha', 'desc').onSnapshot(snap => {
             this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            this._routesById = {};
+            for (var i = 0; i < this.routes.length; i++) { this._routesById[this.routes[i].id] = this.routes[i]; }
             const select = document.getElementById('ds-filter-ruta');
             if (select) {
                 const cur = select.value;
@@ -328,7 +337,7 @@ const Despacho = {
     async asignarARuta() {
         const routeId = document.getElementById('ds-filter-ruta')?.value;
         if (!routeId) { showToast('Selecciona una ruta primero', 'error'); return; }
-        const route = this.routes.find(r => r.id === routeId);
+        const route = (this._routesById ? this._routesById[routeId] : this.routes.find(r => r.id === routeId));
         if (!route) { showToast('Ruta no encontrada', 'error'); return; }
 
         const recordsToAssign = this.filteredRecords.filter(r => !r.rutaId);
@@ -631,7 +640,7 @@ const Despacho = {
 
         body.innerHTML = this.filteredRecords.map(record => {
             const isDelivered = record.entregado === true;
-            const rutaInfo = this.routes.find(r => r.id === record.rutaId);
+            const rutaInfo = (this._routesById ? this._routesById[record.rutaId] : this.routes.find(r => r.id === record.rutaId));
             return `
                 <tr class="${isDelivered ? 'ds-row-delivered' : 'ds-row-pending'}">
                     <td><strong>${record.guia || ''}</strong></td>

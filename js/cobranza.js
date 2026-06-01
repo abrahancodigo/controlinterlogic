@@ -18,6 +18,22 @@ const Cobranza = {
     unsubscribeGestiones: null,
     unsubscribeAjustes: null,
     unsubscribeNC: null,
+    _dataLoaded: false,
+    _docClickHandlers: [],
+
+    destroy() {
+        [this.unsubscribeRecords, this.unsubscribeCobros, this.unsubscribeGestiones,
+         this.unsubscribeAjustes, this.unsubscribeNC].forEach(function(fn) {
+            if (typeof fn === 'function') fn();
+        });
+        this.unsubscribeRecords = this.unsubscribeCobros = this.unsubscribeGestiones =
+            this.unsubscribeAjustes = this.unsubscribeNC = null;
+        this._docClickHandlers.forEach(function(fn) {
+            document.removeEventListener('click', fn);
+        });
+        this._docClickHandlers = [];
+        this._dataLoaded = false;
+    },
 
     async render() {
         if (window.innerWidth <= 768) return this.renderMobile();
@@ -55,7 +71,10 @@ const Cobranza = {
         document.getElementById('cob-tab-gestiones').addEventListener('click', () => { this.currentView='gestiones'; this.renderDesktop(); });
         document.getElementById('cob-tab-ajustes').addEventListener('click', () => { this.currentView='ajustes'; this.renderDesktop(); });
 
-        await this.loadData();
+        if (!this._dataLoaded) {
+            await this.loadData();
+            this._dataLoaded = true;
+        }
         this.renderCurrentView();
     },
 
@@ -76,7 +95,6 @@ const Cobranza = {
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('records');
                 }, err => { console.error('Error loading interlogic:', err); showToast('Error cargando registros', 'error'); checkDone('records'); });
 
@@ -85,7 +103,6 @@ const Cobranza = {
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.cobros = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('cobros');
                 }, err => { console.error('Error loading cobros:', err); showToast('Error cargando cobros', 'error'); checkDone('cobros'); });
 
@@ -94,7 +111,6 @@ const Cobranza = {
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.gestiones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('gestiones');
                 }, err => { console.error('Error loading gestiones:', err); showToast('Error cargando gestiones', 'error'); checkDone('gestiones'); });
 
@@ -103,7 +119,6 @@ const Cobranza = {
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.ajustes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('ajustes');
                 }, err => { console.error('Error loading ajustes:', err); showToast('Error cargando ajustes', 'error'); checkDone('ajustes'); });
 
@@ -112,12 +127,13 @@ const Cobranza = {
                 .orderBy('createdAt', 'desc')
                 .onSnapshot(snap => {
                     this.notasCredito = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('nc');
                 }, err => { console.error('Error loading notasCredito:', err); showToast('Error cargando notas de crédito', 'error'); checkDone('nc'); });
 
             db.collection('rutas').orderBy('fecha', 'desc').limit(100).get().then(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                this._routesMap = {};
+                for (var i = 0; i < this.routes.length; i++) { this._routesMap[this.routes[i].id] = this.routes[i]; }
                 checkDone('rutas');
             }).catch(err => { console.error('Error loading rutas:', err); showToast('Error cargando rutas', 'error'); checkDone('rutas'); });
 
@@ -377,25 +393,21 @@ const Cobranza = {
         const records = this.getCreditRecords().filter(r => r.estadoCobro !== 'pagado');
         const alertas = [];
 
-        records.forEach(r => {
-            if (r.agingDays >= 60) alertas.push({ tipo: 'critico', icono: '🔴', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido hace ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
-        });
-
-        records.forEach(r => {
-            if (r.agingDays >= 30 && r.agingDays < 60) alertas.push({ tipo: 'warning', icono: '🟠', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} con ${r.agingDays} días de atraso (Guía #${r.guia||'N/A'})` });
-        });
-
-        records.forEach(r => {
-            if (r.agingDays > 0 && r.agingDays < 30) alertas.push({ tipo: 'aviso', icono: '🟡', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido por ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
-        });
-
-        const now = new Date();
-        records.filter(r => r.agingDays <= 0).forEach(r => {
-            if (r.fechaVenc) {
-                const diasHasta = Math.abs(r.agingDays);
-                if (diasHasta <= 7) alertas.push({ tipo: 'info', icono: '🔵', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vence en ${diasHasta} días (Guía #${r.guia||'N/A'})` });
+        for (var i = 0; i < records.length; i++) {
+            var r = records[i];
+            if (r.agingDays >= 60) {
+                alertas.push({ tipo: 'critico', icono: '🔴', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido hace ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
+            } else if (r.agingDays >= 30) {
+                alertas.push({ tipo: 'warning', icono: '🟠', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} con ${r.agingDays} días de atraso (Guía #${r.guia||'N/A'})` });
+            } else if (r.agingDays > 0) {
+                alertas.push({ tipo: 'aviso', icono: '🟡', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido por ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
+            } else if (r.agingDays <= 0 && r.fechaVenc) {
+                var diasHasta = Math.abs(r.agingDays);
+                if (diasHasta <= 7) {
+                    alertas.push({ tipo: 'info', icono: '🔵', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vence en ${diasHasta} días (Guía #${r.guia||'N/A'})` });
+                }
             }
-        });
+        }
 
         return alertas;
     },
@@ -522,11 +534,13 @@ const Cobranza = {
 
         searchInput.addEventListener('input', (e) => filterClients(e.target.value));
         searchInput.addEventListener('focus', () => { if (searchInput.value) filterClients(searchInput.value); });
-        document.addEventListener('click', (e) => {
+        var gesDocClick = function(e) {
             if (!e.target.closest('#ges-cliente-search') && !e.target.closest('#ges-cliente-dropdown')) {
                 dropdown.style.display = 'none';
             }
-        });
+        };
+        document.addEventListener('click', gesDocClick);
+        Cobranza._docClickHandlers.push(gesDocClick);
 
         document.getElementById('gestion-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -725,15 +739,16 @@ const Cobranza = {
         guiaSearch.addEventListener('input', (e) => filterGuias(e.target.value));
         guiaSearch.addEventListener('focus', () => { if (guiaSearch.value) filterGuias(guiaSearch.value); });
 
-        // Close dropdowns on outside click
-        document.addEventListener('click', (e) => {
+        var ajDocClick = function(e) {
             if (!e.target.closest('#aj-cliente-search') && !e.target.closest('#aj-cliente-dropdown')) {
                 clienteDropdown.style.display = 'none';
             }
             if (!e.target.closest('#aj-guia-search') && !e.target.closest('#aj-guia-dropdown')) {
                 guiaDropdown.style.display = 'none';
             }
-        });
+        };
+        document.addEventListener('click', ajDocClick);
+        Cobranza._docClickHandlers.push(ajDocClick);
 
         document.getElementById('ajuste-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1055,9 +1070,10 @@ const Cobranza = {
         const totalCobrado = filtered.reduce((s, r) => s + Number(r.montoCobrado || (r.cobrado===true?r.venta:0)), 0);
         const totalPendiente = totalVenta - totalCobrado;
 
-        const ajustesRel = this.ajustes.filter(a => {
-            const match = filtered.some(r => r.guia === a.guia);
-            if (match) return true;
+        var guiasInFilter = {};
+        for (var i = 0; i < filtered.length; i++) { guiasInFilter[filtered[i].guia] = true; }
+        const ajustesRel = this.ajustes.filter(function(a) {
+            if (guiasInFilter[a.guia]) return true;
             return q && a.cliente && a.cliente.toLowerCase().includes(q);
         });
         const ajusteNeto = ajustesRel.reduce((s, a) => s + (Number(a.monto) || 0), 0);
@@ -1083,7 +1099,7 @@ const Cobranza = {
                     const p = Math.max(0,Number(r.venta||0)-c-prog);
                     const e = r.estadoCobro||(r.cobrado===true?'pagado':'pendiente');
                     const ec = e==='pagado'?'#22c55e':e==='parcial'?'#f97316':'#ef4444';
-                    const ruta = this.routes.find(rt => rt.id === r.rutaId);
+                    const ruta = Cobranza._routesMap ? Cobranza._routesMap[r.rutaId] : null;
                     const rutaLabel = ruta ? '#' + (ruta.correlativo || ruta.id.substring(0,6)) + ' ' + (ruta.repartidorNombre||'') : '-';
                     const showPayBtn = p > 0 || e !== 'pagado';
                     return `<tr>
@@ -1124,6 +1140,16 @@ const Cobranza = {
             byClient[n].total += r.pendiente;
         });
         const cl = Object.entries(byClient).sort((a,b)=>b[1].total-a[1].total);
+        var agingTotals = { total: 0, corriente: 0, '1-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+        for (var i = 0; i < cl.length; i++) {
+            var b = cl[i][1];
+            agingTotals.total += b.total;
+            agingTotals.corriente += b.corriente;
+            agingTotals['1-30'] += b['1-30'];
+            agingTotals['31-60'] += b['31-60'];
+            agingTotals['61-90'] += b['61-90'];
+            agingTotals['90+'] += b['90+'];
+        }
         container.innerHTML = `
             <div class="card">
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
@@ -1132,7 +1158,7 @@ const Cobranza = {
                 </div>
                 <div class="card-body">
                     ${cl.length===0?'<p style="text-align:center;padding:2rem;color:#8e8e93;">No hay saldos pendientes</p>':
-                    `<div class="table-container"><table class="data-table" style="font-size:0.85rem;"><thead><tr><th>Cliente</th><th style="text-align:right;">Total</th><th style="text-align:right;color:#22c55e;">Corriente</th><th style="text-align:right;color:#eab308;">1-30 d</th><th style="text-align:right;color:#f97316;">31-60 d</th><th style="text-align:right;color:#ef4444;">61-90 d</th><th style="text-align:right;color:#dc2626;">90+ d</th></tr></thead><tbody>${cl.map(([n,b])=>`<tr><td><strong>${sanitizeHTML(n)}</strong></td><td style="text-align:right;font-weight:700;">$${formatNumber(b.total,2)}</td><td style="text-align:right;">$${formatNumber(b.corriente,2)}</td><td style="text-align:right;">$${formatNumber(b['1-30'],2)}</td><td style="text-align:right;">$${formatNumber(b['31-60'],2)}</td><td style="text-align:right;">$${formatNumber(b['61-90'],2)}</td><td style="text-align:right;">$${formatNumber(b['90+'],2)}</td></tr>`).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:700;"><td>TOTALES</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b.total,0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b.corriente,0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['1-30'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['31-60'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['61-90'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['90+'],0),2)}</td></tr></tfoot></table></div>`}
+                    `<div class="table-container"><table class="data-table" style="font-size:0.85rem;"><thead><tr><th>Cliente</th><th style="text-align:right;">Total</th><th style="text-align:right;color:#22c55e;">Corriente</th><th style="text-align:right;color:#eab308;">1-30 d</th><th style="text-align:right;color:#f97316;">31-60 d</th><th style="text-align:right;color:#ef4444;">61-90 d</th><th style="text-align:right;color:#dc2626;">90+ d</th></tr></thead><tbody>${cl.map(([n,b])=>`<tr><td><strong>${sanitizeHTML(n)}</strong></td><td style="text-align:right;font-weight:700;">$${formatNumber(b.total,2)}</td><td style="text-align:right;">$${formatNumber(b.corriente,2)}</td><td style="text-align:right;">$${formatNumber(b['1-30'],2)}</td><td style="text-align:right;">$${formatNumber(b['31-60'],2)}</td><td style="text-align:right;">$${formatNumber(b['61-90'],2)}</td><td style="text-align:right;">$${formatNumber(b['90+'],2)}</td></tr>`).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:700;"><td>TOTALES</td><td style="text-align:right;">$${formatNumber(agingTotals.total,2)}</td><td style="text-align:right;">$${formatNumber(agingTotals.corriente,2)}</td><td style="text-align:right;">$${formatNumber(agingTotals['1-30'],2)}</td><td style="text-align:right;">$${formatNumber(agingTotals['31-60'],2)}</td><td style="text-align:right;">$${formatNumber(agingTotals['61-90'],2)}</td><td style="text-align:right;">$${formatNumber(agingTotals['90+'],2)}</td></tr></tfoot></table></div>`}
                 </div>
             </div>
         `;

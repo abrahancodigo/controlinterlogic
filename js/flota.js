@@ -9,6 +9,17 @@ const Flota = {
     unsubscribeOT: null,
     unsubscribeProveedores: null,
     selectedVehiculoId: null,
+    _dataLoaded: false,
+
+    destroy() {
+        [this.unsubscribeVehiculos, this.unsubscribeMantenimientos,
+         this.unsubscribeOT, this.unsubscribeProveedores].forEach(function(fn) {
+            if (typeof fn === 'function') fn();
+        });
+        this.unsubscribeVehiculos = this.unsubscribeMantenimientos =
+            this.unsubscribeOT = this.unsubscribeProveedores = null;
+        this._dataLoaded = false;
+    },
 
     async render() {
         if (window.innerWidth <= 768) return this.renderMobile();
@@ -40,7 +51,10 @@ const Flota = {
         document.getElementById('fl-tab-ordenes').addEventListener('click', () => { this.currentView='ordenes'; this.renderDesktop(); });
         document.getElementById('fl-tab-talleres').addEventListener('click', () => { this.currentView='talleres'; this.renderDesktop(); });
 
-        await this.loadData();
+        if (!this._dataLoaded) {
+            await this.loadData();
+            this._dataLoaded = true;
+        }
         this.renderCurrentView();
     },
 
@@ -64,7 +78,10 @@ const Flota = {
         document.getElementById('fl-tab-ordenes-m').addEventListener('click', () => { this.currentView='ordenes'; this.renderMobile(); });
         document.getElementById('fl-tab-talleres-m').addEventListener('click', () => { this.currentView='talleres'; this.renderMobile(); });
 
-        await this.loadData();
+        if (!this._dataLoaded) {
+            await this.loadData();
+            this._dataLoaded = true;
+        }
         this.renderCurrentViewMobile();
     },
 
@@ -83,7 +100,8 @@ const Flota = {
                 .orderBy('nombre', 'asc')
                 .onSnapshot(snap => {
                     this.vehiculos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (loaded.size >= total) this.renderCurrentView();
+                    this._vehiculosById = {};
+                    for (var i = 0; i < this.vehiculos.length; i++) { this._vehiculosById[this.vehiculos[i].id] = this.vehiculos[i]; }
                     checkDone('vehiculos');
                 }, err => { console.error('Error loading vehiculos:', err); checkDone('vehiculos'); });
 
@@ -92,7 +110,6 @@ const Flota = {
                 .orderBy('fecha', 'desc').limit(200)
                 .onSnapshot(snap => {
                     this.mantenimientos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (loaded.size >= total) this.renderCurrentView();
                     checkDone('mantenimientos');
                 }, err => { console.error('Error loading mantenimientos:', err); checkDone('mantenimientos'); });
 
@@ -101,7 +118,6 @@ const Flota = {
                 .orderBy('fecha', 'desc').limit(200)
                 .onSnapshot(snap => {
                     this.ordenesTrabajo = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (loaded.size >= total) this.renderCurrentView();
                     checkDone('ordenes');
                 }, err => { console.error('Error loading OT:', err); checkDone('ordenes'); });
 
@@ -110,7 +126,6 @@ const Flota = {
                 .orderBy('nombre', 'asc')
                 .onSnapshot(snap => {
                     this.proveedores = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (loaded.size >= total) this.renderCurrentView();
                     checkDone('proveedores');
                 }, err => { console.error('Error loading proveedores:', err); checkDone('proveedores'); });
         });
@@ -212,14 +227,14 @@ const Flota = {
         document.querySelectorAll('.vehiculo-row').forEach(row => {
             row.addEventListener('click', (e) => {
                 if (e.target.closest('.actions-cell')) return;
-                const v = this.vehiculos.find(x => x.id === row.dataset.id);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[row.dataset.id] : this.vehiculos.find(x => x.id === row.dataset.id));
                 if (v) this.showVehiculoDetail(v);
             });
         });
         document.querySelectorAll('.btn-edit-vehiculo').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const v = this.vehiculos.find(x => x.id === btn.dataset.id);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[btn.dataset.id] : this.vehiculos.find(x => x.id === btn.dataset.id));
                 if (v) this.showModalVehiculo(v);
             });
         });
@@ -276,14 +291,14 @@ const Flota = {
         document.querySelectorAll('.m-vehiculo-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 if (e.target.closest('button')) return;
-                const v = this.vehiculos.find(x => x.id === card.dataset.id);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[card.dataset.id] : this.vehiculos.find(x => x.id === card.dataset.id));
                 if (v) this.showVehiculoDetail(v);
             });
         });
         document.querySelectorAll('.btn-edit-vehiculo-m').forEach(b => {
             b.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const v = this.vehiculos.find(x => x.id === b.dataset.id);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[b.dataset.id] : this.vehiculos.find(x => x.id === b.dataset.id));
                 if (v) this.showModalVehiculo(v);
             });
         });
@@ -539,7 +554,7 @@ const Flota = {
             ? this.mantenimientos.filter(m => m.vehiculoId === this.selectedVehiculoId)
             : this.mantenimientos;
 
-        const vehiculo = this.selectedVehiculoId ? this.vehiculos.find(v => v.id === this.selectedVehiculoId) : null;
+        const vehiculo = this.selectedVehiculoId ? (Flota._vehiculosById ? Flota._vehiculosById[this.selectedVehiculoId] : this.vehiculos.find(v => v.id === this.selectedVehiculoId)) : null;
 
         container.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
@@ -572,7 +587,7 @@ const Flota = {
                     <tbody>
                         ${filtrados.length === 0 ? '<tr><td colspan="8" style="text-align:center;padding:2rem;">No hay registros de mantenimiento</td></tr>' :
                         filtrados.map(m => {
-                            const v = this.vehiculos.find(x => x.id === m.vehiculoId);
+                            const v = (Flota._vehiculosById ? Flota._vehiculosById[m.vehiculoId] : this.vehiculos.find(x => x.id === m.vehiculoId));
                             return `<tr>
                                 <td>${v ? `<strong>${this.sanitize(v.nombre)}</strong><br><span style="font-size:0.7rem;">${this.sanitize(v.numeroPlaca)}</span>` : '<em>Eliminado</em>'}</td>
                                 <td>${m.fecha ? this.formatDate(m.fecha) : '-'}</td>
@@ -641,7 +656,7 @@ const Flota = {
                 ${canEdit ? `<button class="btn btn-primary btn-sm" id="btn-nuevo-manto-m">+</button>` : ''}
             </div>
             ${filtrados.map(m => {
-                const v = this.vehiculos.find(x => x.id === m.vehiculoId);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[m.vehiculoId] : this.vehiculos.find(x => x.id === m.vehiculoId));
                 return `<div class="m-data-card" style="margin-bottom:0.4rem;padding:0.4rem;">
                     <div style="display:flex;justify-content:space-between;">
                         <strong>${v ? this.sanitize(v.nombre) : 'N/A'}</strong>
@@ -980,7 +995,7 @@ const Flota = {
                     <tbody>
                         ${this.ordenesTrabajo.length === 0 ? '<tr><td colspan="9" style="text-align:center;padding:2rem;">No hay órdenes de trabajo</td></tr>' :
                         this.ordenesTrabajo.map(ot => {
-                            const v = this.vehiculos.find(x => x.id === ot.vehiculoId);
+                            const v = (Flota._vehiculosById ? Flota._vehiculosById[ot.vehiculoId] : this.vehiculos.find(x => x.id === ot.vehiculoId));
                             const estadoBadge = ot.estado === 'pendiente' ? 'badge-warning' : (ot.estado === 'completado' ? 'badge-success' : 'badge-error');
                             return `<tr>
                                 <td><strong>${this.sanitize(ot.numeroOrden || '-')}</strong></td>
@@ -1025,7 +1040,7 @@ const Flota = {
         container.innerHTML = `
             <div style="margin-bottom:0.5rem;"><strong>${this.ordenesTrabajo.length} órdenes</strong></div>
             ${this.ordenesTrabajo.map(ot => {
-                const v = this.vehiculos.find(x => x.id === ot.vehiculoId);
+                const v = (Flota._vehiculosById ? Flota._vehiculosById[ot.vehiculoId] : this.vehiculos.find(x => x.id === ot.vehiculoId));
                 return `<div class="m-data-card" style="margin-bottom:0.4rem;padding:0.4rem;">
                     <div style="display:flex;justify-content:space-between;">
                         <strong>${this.sanitize(ot.numeroOrden || '-')}</strong>
@@ -1048,7 +1063,7 @@ const Flota = {
     },
 
     printOT(ot) {
-        const v = this.vehiculos.find(x => x.id === ot.vehiculoId);
+        const v = (Flota._vehiculosById ? Flota._vehiculosById[ot.vehiculoId] : this.vehiculos.find(x => x.id === ot.vehiculoId));
         const printWin = window.open('', '_blank', 'width=800,height=600');
         printWin.document.write(`
             <html><head><title>OT ${ot.numeroOrden}</title>

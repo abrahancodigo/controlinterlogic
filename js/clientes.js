@@ -850,9 +850,13 @@ const Clientes = {
             }).join('');
         }
 
+        var conPhone = 0, conAddr = 0;
+        for (var ci = 0; ci < this.filteredRecords.length; ci++) {
+            var cc = this.filteredRecords[ci];
+            if (cc.telefono) conPhone++;
+            if (cc.direccion) conAddr++;
+        }
         var total = this.filteredRecords.length;
-        var conPhone = this.filteredRecords.filter(function(c) { return c.telefono; }).length;
-        var conAddr = this.filteredRecords.filter(function(c) { return c.direccion; }).length;
         var s = function(id,v) { var e=document.getElementById(id); if(e) e.textContent=v; };
         s('mc-total', total); s('mc-phone', conPhone); s('mc-addr', conAddr);
     },
