@@ -1553,7 +1553,8 @@ tbody tr {
     }
 
     /* Modal form grids: single column */
-    .modal-content div[style*="grid-template-columns"] {
+    .modal-content div[style*="grid-template-columns"],
+    .premium-modal-body div[style*="grid-template-columns"] {
         grid-template-columns: 1fr !important;
     }
 
@@ -2434,6 +2435,13 @@ tbody tr {
     padding: 1.15rem 1.75rem;
     border-top: 1px solid var(--gray-100);
     background: var(--gray-50);
+}
+
+/* Interlogic modal textarea */
+#il-observations:focus {
+    outline: none !important;
+    border-color: var(--primary-500) !important;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12) !important;
 }
 
 /* Form sections */
@@ -4352,7 +4360,8 @@ tbody tr {
         margin-bottom: 0.5rem;
     }
 
-    .modal-content div[style*="grid-template-columns"] {
+    .modal-content div[style*="grid-template-columns"],
+    .premium-modal-body div[style*="grid-template-columns"] {
         grid-template-columns: 1fr !important;
     }
 

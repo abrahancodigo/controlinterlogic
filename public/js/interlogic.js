@@ -1679,135 +1679,179 @@ const Interlogic = {
         modal.className = 'modal-backdrop';
 
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 650px;">
-                <h2 style="margin-bottom: 1.5rem;">${record ? '✏️ Editar Registro' : (sourceRecord ? '📋 Duplicar Registro' : '➕ Nuevo Registro de Guía')}</h2>
-                
-                <form id="interlogic-form">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>Guía</label>
-                            <input type="number" id="il-guia" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.guia || '') : '')}">
-                        </div>
-                        <div class="form-group">
-                            <label>Empresa</label>
-                            <select id="il-empresa">
-                                <option value="" ${!val('empresa') ? 'selected' : ''}>Seleccionar...</option>
-                                <option value="DALSE" ${val('empresa') === 'DALSE' ? 'selected' : ''}>DALSE</option>
-                                <option value="INCEDE" ${val('empresa') === 'INCEDE' ? 'selected' : ''}>INCEDE</option>
-                            </select>
+            <div class="premium-modal" style="max-width: 680px;">
+                <div class="premium-modal-header">
+                    <div class="premium-modal-title">
+                        <div class="premium-modal-icon">${record ? '✏️' : (sourceRecord ? '📋' : '➕')}</div>
+                        <div>
+                            <h2>${record ? 'Editar Registro' : (sourceRecord ? 'Duplicar Registro' : 'Nuevo Registro')}</h2>
+                            <p>${record ? 'Modifica los datos de este envío' : (sourceRecord ? 'Crea una copia de un registro existente' : 'Completa los datos del nuevo envío')}</p>
                         </div>
                     </div>
+                    <button class="premium-close" onclick="this.closest('.modal-backdrop').remove()" type="button">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>Fecha</label>
-                            <input type="date" id="il-fecha" value="${dateValue}">
-                        </div>
-                        <div class="form-group">
-                            <label>Documento</label>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <select id="il-doc" style="flex: 1;">
-                                    <option value="" ${!val('doc') ? 'selected' : ''}>Tipo...</option>
-                                    <option value="CCF" ${val('doc') === 'CCF' ? 'selected' : ''}>CCF</option>
-                                    <option value="FT" ${val('doc') === 'FT' ? 'selected' : ''}>FT</option>
-                                    <option value="NC" ${val('doc') === 'NC' ? 'selected' : ''}>NC</option>
-                                </select>
-                                <input type="text" id="il-docNum" placeholder="#" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.docNum || '') : '')}" style="flex: 1;">
+                <div class="premium-modal-body">
+                    <form id="interlogic-form">
+
+                        <!-- Section 1: Información del Documento -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <span class="form-step">1</span>
+                                <h3>Información del Documento</h3>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label>Guía</label>
+                                    <input type="number" id="il-guia" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.guia || '') : '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Empresa</label>
+                                    <select id="il-empresa">
+                                        <option value="" ${!val('empresa') ? 'selected' : ''}>Seleccionar...</option>
+                                        <option value="DALSE" ${val('empresa') === 'DALSE' ? 'selected' : ''}>DALSE</option>
+                                        <option value="INCEDE" ${val('empresa') === 'INCEDE' ? 'selected' : ''}>INCEDE</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Fecha</label>
+                                    <input type="date" id="il-fecha" value="${dateValue}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Documento</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <select id="il-doc" style="flex: 1;">
+                                            <option value="" ${!val('doc') ? 'selected' : ''}>Tipo...</option>
+                                            <option value="CCF" ${val('doc') === 'CCF' ? 'selected' : ''}>CCF</option>
+                                            <option value="FT" ${val('doc') === 'FT' ? 'selected' : ''}>FT</option>
+                                            <option value="NC" ${val('doc') === 'NC' ? 'selected' : ''}>NC</option>
+                                        </select>
+                                        <input type="text" id="il-docNum" placeholder="#" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.docNum || '') : '')}" style="flex: 1;">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="form-group" style="margin-top: 1rem; position: relative;">
-                        <label>Cliente</label>
-                            <input type="text" id="il-cliente" autocomplete="off" value="${sourceRecord ? sanitizeHTML(sourceRecord.cliente || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.cliente || '').replace(/"/g, '&quot;') : '')}">
-                        <div id="il-cliente-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--gray-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 1300; max-height: 200px; overflow-y: auto;"></div>
-                    </div>
+                        <!-- Section 2: Información del Cliente -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <span class="form-step">2</span>
+                                <h3>Información del Cliente</h3>
+                            </div>
 
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label>Dirección</label>
-                            <input type="text" id="il-direccion" placeholder="Dirección del cliente" value="${sanitizeHTML(val('direccion')).replace(/"/g, '&quot;')}">
-                    </div>
+                            <div class="form-group" style="position: relative;">
+                                <label>Cliente</label>
+                                <input type="text" id="il-cliente" autocomplete="off" value="${sourceRecord ? sanitizeHTML(sourceRecord.cliente || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.cliente || '').replace(/"/g, '&quot;') : '')}">
+                                <div id="il-cliente-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--gray-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 1300; max-height: 200px; overflow-y: auto;"></div>
+                            </div>
 
-                    <div id="il-nc-fields" style="display: none; margin-top: 1rem; padding: 1rem; background: #fffbeb; border-radius: var(--radius-md); border: 1px solid #f59e0b;">
-                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.75rem; color:#92400e;">📋 Opciones de Nota de Crédito</div>
-                        <div class="form-group">
-                            <label>Afecta saldo de algún CCF/FT</label>
-                            <select id="il-nc-afectaSaldo">
-                                <option value="no">No - NC general (no afecta ningún documento)</option>
-                                <option value="si">Sí - Descontar del saldo de un CCF/FT específico</option>
-                            </select>
+                            <div class="form-group" style="margin-top: 0.75rem;">
+                                <label>Dirección</label>
+                                <input type="text" id="il-direccion" placeholder="Dirección del cliente" value="${sanitizeHTML(val('direccion')).replace(/"/g, '&quot;')}">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Teléfono (WhatsApp)</label>
+                                    <input type="text" id="il-telefono" placeholder="Ej: 50370000000" value="${sourceRecord ? sanitizeHTML(sourceRecord.telefono || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.telefono || '').replace(/"/g, '&quot;') : '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Zona</label>
+                                    <input type="text" id="il-zona" value="${sanitizeHTML(val('zona')).replace(/"/g, '&quot;')}">
+                                </div>
+                            </div>
                         </div>
-                        <div id="il-nc-ccf-group" style="display: none; margin-top: 0.75rem;">
+
+                        <!-- Section 3: Detalles de Venta -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <span class="form-step">3</span>
+                                <h3>Detalles de Venta</h3>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label>Vendedor</label>
+                                    <input type="text" id="il-vendedor" value="${sanitizeHTML(val('vendedor')).replace(/"/g, '&quot;')}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="il-venta">Venta ($)</label>
+                                    <input type="number" id="il-venta" step="0.01" value="${sourceRecord ? (sourceRecord.venta || '') : (record ? record.venta : '')}">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Bultos</label>
+                                    <input type="number" id="il-bultos" value="${sourceRecord ? (sourceRecord.bultos || '') : (record ? record.bultos : '')}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Condición Pago</label>
+                                    <select id="il-condicionPago">
+                                        <option value="" ${!val('condicionPago') ? 'selected' : ''}>Seleccionar...</option>
+                                        <option value="Contado" ${val('condicionPago') === 'Contado' ? 'selected' : ''}>Contado</option>
+                                        <option value="Crédito" ${val('condicionPago') === 'Crédito' ? 'selected' : ''}>Crédito</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
+                                <div class="form-group" id="il-cobrador-group">
+                                    <label>Cajas</label>
+                                    <input type="number" id="il-cobrador" value="${sourceRecord ? (sourceRecord.cobrador || '') : (record ? record.cobrador || '' : '')}">
+                                </div>
+                                <div class="form-group" id="il-plazo-group">
+                                    <label>Plazo Pago (días)</label>
+                                    <input type="number" id="il-plazo" value="30" min="1" max="365">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NC Fields (conditional) -->
+                        <div id="il-nc-fields" style="display: none; margin-top: 1rem; padding: 1rem; background: #fffbeb; border-radius: var(--radius-md); border: 1px solid #f59e0b;">
+                            <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.75rem; color:#92400e;">📋 Opciones de Nota de Crédito</div>
                             <div class="form-group">
-                                <label>Seleccionar CCF/FT del cliente</label>
-                                <select id="il-nc-interlogicId" style="width: 100%;">
-                                    <option value="">-- Seleccionar CCF/FT --</option>
+                                <label>Afecta saldo de algún CCF/FT</label>
+                                <select id="il-nc-afectaSaldo">
+                                    <option value="no">No - NC general (no afecta ningún documento)</option>
+                                    <option value="si">Sí - Descontar del saldo de un CCF/FT específico</option>
                                 </select>
-                                <div id="il-nc-ccf-info" style="display:none; margin-top:0.5rem; padding:0.5rem; background:white; border-radius:var(--radius-sm); font-size:0.8rem; border:1px solid var(--gray-200);"></div>
+                            </div>
+                            <div id="il-nc-ccf-group" style="display: none; margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Seleccionar CCF/FT del cliente</label>
+                                    <select id="il-nc-interlogicId" style="width: 100%;">
+                                        <option value="">-- Seleccionar CCF/FT --</option>
+                                    </select>
+                                    <div id="il-nc-ccf-info" style="display:none; margin-top:0.5rem; padding:0.5rem; background:white; border-radius:var(--radius-sm); font-size:0.8rem; border:1px solid var(--gray-200);"></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>Venta ($)</label>
-                            <input type="number" id="il-venta" step="0.01" value="${sourceRecord ? (sourceRecord.venta || '') : (record ? record.venta : '')}">
+                        <!-- Section 4: Observaciones -->
+                        <div class="form-section" style="margin-bottom: 0;">
+                            <div class="form-section-header">
+                                <span class="form-step" style="background: linear-gradient(135deg, var(--gray-500), var(--gray-600));">📝</span>
+                                <h3>Observaciones</h3>
+                            </div>
+                            <textarea id="il-observations" rows="3" placeholder="Notas u observaciones sobre este registro..." style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--gray-200); border-radius: 16px; font-family: var(--font-family); font-size: 0.9rem; resize: vertical; line-height: 1.6; transition: border-color 0.25s, box-shadow 0.25s;">${sourceRecord ? sanitizeHTML(sourceRecord.observations || '') : (record ? sanitizeHTML(record.observations || '') : '')}</textarea>
                         </div>
-                        <div class="form-group">
-                            <label>Bultos</label>
-                            <input type="number" id="il-bultos" value="${sourceRecord ? (sourceRecord.bultos || '') : (record ? record.bultos : '')}">
-                        </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>Vendedor</label>
-                            <input type="text" id="il-vendedor" value="${sanitizeHTML(val('vendedor')).replace(/"/g, '&quot;')}">
-                        </div>
-                        <div class="form-group">
-                            <label>Teléfono Cliente (WhatsApp)</label>
-                            <input type="text" id="il-telefono" placeholder="Ej: 50370000000" value="${sourceRecord ? sanitizeHTML(sourceRecord.telefono || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.telefono || '').replace(/"/g, '&quot;') : '')}">
-                        </div>
-                    </div>
+                    </form>
+                </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label>Zona</label>
-                            <input type="text" id="il-zona" value="${sanitizeHTML(val('zona')).replace(/"/g, '&quot;')}">
-                        </div>
-                        <div class="form-group">
-                            <label>Condición Pago</label>
-                            <select id="il-condicionPago">
-                                <option value="" ${!val('condicionPago') ? 'selected' : ''}>Seleccionar...</option>
-                                <option value="Contado" ${val('condicionPago') === 'Contado' ? 'selected' : ''}>Contado</option>
-                                <option value="Crédito" ${val('condicionPago') === 'Crédito' ? 'selected' : ''}>Crédito</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                        <div class="form-group" id="il-cobrador-group">
-                            <label>Cajas</label>
-                            <input type="number" id="il-cobrador" value="${sourceRecord ? (sourceRecord.cobrador || '') : (record ? record.cobrador || '' : '')}">
-                        </div>
-                        <div class="form-group" id="il-plazo-group">
-                            <label>Plazo Pago (días)</label>
-                            <input type="number" id="il-plazo" value="30" min="1" max="365">
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 1rem;">
-                        <label>📝 Observaciones</label>
-                        <textarea id="il-observations" rows="2" placeholder="Notas u observaciones sobre este registro..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-family: var(--font-family); resize: vertical;">${sourceRecord ? sanitizeHTML(sourceRecord.observations || '') : (record ? sanitizeHTML(record.observations || '') : '')}</textarea>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; flex-wrap: wrap;">
-                        ${!recordId ? '<button type="button" class="btn btn-secondary" id="btn-il-save-another" title="Guardar y abrir otro formulario">💾+ Guardar y Agregar Otro</button>' : ''}
-                        <button type="submit" class="btn btn-primary" id="btn-il-save">💾 Guardar Registro</button>
-                        <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
-                    </div>
-                </form>
-            </div >
+                <div class="premium-modal-footer">
+                    ${!recordId ? '<button type="button" class="btn btn-secondary" id="btn-il-save-another">💾+ Guardar y Agregar Otro</button>' : ''}
+                    <button type="submit" class="btn btn-primary" id="btn-il-save" form="interlogic-form">💾 Guardar Registro</button>
+                    <button type="button" class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                </div>
+            </div>
     `;
 
         document.body.appendChild(modal);
