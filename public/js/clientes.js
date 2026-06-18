@@ -373,6 +373,11 @@ const Clientes = {
                         </select>
                     </div>
 
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>📦 Observación de Entrega</label>
+                        <textarea id="cl-observacionEntrega" rows="2" placeholder="Ej: No entregar antes de las 2pm, llamar al llegar, etc." style="width: 100%; padding: 0.6rem 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); font-family: var(--font-family); font-size: 0.9rem; resize: vertical;">${sanitizeHTML(record?.observacionEntrega || '')}</textarea>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
                         <div class="form-group">
                             <label>Límite de Crédito ($)</label>
@@ -424,6 +429,7 @@ const Clientes = {
                     condicionPago: document.getElementById('cl-condicionPago').value,
                     limiteCredito: parseFloat(document.getElementById('cl-limiteCredito').value) || 0,
                     plazoPago: parseInt(document.getElementById('cl-plazoPago').value) || 30,
+                    observacionEntrega: document.getElementById('cl-observacionEntrega').value.trim(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
@@ -568,7 +574,7 @@ const Clientes = {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 // Only update fields if the new value is non-empty, or if existing was empty
-                const fields = ['direccion', 'telefono', 'zona', 'vendedor', 'empresa', 'condicionPago'];
+                const fields = ['direccion', 'telefono', 'zona', 'vendedor', 'empresa', 'condicionPago', 'observacionEntrega'];
                 fields.forEach(f => {
                     const newVal = clientData[f] || '';
                     if (newVal || !existingData[f]) {
@@ -593,6 +599,7 @@ const Clientes = {
                     vendedor: clientData.vendedor || '',
                     empresa: clientData.empresa || '',
                     condicionPago: clientData.condicionPago || '',
+                    observacionEntrega: clientData.observacionEntrega || '',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     createdBy: firebase.auth().currentUser?.uid || 'system'
