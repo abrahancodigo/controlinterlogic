@@ -10,7 +10,8 @@ const App = {
         this.setupNavigation();
         this.setupSidebarToggle();
         this.setupMobileNav();
-        this.loadModule('interlogic');
+        const defaultModule = window.innerWidth <= 768 ? 'entrega-rapida' : 'interlogic';
+        this.loadModule(defaultModule);
     },
 
     initFirebase() {
@@ -189,6 +190,7 @@ const App = {
             { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
             { icon: '🧾', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
             { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
+            { icon: '📦', label: 'Historial Entregas', module: 'historial-entregas' },
             { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
             { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
         ];
@@ -264,6 +266,12 @@ const App = {
             switch (moduleName) {
                 case 'deliveries':
                     if (window.Deliveries && window.Deliveries.render) await window.Deliveries.render();
+                    break;
+                case 'entrega-rapida':
+                    if (window.EntregaRapida && window.EntregaRapida.render) await window.EntregaRapida.render();
+                    break;
+                case 'historial-entregas':
+                    if (window.HistorialEntregas && window.HistorialEntregas.render) await window.HistorialEntregas.render();
                     break;
                 case 'interlogic':
                     if (window.Interlogic && window.Interlogic.render) await window.Interlogic.render();
