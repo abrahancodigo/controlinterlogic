@@ -856,7 +856,20 @@ const Interlogic = {
             showToast('No hay datos', 'warning');
             return;
         }
-        var data = this.filteredRecords.map(function(r) { return {'Guía': r.guia||'','Empresa': r.empresa||'','Fecha': r.fecha||'','Doc': r.doc||'','N° Doc': r.docNum||'','Cliente': r.cliente||'','Dirección': r.direccion||'','Zona': r.zona||'','Vendedor': r.vendedor||'','Cond. Pago': r.condicionPago||'','Cobrador': r.cobrador||'','Venta': r.venta||0,'Bultos': r.bultos||0,'Costo Envío': r.costoEnvio||0,'% Costo': r.costoPorcentaje||0,'Observaciones': r.observations||''}; });
+        var self = this;
+        var visibleCols = this.columnDefs.filter(function(c) {
+            return c.key !== 'acciones' && !self.hiddenColumns.includes(c.key);
+        });
+        var data = this.filteredRecords.map(function(r) {
+            var row = {};
+            visibleCols.forEach(function(c) {
+                if (c.key === 'fecha') row[c.label] = r.fecha ? formatDate(r.fecha, false) : '';
+                else if (c.key === 'venta' || c.key === 'costoEnvio') row[c.label] = Number(r[c.key] || 0);
+                else if (c.key === 'costoPorcentaje') row[c.label] = Number(r.costoPorcentaje || 0);
+                else row[c.label] = r[c.key] || '';
+            });
+            return row;
+        });
         var ws = XLSX.utils.json_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
@@ -880,45 +893,40 @@ const Interlogic = {
         const dateStrStart = this.filters.startDate ? formatDate(this.filters.startDate, false) : '(Inicio)';
         const dateStrEnd = this.filters.endDate ? formatDate(this.filters.endDate, false) : '(Fin)';
 
-        // Define headers
-        const headers = [
-            'Guía', 'Empresa', 'Fecha', 'Doc', 'Doc Num',
-            'Cliente', 'Dirección', 'Zona', 'Vendedor', 'Condición',
-            'Venta ($)', 'Bultos', 'Cajas',
-            'Costo Envío ($)', '% Costo', 'Observaciones'
-        ];
+        // Obtener columnas visibles (respetando 👁️ Columnas)
+        const visibleCols = this.columnDefs.filter(c =>
+            c.key !== 'acciones' && !this.hiddenColumns.includes(c.key)
+        );
+
+        const headers = visibleCols.map(c => c.label);
+
+        // Índices para totales
+        const idxVenta = visibleCols.findIndex(c => c.key === 'venta');
+        const idxBultos = visibleCols.findIndex(c => c.key === 'bultos');
+        const idxEnvio = visibleCols.findIndex(c => c.key === 'costoEnvio');
 
         // 2. Map data rows
-        const rows = this.filteredRecords.map(r => [
-            r.guia || '',
-            r.empresa || '',
-            r.fecha ? formatDate(r.fecha, false) : '',
-            r.doc || '',
-            r.docNum || '',
-            r.cliente || '',
-            r.direccion || '',
-            r.zona || '',
-            r.vendedor || '',
-            r.condicionPago || '',
-            Number(r.venta || 0),
-            Number(r.bultos || 0),
-            r.cobrador || '',
-            Number(r.costoEnvio || 0),
-            (Number(r.costoPorcentaje || 0) / 100),
-            r.observations || ''
-        ]);
+        const rows = this.filteredRecords.map(r =>
+            visibleCols.map(c => {
+                if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
+                if (c.key === 'venta' || c.key === 'costoEnvio') return Number(r[c.key] || 0);
+                if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
+                return r[c.key] || '';
+            })
+        );
 
         // 3. Calculate Totals
-        const totalVenta = rows.reduce((sum, row) => sum + row[10], 0);
-        const totalBultos = rows.reduce((sum, row) => sum + row[11], 0);
-        const totalEnvio = rows.reduce((sum, row) => sum + row[13], 0);
+        const totalVenta = idxVenta >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxVenta]) || 0), 0) : 0;
+        const totalBultos = idxBultos >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxBultos]) || 0), 0) : 0;
+        const totalEnvio = idxEnvio >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxEnvio]) || 0), 0) : 0;
 
-        const totalRow = [
-            '', '', '', '', '',
-            '', '', '', '', 'TOTALES:',
-            totalVenta, totalBultos, '',
-            totalEnvio, '', ''
-        ];
+        const totalRow = visibleCols.map((c, i) => {
+            if (i === idxVenta) return totalVenta;
+            if (i === idxBultos) return totalBultos;
+            if (i === idxEnvio) return totalEnvio;
+            if (i === idxVenta - 1) return 'TOTALES:';
+            return '';
+        });
 
         // 4. Construct Final Array of Arrays (AOA)
         const finalAOA = [
@@ -934,13 +942,8 @@ const Interlogic = {
         // 5. Create Worksheet
         const worksheet = XLSX.utils.aoa_to_sheet(finalAOA);
 
-        // 6. Set Column Widths (Approximate)
-        const colWidths = [
-            { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 10 },
-            { wch: 30 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 15 },
-            { wch: 12 }, { wch: 10 }, { wch: 20 },
-            { wch: 15 }, { wch: 10 }, { wch: 30 }
-        ];
+        // 6. Set Column Widths (aproximadas)
+        const colWidths = visibleCols.map(() => ({ wch: 14 }));
         worksheet['!cols'] = colWidths;
 
         // Note: SheetJS Community (free) doesn't allow styling (bold/font size) via code.
