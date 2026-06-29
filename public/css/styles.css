@@ -1201,9 +1201,27 @@ tbody tr {
     }
 }
 
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
 .badge-primary {
     background: var(--primary-100);
     color: var(--primary-700);
+}
+
+.badge-accent {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.badge-ghost {
+    background: var(--gray-100);
+    color: var(--gray-500);
 }
 
 .badge-editor {
