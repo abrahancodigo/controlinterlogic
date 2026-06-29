@@ -23,6 +23,7 @@ const Interlogic = {
         empresa: [],
         fecha: [],
         doc: [],
+        docNum: [],
         cliente: [],
         zona: [],
         vendedor: [],
@@ -46,6 +47,7 @@ const Interlogic = {
         { key: 'empresa', label: 'Empresa' },
         { key: 'fecha', label: 'Fecha' },
         { key: 'doc', label: 'Doc' },
+        { key: 'docNum', label: 'Doc #' },
         { key: 'cliente', label: 'Cliente' },
         { key: 'zona', label: 'Zona' },
         { key: 'vendedor', label: 'Vendedor' },
@@ -214,6 +216,17 @@ const Interlogic = {
                                     </div>
                                 </th>
                                 <th>
+                                    <div class="filter-header" onclick="Interlogic.toggleFilter(event, 'docNum')">
+                                        Doc # <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="filter-popup-docNum" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..." 
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Interlogic.searchInFilter('docNum', this.value)">
+                                            <div class="filter-options-list" id="filter-options-docNum"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
                                     <div class="filter-header" onclick="Interlogic.toggleFilter(event, 'cliente')">
                                         Cliente <span class="filter-trigger">▼</span>
                                         <div class="filter-popup" id="filter-popup-cliente" onclick="event.stopPropagation()">
@@ -350,7 +363,7 @@ const Interlogic = {
                         </thead>
                         <tbody id="interlogic-table-body">
                             <tr>
-                                <td colspan="18" style="text-align: center; padding: 1rem;">Cargando registros...</td>
+                                <td colspan="19" style="text-align: center; padding: 1rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1262,6 +1275,7 @@ const Interlogic = {
             empresa: [],
             fecha: [],
             doc: [],
+            docNum: [],
             cliente: [],
             zona: [],
             vendedor: [],
@@ -1335,7 +1349,7 @@ const Interlogic = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="18" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
+                    <td colspan="19" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
                 </tr>
             `;
             // Clear footer if exists
@@ -1356,7 +1370,8 @@ const Interlogic = {
                 <td data-label="Guía"><strong>${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
-                <td data-label="Doc">${sanitizeHTML(record.doc || '')}${record.docNum ? ' #' + sanitizeHTML(record.docNum) : ''}</td>
+                <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
+                <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
                 <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: #444;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
@@ -1408,6 +1423,7 @@ const Interlogic = {
 
         tfoot.innerHTML = `
             <tr style="font-weight: 700; background: var(--gray-50);">
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
