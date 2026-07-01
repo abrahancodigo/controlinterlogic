@@ -35,7 +35,8 @@ const Interlogic = {
         costoPorcentaje: [],
         observations: [],
         entrega: [],
-        cobra: []
+        cobra: [],
+        encargado: []
     },
     currentSort: {
         field: '',
@@ -60,6 +61,7 @@ const Interlogic = {
         { key: 'observations', label: 'Observaciones' },
         { key: 'entrega', label: 'Entrega' },
         { key: 'cobra', label: 'Cobra' },
+        { key: 'encargado', label: 'Encargado' },
         { key: 'acciones', label: 'Acciones' }
     ],
     hiddenColumns: (() => {
@@ -358,12 +360,23 @@ const Interlogic = {
                                         </div>
                                     </div>
                                 </th>
+                                <th>
+                                    <div class="filter-header" onclick="Interlogic.toggleFilter(event, 'encargado')">
+                                        Encargado <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="filter-popup-encargado" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..."
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Interlogic.searchInFilter('encargado', this.value)">
+                                            <div class="filter-options-list" id="filter-options-encargado"></div>
+                                        </div>
+                                    </div>
+                                </th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="interlogic-table-body">
                             <tr>
-                                <td colspan="19" style="text-align: center; padding: 1rem;">Cargando registros...</td>
+                                <td colspan="20" style="text-align: center; padding: 1rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -543,6 +556,7 @@ const Interlogic = {
             { key: 'zona', label: 'Zona', options: this.getDistinctValues('zona') },
             { key: 'vendedor', label: 'Vendedor', options: this.getDistinctValues('vendedor') },
             { key: 'cobrador', label: 'Cobrador', options: this.getDistinctValues('cobrador') },
+            { key: 'encargado', label: 'Encargado', options: this.getDistinctValues('encargado') },
         ];
 
         let body = '';
@@ -607,6 +621,7 @@ const Interlogic = {
                 html += '<span class="m-card-label">🚚 Entrega</span><span class="m-card-value">' + sanitizeHTML(r.entrega || '—') + '</span></div>';
                 html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.toggleCellField(\'' + idJs + '\', \'cobra\')" style="cursor: pointer;">';
                 html += '<span class="m-card-label">💰 Cobra</span><span class="m-card-value">' + sanitizeHTML(r.cobra || '—') + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
                 html += '</div>';
                 if (canEdit || canDelete) {
                     html += '<div class="m-card-actions" onclick="event.stopPropagation()">';
@@ -638,7 +653,7 @@ const Interlogic = {
         if (!r) return;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + sanitizeHTML(r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + sanitizeHTML(r.doc || '') + (r.docNum ? ' #' + sanitizeHTML(r.docNum) : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">$' + formatNumber(r.venta || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(r.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(r.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (r.condicionPago || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobrador</span><div style="font-weight:500;">' + sanitizeHTML(r.cobrador || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Costo Envío</span><div style="font-weight:500;">$' + formatNumber(r.costoEnvio || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">% Costo</span><div style="font-weight:500;">' + formatNumber(r.costoPorcentaje || 0, 2) + '%</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Entrega</span><div style="font-weight:500;">' + sanitizeHTML(r.entrega || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobra</span><div style="font-weight:500;">' + sanitizeHTML(r.cobra || '-') + '</div></div></div>' + (r.observations ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Observaciones</span><div style="font-weight:500;background:#f2f2f7;padding:10px;border-radius:10px;margin-top:4px;">' + sanitizeHTML(r.observations) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.showMobileForm(\'' + r.id + '\')">✏️ Editar</button><button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.deleteRecord(\'' + r.id + '\')">🗑️ Eliminar</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + sanitizeHTML(r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + sanitizeHTML(r.doc || '') + (r.docNum ? ' #' + sanitizeHTML(r.docNum) : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">$' + formatNumber(r.venta || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(r.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(r.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (r.condicionPago || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobrador</span><div style="font-weight:500;">' + sanitizeHTML(r.cobrador || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Costo Envío</span><div style="font-weight:500;">$' + formatNumber(r.costoEnvio || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">% Costo</span><div style="font-weight:500;">' + formatNumber(r.costoPorcentaje || 0, 2) + '%</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Entrega</span><div style="font-weight:500;">' + sanitizeHTML(r.entrega || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobra</span><div style="font-weight:500;">' + sanitizeHTML(r.cobra || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Encargado</span><div style="font-weight:500;">' + sanitizeHTML(r.encargado || '-') + '</div></div></div>' + (r.observations ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Observaciones</span><div style="font-weight:500;background:#f2f2f7;padding:10px;border-radius:10px;margin-top:4px;">' + sanitizeHTML(r.observations) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.showMobileForm(\'' + r.id + '\')">✏️ Editar</button><button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.deleteRecord(\'' + r.id + '\')">🗑️ Eliminar</button></div></div>';
         document.body.appendChild(sheet);
     },
 
@@ -648,7 +663,7 @@ const Interlogic = {
         var self = this;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;color:#dc2626;font-size:0.82rem;font-weight:600;margin-bottom:10px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div id="mf-nc-fields" style="display:none;padding:10px;background:#fffbeb;border-radius:12px;margin-bottom:12px;border:1px solid #f59e0b;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:8px;color:#92400e;">Opciones de Nota de Credito</div><div class="m-form-group"><label>Afecta saldo de CCF/FT</label><select id="mf-nc-afectaSaldo"><option value="no">No - NC general</option><option value="si">Si - Descontar de un CCF/FT</option></select></div><div id="mf-nc-ccf-group" style="display:none;margin-top:8px;"><div class="m-form-group"><label>Seleccionar CCF/FT</label><select id="mf-nc-interlogicId"><option value="">-- Seleccionar --</option></select></div></div></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cajas</label><input type="number" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value=""' + (!record?.entrega ? ' selected' : '') + '>Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option></select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value=""' + (!record?.cobra ? ' selected' : '') + '>Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option></select></div></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;color:#dc2626;font-size:0.82rem;font-weight:600;margin-bottom:10px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + (record?.direccion || '') + '"></div><div id="mf-nc-fields" style="display:none;padding:10px;background:#fffbeb;border-radius:12px;margin-bottom:12px;border:1px solid #f59e0b;"><div style="font-weight:700;font-size:0.8rem;margin-bottom:8px;color:#92400e;">Opciones de Nota de Credito</div><div class="m-form-group"><label>Afecta saldo de CCF/FT</label><select id="mf-nc-afectaSaldo"><option value="no">No - NC general</option><option value="si">Si - Descontar de un CCF/FT</option></select></div><div id="mf-nc-ccf-group" style="display:none;margin-top:8px;"><div class="m-form-group"><label>Seleccionar CCF/FT</label><select id="mf-nc-interlogicId"><option value="">-- Seleccionar --</option></select></div></div></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mf-zona" value="' + (record?.zona || '') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + (record?.vendedor || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Cond. Pago</label><select id="mf-condicionPago"><option value="Contado"' + (record?.condicionPago === 'Contado' ? ' selected' : '') + '>Contado</option><option value="Crédito"' + (record?.condicionPago === 'Crédito' ? ' selected' : '') + '>Crédito</option></select></div><div class="m-form-group"><label>Cajas</label><input type="number" id="mf-cobrador" value="' + (record?.cobrador || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value=""' + (!record?.entrega ? ' selected' : '') + '>Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option></select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value=""' + (!record?.cobra ? ' selected' : '') + '>Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option></select></div></div><div class="m-form-row"><div class="m-form-group"><label>Encargado</label><input type="text" id="mf-encargado" list="mf-encargados-list" value="' + (record?.encargado || '') + '"><datalist id="mf-encargados-list">' + self.getDistinctValues('encargado').map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('') + '</datalist></div><div class="m-form-group"><label>Venta ($)</label><input type="number" step="0.01" id="mf-venta" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Costo Envío ($)</label><input type="number" step="0.01" id="mf-costoEnvio" value="' + (record?.costoEnvio || '') + '"></div><div class="m-form-group"><label>% Costo</label><input type="number" step="0.01" id="mf-costoPorcentaje" value="' + (record?.costoPorcentaje || '') + '"></div></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="3">' + (record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">Cancelar</button><button class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         // Load client observation when editing in mobile
@@ -763,6 +778,7 @@ const Interlogic = {
                 observations: document.getElementById('mf-observations').value,
                 entrega: document.getElementById('mf-entrega').value || '',
                 cobra: document.getElementById('mf-cobra').value || '',
+                encargado: document.getElementById('mf-encargado') ? document.getElementById('mf-encargado').value : '',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -1067,7 +1083,7 @@ const Interlogic = {
                 if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
                     if (field === 'search') {
                         const q = activeValues.toLowerCase();
-                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations', 'entrega', 'cobra'];
+                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations', 'entrega', 'cobra', 'encargado'];
                         const match = searchFields.some(f => String(record[f] || '').toLowerCase().includes(q));
                         if (!match) return false;
                         continue;
@@ -1184,7 +1200,7 @@ const Interlogic = {
 
                 if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
                     if (f === 'search') {
-                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations'];
+                        const searchFields = ['guia', 'empresa', 'cliente', 'zona', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations', 'encargado'];
                         const match = searchFields.some(sf => String(record[sf] || '').toLowerCase().includes(activeValues.toLowerCase()));
                         if (!match) return false;
                         continue;
@@ -1287,7 +1303,8 @@ const Interlogic = {
             costoPorcentaje: [],
             observations: [],
             entrega: [],
-            cobra: []
+            cobra: [],
+            encargado: []
         };
         this.currentSort = { field: '', direction: '' };
 
@@ -1349,7 +1366,7 @@ const Interlogic = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="19" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
+                    <td colspan="20" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
                 </tr>
             `;
             // Clear footer if exists
@@ -1388,6 +1405,7 @@ const Interlogic = {
                 <td data-label="Cobra" style="cursor: pointer;" onclick="Interlogic.toggleCellField('${record.id}', 'cobra')" title="Clic para cambiar">
                     <span class="badge ${record.cobra === 'DALSE' ? 'badge-primary' : (record.cobra === 'INTERLOGISTIC' ? 'badge-accent' : 'badge-ghost')}">${sanitizeHTML(record.cobra || '—')}</span>
                 </td>
+                <td data-label="Encargado">${sanitizeHTML(record.encargado || '')}</td>
                 <td class="actions-cell">
                     <button class="btn-icon btn-secondary btn-edit-record ${!canEdit ? 'btn-disabled' : ''}" 
                             data-id="${record.id}"
@@ -1438,6 +1456,7 @@ const Interlogic = {
                 <td>${totals.cajas}</td>
                 <td>$${formatNumber(totals.envio, 2)}</td>
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -1944,6 +1963,13 @@ const Interlogic = {
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
+                                <div class="form-group">
+                                    <label>Encargado</label>
+                                    <input type="text" id="il-encargado" list="encargados-list" value="${sanitizeHTML(val('encargado')).replace(/"/g, '&quot;')}">
+                                    <datalist id="encargados-list">
+                                        ${this.getDistinctValues('encargado').map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('')}
+                                    </datalist>
+                                </div>
                                 <div class="form-group" id="il-cobrador-group">
                                     <label>Cajas</label>
                                     <input type="number" id="il-cobrador" value="${sourceRecord ? (sourceRecord.cobrador || '') : (record ? record.cobrador || '' : '')}">
@@ -2352,6 +2378,7 @@ const Interlogic = {
                     observations: document.getElementById('il-observations').value.trim() || '',
                     entrega: document.getElementById('il-entrega').value || '',
                     cobra: document.getElementById('il-cobra').value || '',
+                    encargado: document.getElementById('il-encargado').value.trim() || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
@@ -2449,7 +2476,8 @@ const Interlogic = {
                         vendedor: data.vendedor,
                         zona: data.zona,
                         condicionPago: data.condicionPago,
-                        cobrador: data.cobrador
+                        cobrador: data.cobrador,
+                        encargado: data.encargado
                     }));
                 }
 
