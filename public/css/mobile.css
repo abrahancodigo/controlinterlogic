@@ -539,6 +539,61 @@ table {
 } /* END @media (max-width: 768px) */
 
 /* ============================================================
+   MOBILE DARK MODE
+   ============================================================ */
+@media (max-width: 768px) {
+[data-theme="dark"] {
+    --m-bg: #0f1117;
+    --m-surface: #161822;
+    --m-text: #e2e4eb;
+    --m-text-secondary: #9ca0b0;
+    --m-separator: #2a2d3e;
+}
+
+[data-theme="dark"] body { background: #0f1117 !important; }
+[data-theme="dark"] .mobile-header { background: #161822; border-bottom-color: #2a2d3e; }
+[data-theme="dark"] .mobile-logo { color: #e2e4eb; -webkit-text-fill-color: #e2e4eb; }
+[data-theme="dark"] .m-data-card { background: #161822; border-color: #2a2d3e; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+[data-theme="dark"] .m-card-title { color: #e2e4eb; }
+[data-theme="dark"] .m-card-label { color: #9ca0b0; }
+[data-theme="dark"] .m-card-value { color: #c0c3d0; }
+[data-theme="dark"] .m-card-value.money { color: #34d399; }
+[data-theme="dark"] .m-card-badge { border-color: #2a2d3e; }
+[data-theme="dark"] .m-search-bar { background: #161822; border-color: #2a2d3e; }
+[data-theme="dark"] .m-search-bar input { color: #e2e4eb; }
+[data-theme="dark"] .m-actions-bar { background: #161822; border-color: #2a2d3e; }
+[data-theme="dark"] .m-bottom-sheet { background: #161822; }
+[data-theme="dark"] .m-sheet-header { border-bottom-color: #2a2d3e; }
+[data-theme="dark"] .m-sheet-title { color: #e2e4eb; }
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+    background: #1e2030; border-color: #2a2d3e; color: #e2e4eb;
+}
+[data-theme="dark"] .m-stat-chip { background: #161822; border-color: #2a2d3e; }
+[data-theme="dark"] .m-stat-chip-label { color: #9ca0b0; }
+[data-theme="dark"] .m-stat-chip-value { color: #a78bfa; }
+[data-theme="dark"] .bottom-nav { background: #161822; border-top-color: #2a2d3e; }
+[data-theme="dark"] .bn-item { color: #9ca0b0; }
+[data-theme="dark"] .bn-item.active { color: #a78bfa; }
+[data-theme="dark"] .m-filter-item { color: #e2e4eb; }
+[data-theme="dark"] .m-empty-title { color: #e2e4eb; }
+[data-theme="dark"] .m-empty-text { color: #9ca0b0; }
+[data-theme="dark"] .m-card-actions { background: #161822; border-top-color: #2a2d3e; }
+[data-theme="dark"] .m-card-action { background: #1e2030; color: #c0c3d0; }
+[data-theme="dark"] .m-card-action.delete { color: #f87171; }
+[data-theme="dark"] .m-sheet-body { color: #e2e4eb; }
+[data-theme="dark"] .m-sheet-footer { background: #161822; border-top-color: #2a2d3e; }
+[data-theme="dark"] .m-bottom-sheet { color: #e2e4eb; }
+[data-theme="dark"] .m-card-value.money { color: #34d399; }
+[data-theme="dark"] .m-card-badge.nc { background: rgba(239,68,68,0.15); color: #f87171; }
+[data-theme="dark"] .m-card-badge.primary { background: rgba(139,92,246,0.15); color: #a78bfa; }
+[data-theme="dark"] .m-card-badge.warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+[data-theme="dark"] .m-form-group label { color: #c0c3d0; }
+[data-theme="dark"] .m-filter-list { background: #161822; }
+[data-theme="dark"] .m-card-detail-row span:first-child { color: #9ca0b0; }
+[data-theme="dark"] .m-card-detail-row span:last-child { color: #e2e4eb; }
+}
+
+/* ============================================================
    Tiny phones (< 380px)
    ============================================================ */
 @media (max-width: 380px) {

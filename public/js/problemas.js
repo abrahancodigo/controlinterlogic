@@ -243,7 +243,7 @@ const Problemas = {
                         </div>
                         <div class="prob-monto-chip">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                            <span>$${formatNumber(record.monto || 0, 2)}</span>
+                            <span>${formatCurrency(record.monto || 0)}</span>
                         </div>
                     </div>
 
@@ -320,7 +320,7 @@ const Problemas = {
             var fechaFactura = record.fecha ? formatDateShort(record.fecha) : '';
             return '<div class="m-data-card" style="border-left:3px solid #ef4444;">' +
                 '<div class="m-card-header"><span class="m-card-title">' + sanitizeHTML(record.cliente || '—') + '</span>' +
-                '<span class="m-card-badge danger">$' + formatNumber(record.monto || 0, 0) + '</span></div>' +
+                '<span class="m-card-badge danger">' + formatCurrency(record.monto || 0) + '</span></div>' +
                 '<div class="m-card-rows">' +
                 '<div class="m-card-row"><span class="m-card-label">Doc</span><span class="m-card-value">' + sanitizeHTML(record.doc || '') + (record.docNum ? ' #' + sanitizeHTML(record.docNum) : '') + '</span></div>' +
                 '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + fechaFactura + '</span></div>' +
@@ -437,7 +437,7 @@ const Problemas = {
                                 </div>
                                 <div class="factura-field">
                                     <span class="factura-field-label">Monto</span>
-                                    <span class="factura-field-value factura-monto" id="problema-monto-display">${facturaInfo ? '$' + formatNumber(facturaInfo.monto, 2) : '—'}</span>
+                                    <span class="factura-field-value factura-monto" id="problema-monto-display">${facturaInfo ? formatCurrency(facturaInfo.monto) : '—'}</span>
                                 </div>
                             </div>
                         </div>
@@ -597,7 +597,7 @@ const Problemas = {
                 const doc = sanitizeHTML(r.doc || '');
                 const docNum = r.docNum ? '#' + sanitizeHTML(r.docNum) : '';
                 const cliente = sanitizeHTML(r.cliente || '');
-                const monto = formatNumber(r.venta || 0, 2);
+                const monto = formatCurrency(r.venta || 0);
                 return `
                     <div class="dropdown-item dropdown-select-factura" data-id="${sanitizeHTML(r.id)}">
                         <div class="dropdown-item-left">
@@ -636,7 +636,7 @@ const Problemas = {
         if (docDisplay) docDisplay.textContent = `${record.doc || ''}${record.docNum ? ' #' + record.docNum : ''}`;
         if (fechaDisplay) fechaDisplay.textContent = record.fecha ? formatDate(record.fecha, false) : '—';
         if (clienteDisplay) clienteDisplay.textContent = record.cliente || '—';
-        if (montoDisplay) montoDisplay.textContent = `$${formatNumber(record.venta || 0, 2)}`;
+        if (montoDisplay) montoDisplay.textContent = formatCurrency(record.venta || 0);
 
         document.getElementById('problema-fecha').value = record.fecha ? (record.fecha.toDate ? record.fecha.toDate().toISOString().split('T')[0] : record.fecha) : '';
         document.getElementById('problema-doc').value = record.doc || '';

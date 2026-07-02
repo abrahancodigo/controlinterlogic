@@ -11,6 +11,7 @@ Thumbs.db
 # secrets / local-only
 .env
 nvidia_integrate.py
+requirements.txt
 
 # local-only tooling / scratch dirs
 .commandcode/

@@ -646,7 +646,7 @@ const Despacho = {
                     return val.includes(q);
                 });
                 // Also search in venta as a number (formatted)
-                const ventaVal = Number(record.venta || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                const ventaVal = formatCurrency(record.venta || 0);
                 const ventaMatch = ventaVal.includes(q) || String(record.venta || '').includes(q);
                 if (!textMatch && !ventaMatch) return false;
             }
@@ -713,9 +713,9 @@ const Despacho = {
                     <td>${sanitizeHTML(record.cliente || '')}</td>
                     <td>${sanitizeHTML(record.vendedor || '')}</td>
                     <td>${record.condicionPago || ''}</td>
-                    <td style="font-weight: 700;">$${formatNumber(record.venta || 0, 2)}</td>
+                    <td style="font-weight: 700;">${formatCurrency(record.venta || 0)}</td>
                     <td>${sanitizeHTML(record.cobrador || '')}</td>
-                    <td style="text-align:right;">$${formatNumber(record.costoEnvio || 0, 2)}</td>
+                    <td style="text-align:right;">${formatCurrency(record.costoEnvio || 0)}</td>
                     <td>
                         <input type="text" class="ds-time-input" value="${record.horaEntrega || ''}" placeholder="HH:MM"
                                onchange="Despacho.updateField('${record.id}', 'horaEntrega', this.value)">
@@ -759,7 +759,7 @@ const Despacho = {
         tfoot.innerHTML = `
             <tr class="ds-totals-row">
                 <td colspan="8" style="text-align: right;">TOTALES:</td>
-                <td>$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                <td>${formatCurrency(totals.venta)}</td>
                 <td colspan="4"></td>
             </tr>
         `;
@@ -775,11 +775,11 @@ const Despacho = {
         }, { venta: 0, bultos: 0, total: 0, entregados: 0 });
 
         const ventaEl = document.getElementById('ds-stat-total-venta');
-        if (ventaEl) ventaEl.textContent = `$${totals.venta.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        if (ventaEl) ventaEl.textContent = formatCurrency(totals.venta);
         const bultosEl = document.getElementById('ds-stat-total-bultos');
         if (bultosEl) bultosEl.textContent = totals.bultos;
         const importeEl = document.getElementById('ds-stat-total-importe');
-        if (importeEl) importeEl.textContent = `$${totals.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        if (importeEl) importeEl.textContent = formatCurrency(totals.total);
         const entEl = document.getElementById('ds-stat-total-entregados');
         if (entEl) entEl.textContent = totals.entregados;
     },

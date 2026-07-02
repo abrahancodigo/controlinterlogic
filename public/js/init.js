@@ -14,6 +14,11 @@
     function initApp() {
         console.log('📄 DOM ready');
 
+        // Inicializar tema lo antes posible (no depende de Firebase)
+        if (window.ThemeManager && typeof window.ThemeManager.init === 'function') {
+            window.ThemeManager.init();
+        }
+
         // Wait for Firebase SDK to load (increased timeout for mobile)
         let attempts = 0;
         const maxAttempts = 50;

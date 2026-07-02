@@ -3,9 +3,6 @@
 // Reconciliación COD, fletes, comisión repartidor
 // ===================================
 
-const toCents = v => Math.round((parseFloat(v) || 0) * 100);
-const fromCents = c => (c / 100).toFixed(2);
-
 const Liquidacion = {
     routes: [],
     routeDeliveries: [],
@@ -132,7 +129,7 @@ const Liquidacion = {
             const d = l.fecha && l.fecha.toDate ? l.fecha.toDate().toISOString().split('T')[0] : '';
             return d === hoy;
         }).reduce((s, l) => s + (Number(l.efectivoDepositado) || 0), 0);
-        set('liq-stat-liquidado', '$' + formatNumber(hoyLiquidado, 2));
+        set('liq-stat-liquidado', formatCurrency(hoyLiquidado));
     },
 
     async loadRouteDetail(routeId) {
@@ -206,7 +203,7 @@ const Liquidacion = {
                                         <td>${i+1}</td>
                                         <td><strong>${d.guia || ''}</strong></td>
                                         <td>${sanitizeHTML(d.cliente || '')}</td>
-                                        <td style="text-align:right;font-weight:700;">$${Number(d.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                                        <td style="text-align:right;font-weight:700;">${formatCurrency(d.venta || 0)}</td>
                                         <td><span class="badge ${d.condicionPago==='Contado'?'badge-primary':'badge-accent'}">${d.condicionPago||''}</span></td>
                                         <td style="text-align:center;">
                                             ${isLiquidado ? (isDelivered ? '✅' : '❌') : `
@@ -217,10 +214,10 @@ const Liquidacion = {
                                             `}
                                         </td>
                                         <td style="text-align:center;font-size:0.75rem;">
-                                            ${montoCobrado > 0 ? '<span style="color:#22c55e;">$' + formatNumber(montoCobrado,0) + ' (' + pctAbonado + '%)</span>' : '<span style="color:#ccc;">-</span>'}
+                                            ${montoCobrado > 0 ? '<span style="color:#22c55e;">' + formatCurrency(montoCobrado) + ' (' + pctAbonado + '%)</span>' : '<span style="color:#ccc;">-</span>'}
                                             ${d.planPagos && d.planPagos.length > 0 ? '<br><span style="color:#7c3aed;font-size:0.65rem;">📅 ' + d.planPagos.length + ' pgos prog.</span>' : ''}
                                         </td>
-                                        <td style="text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                                        <td style="text-align:right;">${formatCurrency(d.costoEnvio || 0)}</td>
                                         <td style="text-align:center;">
                                             ${!isLiquidado ? `
                                                 ${!isDelivered ? `<button class="btn-icon btn-danger btn-sm" onclick="Liquidacion.removeDeliveryFromRoute('${d.id}','${d.interlogicId}')" title="Quitar de ruta" style="font-size:0.7rem;padding:2px 6px;">✕</button>` : 
@@ -242,19 +239,19 @@ const Liquidacion = {
                         <div>
                             <table style="width:100%;font-size:0.85rem;">
                                 <tr><td style="padding:6px;border-bottom:1px solid #eee;">Entregas realizadas</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;font-weight:bold;">${entregados.length} / ${delivers.length}</td></tr>
-                                <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Facturado</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;font-weight:bold;">$${totalFacturado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                                <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Fletes (costo envío)</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;">$${totalFletes.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                                <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Facturado</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;font-weight:bold;">${formatCurrency(totalFacturado)}</td></tr>
+                                <tr><td style="padding:6px;border-bottom:1px solid #eee;">Total Fletes (costo envío)</td><td style="text-align:right;padding:6px;border-bottom:1px solid #eee;">${formatCurrency(totalFletes)}</td></tr>
                             </table>
                         </div>
                         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;">
                             <h4 style="margin-bottom:0.5rem;font-size:0.9rem;">Reconciliación COD</h4>
                             <table style="width:100%;font-size:0.85rem;">
-                                <tr><td style="padding:6px;">COD Esperado</td><td style="text-align:right;padding:6px;font-weight:bold;">$${codEsperado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                                <tr><td style="padding:6px;">COD Esperado</td><td style="text-align:right;padding:6px;font-weight:bold;">${formatCurrency(codEsperado)}</td></tr>
                                 <tr><td style="padding:6px;">COD Recibido</td><td style="text-align:right;padding:6px;">
-                                    ${isLiquidado ? `<span>$${formatNumber(codRecibidoVal,2)}</span>` : `<input type="number" id="liq-cod-recibido" step="0.01" min="0" style="width:120px;text-align:right;padding:4px;border:2px solid #e2e8f0;border-radius:4px;" placeholder="0.00">`}
+                                    ${isLiquidado ? `<span>${formatCurrency(codRecibidoVal)}</span>` : `<input type="number" id="liq-cod-recibido" step="0.01" min="0" style="width:120px;text-align:right;padding:4px;border:2px solid #e2e8f0;border-radius:4px;" placeholder="0.00">`}
                                 </td></tr>
-                                <tr style="font-size:1rem;"><td style="padding:6px;font-weight:bold;">Diferencia</td><td id="liq-diferencia" style="text-align:right;padding:6px;font-weight:bold;color:${isLiquidado && (existingLiq?.diferencia||0)!==0?'#ef4444':'#22c55e'};">${isLiquidado ? '$'+formatNumber(existingLiq?.diferencia||0,2) : '$0.00'}</td></tr>
-                                <tr style="font-size:0.9rem;font-weight:bold;border-top:2px solid #e2e8f0;"><td style="padding:8px 6px;">Efectivo a Depositar</td><td id="liq-efectivo-depositar" style="text-align:right;padding:8px 6px;color:#22c55e;font-size:1.1rem;">${isLiquidado ? '$'+formatNumber(existingLiq?.efectivoDepositado||0,2) : '$0.00'}</td></tr>
+                                <tr style="font-size:1rem;"><td style="padding:6px;font-weight:bold;">Diferencia</td><td id="liq-diferencia" style="text-align:right;padding:6px;font-weight:bold;color:${isLiquidado && (existingLiq?.diferencia||0)!==0?'#ef4444':'#22c55e'};">${isLiquidado ? formatCurrency(existingLiq?.diferencia||0) : formatCurrency(0)}</td></tr>
+                                <tr style="font-size:0.9rem;font-weight:bold;border-top:2px solid #e2e8f0;"><td style="padding:8px 6px;">Efectivo a Depositar</td><td id="liq-efectivo-depositar" style="text-align:right;padding:8px 6px;color:#22c55e;font-size:1.1rem;">${isLiquidado ? formatCurrency(existingLiq?.efectivoDepositado||0) : formatCurrency(0)}</td></tr>
                             </table>
                             ${isLiquidado ? (existingLiq?.observaciones ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:#666;">Obs: ${sanitizeHTML(existingLiq.observaciones)}</div>` : '') : ''}
                         </div>
@@ -281,12 +278,12 @@ const Liquidacion = {
                     const diff = codEsperado - recibido;
                     const efectivoDepositar = recibido;
                     const diffEl = document.getElementById('liq-diferencia');
-                    if (diffEl) { diffEl.textContent = '$' + formatNumber(Math.abs(diff), 2); diffEl.style.color = diff === 0 ? '#22c55e' : '#ef4444'; }
+                    if (diffEl) { diffEl.textContent = formatCurrency(Math.abs(diff)); diffEl.style.color = diff === 0 ? '#22c55e' : '#ef4444'; }
                     const efectivoEl = document.getElementById('liq-efectivo-depositar');
-                    if (efectivoEl) { efectivoEl.textContent = '$' + formatNumber(efectivoDepositar, 2); efectivoEl.style.color = efectivoDepositar >= 0 ? '#22c55e' : '#ef4444'; }
+                    if (efectivoEl) { efectivoEl.textContent = formatCurrency(efectivoDepositar); efectivoEl.style.color = efectivoDepositar >= 0 ? '#22c55e' : '#ef4444'; }
                 };
                 codInput.addEventListener('input', updateCalc);
-                codInput.value = codEsperado;
+                codInput.value = codEsperado.toFixed(2);
                 updateCalc();
             }
 
@@ -302,7 +299,7 @@ const Liquidacion = {
         const observaciones = document.getElementById('liq-observaciones') ? document.getElementById('liq-observaciones').value.trim() : '';
 
         if (diferenciaCents !== 0) {
-            const confirm = await showConfirm('⚠️ Diferencia detectada ($' + formatNumber(Math.abs(diferencia), 2) + ')', '¿Deseas aprobar la liquidación con esta diferencia?');
+            const confirm = await showConfirm('⚠️ Diferencia detectada (' + formatCurrency(Math.abs(diferencia)) + ')', '¿Deseas aprobar la liquidación con esta diferencia?');
             if (!confirm) return;
         }
 
@@ -339,7 +336,7 @@ const Liquidacion = {
             route.estado = 'liquidado';
             this.populateRouteSelect();
             this.renderRouteDetail();
-            showToast('✅ Liquidación aprobada. Efectivo a depositar: $' + formatNumber(efectivoDepositar, 2), 'success');
+            showToast('✅ Liquidación aprobada. Efectivo a depositar: ' + formatCurrency(efectivoDepositar), 'success');
         } catch (err) {
             showToast('Error: ' + err.message, 'error');
         }
@@ -498,7 +495,7 @@ const Liquidacion = {
         let descuentoPosible = 0;
         if (descPP > 0 && montoPendiente > 0) {
             descuentoPosible = Math.round(montoPendiente * descPP) / 100;
-            prontoPagoInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:0.5rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8rem;color:#166534;"><input type="checkbox" id="rdl-ab-pp" onchange="var m=document.getElementById('rdl-ab-monto');m.value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';Liquidacion._recalcPlanTotal();">⚡ Descuento pronto pago (${descPP}% = $${descuentoPosible.toFixed(2)})</label></div>`;
+            prontoPagoInfo = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:0.5rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.8rem;color:#166534;"><input type="checkbox" id="rdl-ab-pp" onchange="var m=document.getElementById('rdl-ab-monto');m.value=this.checked?'${(montoPendiente - descuentoPosible).toFixed(2)}':'${montoPendiente.toFixed(2)}';Liquidacion._recalcPlanTotal();">⚡ Descuento pronto pago (${descPP}% = ${formatCurrency(descuentoPosible)})</label></div>`;
         }
 
         const modal = document.createElement('div');
@@ -507,8 +504,8 @@ const Liquidacion = {
             <div class="modal-content" style="max-width:550px;">
                 <h2>💰 Abono — Guía #${record.guia||'N/A'}</h2>
                 <div style="margin:0.5rem 0;font-size:0.8rem;">
-                    <div>Cliente: <strong>${sanitizeHTML(record.cliente||'-')}</strong> · Total: <strong>$${Number(record.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
-                    <div>Pendiente: <strong style="color:#f97316;">$${montoPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+                    <div>Cliente: <strong>${sanitizeHTML(record.cliente||'-')}</strong> · Total: <strong>${formatCurrency(record.venta || 0)}</strong></div>
+                    <div>Pendiente: <strong style="color:#f97316;">${formatCurrency(montoPendiente)}</strong></div>
                 </div>
                 <form id="rdl-abono-form">
                     <div style="background:#f8fafc;border-radius:8px;padding:10px;margin-bottom:0.5rem;">
@@ -627,7 +624,7 @@ const Liquidacion = {
                 record.planPagos = planPayments.length > 0 ? planPayments : null;
                 modal.remove();
                 this.renderRouteDetail();
-                const msg = hoyMonto > 0 ? '✅ Abono de $' + formatNumber(hoyMonto,2) + ' registrado' : '';
+                const msg = hoyMonto > 0 ? '✅ Abono de ' + formatCurrency(hoyMonto) + ' registrado' : '';
                 const msgPlan = planPayments.length > 0 ? ' + ' + planPayments.length + ' pagos programados' : '';
                 showToast(msg + msgPlan, 'success');
             } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
@@ -678,10 +675,10 @@ const Liquidacion = {
                             <td style="border:1px solid #ccc;padding:5px;text-align:center;">${i+1}</td>
                             <td style="border:1px solid #ccc;padding:5px;">${d.guia||''}</td>
                             <td style="border:1px solid #ccc;padding:5px;">${sanitizeHTML(d.cliente||'')}</td>
-                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">$${Number(d.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">${formatCurrency(d.venta || 0)}</td>
                             <td style="border:1px solid #ccc;padding:5px;text-align:center;">${d.condicionPago||''}</td>
                             <td style="border:1px solid #ccc;padding:5px;text-align:center;">${d.entregado?'✓':'✗'}</td>
-                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">$${Number(d.costoEnvio||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                            <td style="border:1px solid #ccc;padding:5px;text-align:right;">${formatCurrency(d.costoEnvio || 0)}</td>
                         </tr>
                     `).join('')}</tbody>
                 </table>
@@ -690,13 +687,13 @@ const Liquidacion = {
                     <h3 style="font-size:0.9rem;margin-bottom:8px;">Resumen de Liquidación</h3>
                     <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
                         <tr><td style="padding:4px 0;">Entregas realizadas</td><td style="text-align:right;">${entregados.length} / ${delivers.length}</td></tr>
-                        <tr><td style="padding:4px 0;">Total Facturado</td><td style="text-align:right;font-weight:bold;">$${totalFacturado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                        <tr><td style="padding:4px 0;">Total Fletes</td><td style="text-align:right;">$${totalFletes.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td style="padding:4px 0;">Total Facturado</td><td style="text-align:right;font-weight:bold;">${formatCurrency(totalFacturado)}</td></tr>
+                        <tr><td style="padding:4px 0;">Total Fletes</td><td style="text-align:right;">${formatCurrency(totalFletes)}</td></tr>
                         <tr><td colspan="2"><hr style="border:0;border-top:1px dashed #ccc;"></td></tr>
-                        <tr><td style="padding:4px 0;">COD Esperado</td><td style="text-align:right;">$${codEsperado.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                        <tr><td style="padding:4px 0;">COD Recibido</td><td style="text-align:right;">$${codRecibido.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
-                        <tr style="font-weight:bold;"><td style="padding:4px 0;">Diferencia</td><td style="text-align:right;color:${diferencia!==0?'#ef4444':'#22c55e'};">$${Math.abs(diferencia).toLocaleString('en-US',{minimumFractionDigits:2})}${diferencia!==0?' (FALTANTE)':''}</td></tr>
-                        <tr style="font-size:0.95rem;font-weight:bold;border-top:2px solid #333;"><td style="padding:6px 0;">Efectivo a Depositar</td><td style="text-align:right;">$${efectivoDep.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>
+                        <tr><td style="padding:4px 0;">COD Esperado</td><td style="text-align:right;">${formatCurrency(codEsperado)}</td></tr>
+                        <tr><td style="padding:4px 0;">COD Recibido</td><td style="text-align:right;">${formatCurrency(codRecibido)}</td></tr>
+                        <tr style="font-weight:bold;"><td style="padding:4px 0;">Diferencia</td><td style="text-align:right;color:${diferencia!==0?'#ef4444':'#22c55e'};">${formatCurrency(Math.abs(diferencia))}${diferencia!==0?' (FALTANTE)':''}</td></tr>
+                        <tr style="font-size:0.95rem;font-weight:bold;border-top:2px solid #333;"><td style="padding:6px 0;">Efectivo a Depositar</td><td style="text-align:right;">${formatCurrency(efectivoDep)}</td></tr>
                     </table>
                 </div>
 

@@ -614,7 +614,7 @@ const Interlogic = {
                 else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + sanitizeHTML(r.empresa || '') + '</span>';
                 html += '</div><div class="m-card-rows">';
                 html += '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">$' + formatNumber(r.venta || 0, 2) + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">' + formatCurrency(r.venta || 0) + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
                 html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.toggleCellField(\'' + idJs + '\', \'entrega\')" style="cursor: pointer;">';
@@ -641,9 +641,9 @@ const Interlogic = {
         var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
 
         var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-        setText('ms-venta', '$' + formatNumber(totalVenta, 0));
+        setText('ms-venta', formatCurrency(totalVenta));
         setText('ms-bultos', formatNumber(totalBultos));
-        setText('ms-envio', '$' + formatNumber(totalEnvio, 0));
+        setText('ms-envio', formatCurrency(totalEnvio));
         setText('ms-pct', formatNumber(totalPct, 2) + '%');
         setText('ms-count', this.filteredRecords.length);
     },
@@ -653,7 +653,7 @@ const Interlogic = {
         if (!r) return;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + sanitizeHTML(r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + sanitizeHTML(r.doc || '') + (r.docNum ? ' #' + sanitizeHTML(r.docNum) : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">$' + formatNumber(r.venta || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(r.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(r.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (r.condicionPago || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobrador</span><div style="font-weight:500;">' + sanitizeHTML(r.cobrador || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Costo Envío</span><div style="font-weight:500;">$' + formatNumber(r.costoEnvio || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">% Costo</span><div style="font-weight:500;">' + formatNumber(r.costoPorcentaje || 0, 2) + '%</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Entrega</span><div style="font-weight:500;">' + sanitizeHTML(r.entrega || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobra</span><div style="font-weight:500;">' + sanitizeHTML(r.cobra || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Encargado</span><div style="font-weight:500;">' + sanitizeHTML(r.encargado || '-') + '</div></div></div>' + (r.observations ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Observaciones</span><div style="font-weight:500;background:#f2f2f7;padding:10px;border-radius:10px;margin-top:4px;">' + sanitizeHTML(r.observations) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.showMobileForm(\'' + r.id + '\')">✏️ Editar</button><button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.deleteRecord(\'' + r.id + '\')">🗑️ Eliminar</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + sanitizeHTML(r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + sanitizeHTML(r.doc || '') + (r.docNum ? ' #' + sanitizeHTML(r.docNum) : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">' + formatCurrency(r.venta || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">' + sanitizeHTML(r.zona || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">' + sanitizeHTML(r.vendedor || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">' + (r.condicionPago || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobrador</span><div style="font-weight:500;">' + sanitizeHTML(r.cobrador || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Costo Envío</span><div style="font-weight:500;">$' + formatNumber(r.costoEnvio || 0, 2) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">% Costo</span><div style="font-weight:500;">' + formatNumber(r.costoPorcentaje || 0, 2) + '%</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Entrega</span><div style="font-weight:500;">' + sanitizeHTML(r.entrega || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cobra</span><div style="font-weight:500;">' + sanitizeHTML(r.cobra || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Encargado</span><div style="font-weight:500;">' + sanitizeHTML(r.encargado || '-') + '</div></div></div>' + (r.observations ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Observaciones</span><div style="font-weight:500;background:#f2f2f7;padding:10px;border-radius:10px;margin-top:4px;">' + sanitizeHTML(r.observations) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer"><button class="m-card-action" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.showMobileForm(\'' + r.id + '\')">✏️ Editar</button><button class="m-card-action delete" onclick="var s=document.querySelector(\'.m-bottom-sheet\');var b=document.querySelector(\'.m-sheet-backdrop\');s.remove();b.remove();Interlogic.deleteRecord(\'' + r.id + '\')">🗑️ Eliminar</button></div></div>';
         document.body.appendChild(sheet);
     },
 
@@ -721,7 +721,7 @@ const Interlogic = {
                 var estado = r.estadoCobro === 'pagado' ? 'Pagado' : (r.estadoCobro === 'parcial' ? 'Parcial' : 'Pendiente');
                 var opt = document.createElement('option');
                 opt.value = r.id;
-                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - $' + formatNumber(r.venta || 0, 2) + ' (' + estado + ')';
+                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - ' + formatCurrency(r.venta || 0) + ' (' + estado + ')';
                 mfNcInterlogicId.appendChild(opt);
             });
         };
@@ -1467,10 +1467,10 @@ const Interlogic = {
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>
-                <td data-label="Venta">$${formatNumber(record.venta || 0, 2)}</td>
+                <td data-label="Venta">${formatCurrency(record.venta || 0)}</td>
                 <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
                 <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
-                <td data-label="Costo Envío">$${formatNumber(record.costoEnvio || 0, 2)}</td>
+                <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
                 <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
                 <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
                 <td data-label="Entrega" style="cursor: pointer;" onclick="Interlogic.toggleCellField('${record.id}', 'entrega')" title="Clic para cambiar">
@@ -1525,10 +1525,10 @@ const Interlogic = {
                 <td></td>
                 <td></td>
                 <td style="text-align: right;">TOTALES</td>
-                <td>$${formatNumber(totals.venta, 2)}</td>
+                <td>${formatCurrency(totals.venta)}</td>
                 <td>${formatNumber(totals.bultos)}</td>
                 <td>${totals.cajas}</td>
-                <td>$${formatNumber(totals.envio, 2)}</td>
+                <td>${formatCurrency(totals.envio)}</td>
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td>
                 <td></td>
@@ -1685,7 +1685,7 @@ const Interlogic = {
             <div class="modal-content" style="max-width:550px;">
                 <h2 style="margin-bottom:0.5rem;">➕ Crear Ruta con ${count} registros</h2>
                 <div style="margin-bottom:1rem;font-size:0.85rem;color:#666;">
-                    <div>📦 ${count} facturas · ${clientesUnicos.length} cliente(s) · Total: <strong>$${totalVenta.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></div>
+                    <div>📦 ${count} facturas · ${clientesUnicos.length} cliente(s) · Total: <strong>${formatCurrency(totalVenta)}</strong></div>
                     ${zonasUnicas.length > 0 ? '<div>📍 Zona(s): ' + zonasUnicas.join(', ') + '</div>' : ''}
                 </div>
                 <form id="cr-ruta-form">
@@ -1838,9 +1838,9 @@ const Interlogic = {
 
         const porcentaje = totalVenta > 0 ? (totalEnvio / totalVenta) * 100 : 0;
 
-        document.getElementById('stat-total-venta').textContent = `$${formatNumber(totalVenta, 2)} `;
+        document.getElementById('stat-total-venta').textContent = formatCurrency(totalVenta);
         document.getElementById('stat-total-bultos').textContent = formatNumber(totalBultos);
-        document.getElementById('stat-total-envio').textContent = `$${formatNumber(totalEnvio, 2)} `;
+        document.getElementById('stat-total-envio').textContent = formatCurrency(totalEnvio);
         document.getElementById('stat-total-porcentaje').textContent = `${formatNumber(porcentaje, 2)}% `;
     },
 
@@ -2181,7 +2181,7 @@ const Interlogic = {
                 var estado = r.estadoCobro === 'pagado' ? '✓ Pagado' : (r.estadoCobro === 'parcial' ? '⚠ Parcial' : '● Pendiente');
                 var opt = document.createElement('option');
                 opt.value = r.id;
-                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - $' + formatNumber(r.venta || 0, 2) + ' (' + estado + ')';
+                opt.textContent = (r.doc || '') + ' #' + (r.docNum || r.guia || '') + ' - ' + formatCurrency(r.venta || 0) + ' (' + estado + ')';
                 ncInterlogicId.appendChild(opt);
             });
         };
@@ -2195,7 +2195,7 @@ const Interlogic = {
                     var cobrado = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
                     var pendiente = Math.max(0, Number(record.venta || 0) - cobrado);
                     ncCcfInfo.style.display = 'block';
-                    ncCcfInfo.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><strong>Venta:</strong> $' + formatNumber(record.venta || 0, 2) + '</div><div><strong>Cobrado:</strong> $' + formatNumber(cobrado, 2) + '</div><div><strong>Pendiente:</strong> $' + formatNumber(pendiente, 2) + '</div><div><strong>Estado:</strong> ' + (record.estadoCobro || 'pendiente') + '</div></div>';
+                    ncCcfInfo.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><strong>Venta:</strong> ' + formatCurrency(record.venta || 0) + '</div><div><strong>Cobrado:</strong> ' + formatCurrency(cobrado) + '</div><div><strong>Pendiente:</strong> ' + formatCurrency(pendiente) + '</div><div><strong>Estado:</strong> ' + (record.estadoCobro || 'pendiente') + '</div></div>';
                 }
             } else if (ncCcfInfo) {
                 ncCcfInfo.style.display = 'none';
@@ -2588,7 +2588,7 @@ const Interlogic = {
                                             return s + Math.max(0, Number(d.venta || 0) - cob);
                                         }, 0);
                                         if (deudaTotal > limite) {
-                                            showToast('⚠️ ATENCIÓN: La deuda total de ' + data.cliente + ' ($' + formatNumber(deudaTotal, 2) + ') excede su límite de crédito ($' + formatNumber(limite, 2) + ')', 'warning');
+                                            showToast('⚠️ ATENCIÓN: La deuda total de ' + data.cliente + ' (' + formatCurrency(deudaTotal) + ') excede su límite de crédito (' + formatCurrency(limite) + ')', 'warning');
                                         }
                                     }
                                 }
@@ -2848,7 +2848,7 @@ const Interlogic = {
                                             <td>${sanitizeHTML(d.guia || '')}</td>
                                             <td>${sanitizeHTML(d.empresa || '')}</td>
                                             <td>${sanitizeHTML(d.cliente || '')}</td>
-                                            <td>$${formatNumber(d.venta, 2)}</td>
+                                            <td>${formatCurrency(d.venta)}</td>
                                             <td>${formatNumber(d.bultos || 0)}</td>
                                         </tr>
                                     `).join('')}

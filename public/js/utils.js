@@ -66,6 +66,20 @@ function formatNumber(num, decimals = 0) {
 }
 
 /**
+ * Format a currency value in USD (El Salvador)
+ * Example: formatCurrency(1250.37) → "$1,250.37"
+ */
+function formatCurrency(num) {
+    if (num === null || num === undefined || num === '') return '$0.00';
+    const n = Number(num);
+    if (isNaN(n)) return '$0.00';
+    return '$' + n.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
  * Show a toast notification
  */
 function showToast(message, type = 'info') {

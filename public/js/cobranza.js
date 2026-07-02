@@ -252,9 +252,9 @@ const Cobranza = {
 
         container.innerHTML = `
             <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total CxC</h3><p style="color:#f97316;">$${totalCxC.toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
+                <div class="stat-card"><h3>Total CxC</h3><p style="color:#f97316;">${formatCurrency(totalCxC)}</p></div>
                 <div class="stat-card"><h3>Cartera Vencida</h3><p style="color:#ef4444;">${carteraVencida.toFixed(1)}%</p></div>
-                <div class="stat-card"><h3>Cobrado este Mes</h3><p style="color:#22c55e;">$${cobradoMes.toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
+                <div class="stat-card"><h3>Cobrado este Mes</h3><p style="color:#22c55e;">${formatCurrency(cobradoMes)}</p></div>
                 <div class="stat-card"><h3>DSO (días cobro)</h3><p style="color:${dso>30?'#ef4444':'#22c55e'};">${dso} días</p></div>
                 <div class="stat-card"><h3>CEI (efectividad)</h3><p style="color:${cei>=80?'#22c55e':cei>=50?'#f97316':'#ef4444'};">${cei}%</p></div>
                 <div class="stat-card"><h3>Pendientes</h3><p>${pendientes.length} registros</p></div>
@@ -278,12 +278,12 @@ const Cobranza = {
                                 <div style="display:flex;align-items:center;gap:6px;font-size:0.7rem;">
                                     <span style="width:40px;">Ventas</span>
                                     <div style="flex:1;height:14px;background:#e5e5ea;border-radius:7px;overflow:hidden;"><div style="height:100%;width:${vpct}%;background:var(--primary-600);border-radius:7px;"></div></div>
-                                    <span style="width:50px;text-align:right;">$${formatNumber(m.ventas,0)}</span>
+                                    <span style="width:50px;text-align:right;">${formatCurrency(m.ventas)}</span>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;font-size:0.7rem;margin-top:2px;">
                                     <span style="width:40px;">Cobros</span>
                                     <div style="flex:1;height:14px;background:#e5e5ea;border-radius:7px;overflow:hidden;"><div style="height:100%;width:${cpct}%;background:#22c55e;border-radius:7px;"></div></div>
-                                    <span style="width:50px;text-align:right;">$${formatNumber(m.cobros,0)}</span>
+                                    <span style="width:50px;text-align:right;">${formatCurrency(m.cobros)}</span>
                                 </div>
                             </div>`;
                         }).join('')}
@@ -299,7 +299,7 @@ const Cobranza = {
                             const color = b==='corriente'?'#22c55e':b==='1-30'?'#eab308':b==='31-60'?'#f97316':b==='61-90'?'#ef4444':'#dc2626';
                             return `<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.75rem;"><span>${b==='corriente'?'Corriente':b==='1-30'?'1-30 d':b==='31-60'?'31-60 d':'${b}'}</span><span>$${formatNumber(v,0)}</span></div><div style="height:8px;background:#e5e5ea;border-radius:4px;"><div style="height:100%;width:${pct}%;background:${color};border-radius:4px;"></div></div></div>`;
                         }).join('')}
-                        <div style="margin-top:8px;font-size:0.75rem;color:#666;">Total: $${formatNumber(maxBar,0)}</div>
+                        <div style="margin-top:8px;font-size:0.75rem;color:#666;">Total: ${formatCurrency(maxBar)}</div>
                     </div>
                 </div>
             </div>
@@ -309,7 +309,7 @@ const Cobranza = {
                     <div class="card-header"><h2>🔝 Top Clientes Morosos</h2></div>
                     <div class="card-body">
                         ${topClients.length===0?'<p style="color:#8e8e93;">Sin deudas</p>':
-                            `<table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#f0f0f0;"><th style="padding:6px;text-align:left;">Cliente</th><th style="padding:6px;text-align:right;">Deuda</th></tr></thead><tbody>${topClients.map(([n,a])=>`<tr><td style="padding:6px;">${sanitizeHTML(n)}</td><td style="padding:6px;text-align:right;color:#f97316;font-weight:700;">$${formatNumber(a,2)}</td></tr>`).join('')}</tbody></table>`
+                            `<table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#f0f0f0;"><th style="padding:6px;text-align:left;">Cliente</th><th style="padding:6px;text-align:right;">Deuda</th></tr></thead><tbody>${topClients.map(([n,a])=>`<tr><td style="padding:6px;">${sanitizeHTML(n)}</td><td style="padding:6px;text-align:right;color:#f97316;font-weight:700;">${formatCurrency(a)}</td></tr>`).join('')}</tbody></table>`
                         }
                     </div>
                 </div>
@@ -343,13 +343,13 @@ const Cobranza = {
 
         container.innerHTML = `
             <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total Proyectado</h3><p style="color:#f97316;">$${records.reduce((s,r)=>s+r.pendiente,0).toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
-                <div class="stat-card"><h3>Próx. 30 días</h3><p style="color:#eab308;">$${records.filter(r=>r.agingDays>=0&&r.agingDays<=30).reduce((s,r)=>s+r.pendiente,0).toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
+                <div class="stat-card"><h3>Total Proyectado</h3><p style="color:#f97316;">${formatCurrency(records.reduce((s,r)=>s+r.pendiente,0))}</p></div>
+                <div class="stat-card"><h3>Próx. 30 días</h3><p style="color:#eab308;">${formatCurrency(records.filter(r=>r.agingDays>=0&&r.agingDays<=30).reduce((s,r)=>s+r.pendiente,0))}</p></div>
                 <div class="stat-card"><h3>Registros</h3><p>${records.length}</p></div>
             </div>
             ${Object.entries(byMonth).map(([month, data]) => `
                 <div class="card" style="margin-bottom:1rem;">
-                    <div class="card-header"><h2>📆 ${month.charAt(0).toUpperCase()+month.slice(1)} — $${formatNumber(data.total,2)}</h2></div>
+                    <div class="card-header"><h2>📆 ${month.charAt(0).toUpperCase()+month.slice(1)} — ${formatCurrency(data.total)}</h2></div>
                     <div class="card-body">
                         <table style="width:100%;font-size:0.8rem;border-collapse:collapse;">
                             <thead><tr style="background:#f0f0f0;">
@@ -360,8 +360,8 @@ const Cobranza = {
                             <tbody>${data.items.map(r => `<tr>
                                 <td style="padding:6px;font-weight:bold;">${r.guia||''}</td>
                                 <td style="padding:6px;">${sanitizeHTML(r.cliente||'')}</td>
-                                <td style="padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                                <td style="padding:6px;text-align:right;color:${r.agingDays>0?'#ef4444':'#22c55e'};">$${r.pendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                                <td style="padding:6px;text-align:right;">${formatCurrency(r.venta||0)}</td>
+                                <td style="padding:6px;text-align:right;color:${r.agingDays>0?'#ef4444':'#22c55e'};">${formatCurrency(r.pendiente)}</td>
                                 <td style="padding:6px;">${r.fechaVenc.toLocaleDateString('es-ES')}${r.agingDays>0?` <span style="color:#ef4444;">(+${r.agingDays}d)</span>`:''}</td>
                                 <td style="padding:6px;text-align:center;color:${r.estadoCobro==='parcial'?'#f97316':r.estadoCobro==='pagado'?'#22c55e':'#ef4444'};font-weight:bold;">${r.estadoCobro.charAt(0).toUpperCase()+r.estadoCobro.slice(1)}</td>
                             </tr>`).join('')}</tbody>
@@ -378,22 +378,22 @@ const Cobranza = {
         const alertas = [];
 
         records.forEach(r => {
-            if (r.agingDays >= 60) alertas.push({ tipo: 'critico', icono: '🔴', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido hace ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
+            if (r.agingDays >= 60) alertas.push({ tipo: 'critico', icono: '🔴', mensaje: `${r.cliente||'Sin nombre'}: ${formatCurrency(r.pendiente)} vencido hace ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
         });
 
         records.forEach(r => {
-            if (r.agingDays >= 30 && r.agingDays < 60) alertas.push({ tipo: 'warning', icono: '🟠', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} con ${r.agingDays} días de atraso (Guía #${r.guia||'N/A'})` });
+            if (r.agingDays >= 30 && r.agingDays < 60) alertas.push({ tipo: 'warning', icono: '🟠', mensaje: `${r.cliente||'Sin nombre'}: ${formatCurrency(r.pendiente)} con ${r.agingDays} días de atraso (Guía #${r.guia||'N/A'})` });
         });
 
         records.forEach(r => {
-            if (r.agingDays > 0 && r.agingDays < 30) alertas.push({ tipo: 'aviso', icono: '🟡', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vencido por ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
+            if (r.agingDays > 0 && r.agingDays < 30) alertas.push({ tipo: 'aviso', icono: '🟡', mensaje: `${r.cliente||'Sin nombre'}: ${formatCurrency(r.pendiente)} vencido por ${r.agingDays} días (Guía #${r.guia||'N/A'})` });
         });
 
         const now = new Date();
         records.filter(r => r.agingDays <= 0).forEach(r => {
             if (r.fechaVenc) {
                 const diasHasta = Math.abs(r.agingDays);
-                if (diasHasta <= 7) alertas.push({ tipo: 'info', icono: '🔵', mensaje: `${r.cliente||'Sin nombre'}: $${formatNumber(r.pendiente,0)} vence en ${diasHasta} días (Guía #${r.guia||'N/A'})` });
+                if (diasHasta <= 7) alertas.push({ tipo: 'info', icono: '🔵', mensaje: `${r.cliente||'Sin nombre'}: ${formatCurrency(r.pendiente)} vence en ${diasHasta} días (Guía #${r.guia||'N/A'})` });
             }
         });
 
@@ -512,7 +512,7 @@ const Cobranza = {
                             <div class="dropdown-item-cliente">Guía: ${sanitizeHTML(r.guia||'N/A')} · ${sanitizeHTML(r.empresa||'')}</div>
                         </div>
                         <div class="dropdown-item-right">
-                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                            <div class="dropdown-item-monto">${formatCurrency(r.venta||0)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -586,7 +586,7 @@ const Cobranza = {
                     const isNC = a._source === 'nc';
                     const tipoLabel = isNC ? 'Nota de Crédito' : (a.tipo||'');
                     const badgeClass = isNC ? 'badge-nc' : (a.tipo==='cargoExtra'?'badge-error':'badge-warning');
-                    return `<tr><td style="padding:8px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td><td style="padding:8px;">${sanitizeHTML(a.cliente||'')}</td><td style="padding:8px;"><span class="badge ${badgeClass}">${tipoLabel}</span></td><td style="padding:8px;">${sanitizeHTML(a.ncNum||'-')}</td><td style="padding:8px;">${sanitizeHTML(a.guia||'')}</td><td style="padding:8px;text-align:right;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};font-weight:700;">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${sanitizeHTML(a.motivo||'')}</td></tr>`;
+                    return `<tr><td style="padding:8px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td><td style="padding:8px;">${sanitizeHTML(a.cliente||'')}</td><td style="padding:8px;"><span class="badge ${badgeClass}">${tipoLabel}</span></td><td style="padding:8px;">${sanitizeHTML(a.ncNum||'-')}</td><td style="padding:8px;">${sanitizeHTML(a.guia||'')}</td><td style="padding:8px;text-align:right;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};font-weight:700;">${(a.monto||0)<0?'−':''}${formatCurrency(Math.abs(a.monto||0))}</td><td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${sanitizeHTML(a.motivo||'')}</td></tr>`;
                 }).join('')}</tbody></table></div></div>`
                 }
             </div>
@@ -679,7 +679,7 @@ const Cobranza = {
                             <div class="dropdown-item-cliente">Guía: ${sanitizeHTML(r.guia||'N/A')} · ${sanitizeHTML(r.empresa||'')}</div>
                         </div>
                         <div class="dropdown-item-right">
-                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                            <div class="dropdown-item-monto">${formatCurrency(r.venta||0)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -714,7 +714,7 @@ const Cobranza = {
                             <div class="dropdown-item-cliente">${sanitizeHTML(r.cliente||'')}</div>
                         </div>
                         <div class="dropdown-item-right">
-                            <div class="dropdown-item-monto">$${formatNumber(r.venta||0,0)}</div>
+                            <div class="dropdown-item-monto">${formatCurrency(r.venta||0)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -867,14 +867,14 @@ const Cobranza = {
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem;">
                         <div><span style="color:#8e8e93;">Guía:</span> <strong>${sanitizeHTML(r.guia||'N/A')}</strong></div>
                         <div><span style="color:#8e8e93;">Cliente:</span> <strong>${sanitizeHTML(r.cliente||'')}</strong></div>
-                        <div><span style="color:#8e8e93;">Venta:</span> <strong>$${formatNumber(r.venta||0,2)}</strong></div>
-                        <div><span style="color:#8e8e93;">Cobrado:</span> <strong style="color:#22c55e;">$${formatNumber(cobrado,2)}</strong></div>
-                        <div style="grid-column:span 2;"><span style="color:#8e8e93;">Pendiente:</span> <strong style="color:#ef4444;font-size:1.1rem;">$${formatNumber(pendiente,2)}</strong></div>
+                        <div><span style="color:#8e8e93;">Venta:</span> <strong>${formatCurrency(r.venta||0)}</strong></div>
+                        <div><span style="color:#8e8e93;">Cobrado:</span> <strong style="color:#22c55e;">${formatCurrency(cobrado)}</strong></div>
+                        <div style="grid-column:span 2;"><span style="color:#8e8e93;">Pendiente:</span> <strong style="color:#ef4444;font-size:1.1rem;">${formatCurrency(pendiente)}</strong></div>
                     </div>
                     ${(r.planPagos||[]).length > 0 ? `
                     <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px dashed #e2e8f0;">
                         <div style="font-size:0.75rem;color:#7c3aed;font-weight:600;margin-bottom:4px;">📅 Pagos programados:</div>
-                        ${r.planPagos.map((pp,i) => `<div style="font-size:0.75rem;color:#555;">${i+1}. ${pp.fecha} — $${formatNumber(pp.monto,2)}</div>`).join('')}
+                        ${r.planPagos.map((pp,i) => `<div style="font-size:0.75rem;color:#555;">${i+1}. ${pp.fecha} — ${formatCurrency(pp.monto)}</div>`).join('')}
                     </div>
                     ` : ''}
                 </div>
@@ -954,7 +954,7 @@ const Cobranza = {
 
                 modal.remove();
                 this.renderCurrentView();
-                showToast(`✅ Pago de $${formatNumber(monto,2)} registrado`, 'success');
+                showToast(`✅ Pago de ${formatCurrency(monto)} registrado`, 'success');
             } catch(err) { showToast('Error: '+err.message, 'error'); setButtonLoading(btn, false); }
         });
     },
@@ -1064,10 +1064,10 @@ const Cobranza = {
 
         resultDiv.innerHTML = `
             <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total Venta</h3><p>$${totalVenta.toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
-                <div class="stat-card"><h3>Total Cobrado</h3><p style="color:#22c55e;">$${totalCobrado.toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
-                <div class="stat-card"><h3>Saldo Pendiente</h3><p style="color:${totalPendiente>0?'#f97316':'#22c55e'};">$${totalPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</p></div>
-                <div class="stat-card"><h3>Ajustes Netos</h3><p style="color:${ajusteNeto<0?'#22c55e':'#ef4444'};">${ajusteNeto<0?'−':''}$${formatNumber(Math.abs(ajusteNeto),2)}</p></div>
+                <div class="stat-card"><h3>Total Venta</h3><p>${formatCurrency(totalVenta)}</p></div>
+                <div class="stat-card"><h3>Total Cobrado</h3><p style="color:#22c55e;">${formatCurrency(totalCobrado)}</p></div>
+                <div class="stat-card"><h3>Saldo Pendiente</h3><p style="color:${totalPendiente>0?'#f97316':'#22c55e'};">${formatCurrency(totalPendiente)}</p></div>
+                <div class="stat-card"><h3>Ajustes Netos</h3><p style="color:${ajusteNeto<0?'#22c55e':'#ef4444'};">${ajusteNeto<0?'−':''}${formatCurrency(Math.abs(ajusteNeto))}</p></div>
             </div>
             <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
                 <thead><tr style="background:#f0f0f0;">
@@ -1089,10 +1089,10 @@ const Cobranza = {
                     return `<tr>
                         <td style="padding:8px;font-weight:bold;">${r.guia||''}</td>
                         <td style="padding:8px;">${sanitizeHTML(r.cliente||'')}</td><td style="padding:8px;">${r.fecha?formatDateShort(r.fecha):''}</td>
-                        <td style="text-align:right;padding:8px;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                        <td style="text-align:right;padding:8px;color:#22c55e;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                        <td style="text-align:right;padding:8px;color:#7c3aed;">${prog>0?'$'+prog.toLocaleString('en-US',{minimumFractionDigits:2}):'-'}${(r.planPagos||[]).length>0?'<br><small style="color:#7c3aed;">'+r.planPagos.length+' pagos</small>':''}</td>
-                        <td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">$${p.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                        <td style="text-align:right;padding:8px;">${formatCurrency(r.venta||0)}</td>
+                        <td style="text-align:right;padding:8px;color:#22c55e;">${formatCurrency(c)}</td>
+                        <td style="text-align:right;padding:8px;color:#7c3aed;">${prog>0?formatCurrency(prog):'-'}${(r.planPagos||[]).length>0?'<br><small style="color:#7c3aed;">'+r.planPagos.length+' pagos</small>':''}</td>
+                        <td style="text-align:right;padding:8px;color:${p>0?'#ef4444':'#22c55e'};">${formatCurrency(p)}</td>
                         <td style="text-align:center;padding:8px;color:${ec};font-weight:bold;">${e.charAt(0).toUpperCase()+e.slice(1)}</td>
                         <td style="padding:8px;font-size:0.75rem;">${sanitizeHTML(rutaLabel)}</td>
                         <td style="text-align:center;padding:8px;">${showPayBtn ? `<button class="btn btn-primary btn-sm" onclick="Cobranza.showPaymentModal('${r.id}')" title="Registrar pago" style="font-size:0.75rem;padding:4px 10px;">💰 Cobrar</button>` : '✅'}</td>
@@ -1100,13 +1100,13 @@ const Cobranza = {
                 }).join('')}</tbody>
                 <tfoot><tr style="background:#e5e5e5;font-weight:bold;">
                     <td colspan="3" style="padding:8px;text-align:right;">TOTALES (${filtered.length})</td>
-                    <td style="text-align:right;padding:8px;">$${totalVenta.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                    <td style="text-align:right;padding:8px;">$${totalCobrado.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+                    <td style="text-align:right;padding:8px;">${formatCurrency(totalVenta)}</td>
+                    <td style="text-align:right;padding:8px;">${formatCurrency(totalCobrado)}</td>
                     <td style="text-align:right;padding:8px;">-</td>
-                    <td style="text-align:right;padding:8px;">$${totalPendiente.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td></td><td></td>
+                    <td style="text-align:right;padding:8px;">${formatCurrency(totalPendiente)}</td><td></td><td></td>
                 </tr></tfoot>
             </table>
-            ${ajustesRel.length>0 ? `<div style="margin-top:1rem;"><h4 style="font-size:0.85rem;color:#666;margin-bottom:4px;">Ajustes Relacionados (${ajustesRel.length})</h4><table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#fefce8;"><th style="padding:4px;">Tipo</th><th style="padding:4px;text-align:right;">Monto</th><th style="padding:4px;">Motivo</th><th style="padding:4px;">Fecha</th></tr></thead><tbody>${ajustesRel.map(a=>`<tr style="background:#fffbeb;"><td style="padding:4px;">${a.tipo||''}</td><td style="text-align:right;padding:4px;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</td><td style="padding:4px;">${sanitizeHTML(a.motivo||'')}</td><td style="padding:4px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td></tr>`).join('')}</tbody></table></div>`:''}
+            ${ajustesRel.length>0 ? `<div style="margin-top:1rem;"><h4 style="font-size:0.85rem;color:#666;margin-bottom:4px;">Ajustes Relacionados (${ajustesRel.length})</h4><table style="width:100%;font-size:0.8rem;"><thead><tr style="background:#fefce8;"><th style="padding:4px;">Tipo</th><th style="padding:4px;text-align:right;">Monto</th><th style="padding:4px;">Motivo</th><th style="padding:4px;">Fecha</th></tr></thead><tbody>${ajustesRel.map(a=>`<tr style="background:#fffbeb;"><td style="padding:4px;">${a.tipo||''}</td><td style="text-align:right;padding:4px;color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}${formatCurrency(Math.abs(a.monto||0))}</td><td style="padding:4px;">${sanitizeHTML(a.motivo||'')}</td><td style="padding:4px;">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</td></tr>`).join('')}</tbody></table></div>`:''}
             <button class="btn btn-secondary" onclick="Cobranza.printEstadoCuenta('${q||''}','${startDate||''}','${endDate||''}')" style="margin-top:1rem;">🖨️ Imprimir Estado de Cuenta</button>
         `;
     },
@@ -1132,7 +1132,7 @@ const Cobranza = {
                 </div>
                 <div class="card-body">
                     ${cl.length===0?'<p style="text-align:center;padding:2rem;color:#8e8e93;">No hay saldos pendientes</p>':
-                    `<div class="table-container"><table class="data-table" style="font-size:0.85rem;"><thead><tr><th>Cliente</th><th style="text-align:right;">Total</th><th style="text-align:right;color:#22c55e;">Corriente</th><th style="text-align:right;color:#eab308;">1-30 d</th><th style="text-align:right;color:#f97316;">31-60 d</th><th style="text-align:right;color:#ef4444;">61-90 d</th><th style="text-align:right;color:#dc2626;">90+ d</th></tr></thead><tbody>${cl.map(([n,b])=>`<tr><td><strong>${sanitizeHTML(n)}</strong></td><td style="text-align:right;font-weight:700;">$${formatNumber(b.total,2)}</td><td style="text-align:right;">$${formatNumber(b.corriente,2)}</td><td style="text-align:right;">$${formatNumber(b['1-30'],2)}</td><td style="text-align:right;">$${formatNumber(b['31-60'],2)}</td><td style="text-align:right;">$${formatNumber(b['61-90'],2)}</td><td style="text-align:right;">$${formatNumber(b['90+'],2)}</td></tr>`).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:700;"><td>TOTALES</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b.total,0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b.corriente,0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['1-30'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['31-60'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['61-90'],0),2)}</td><td style="text-align:right;">$${formatNumber(cl.reduce((s,[,b])=>s+b['90+'],0),2)}</td></tr></tfoot></table></div>`}
+                    `<div class="table-container"><table class="data-table" style="font-size:0.85rem;"><thead><tr><th>Cliente</th><th style="text-align:right;">Total</th><th style="text-align:right;color:#22c55e;">Corriente</th><th style="text-align:right;color:#eab308;">1-30 d</th><th style="text-align:right;color:#f97316;">31-60 d</th><th style="text-align:right;color:#ef4444;">61-90 d</th><th style="text-align:right;color:#dc2626;">90+ d</th></tr></thead><tbody>${cl.map(([n,b])=>`<tr><td><strong>${sanitizeHTML(n)}</strong></td><td style="text-align:right;font-weight:700;">${formatCurrency(b.total)}</td><td style="text-align:right;">${formatCurrency(b.corriente)}</td><td style="text-align:right;">${formatCurrency(b['1-30'])}</td><td style="text-align:right;">${formatCurrency(b['31-60'])}</td><td style="text-align:right;">${formatCurrency(b['61-90'])}</td><td style="text-align:right;">${formatCurrency(b['90+'])}</td></tr>`).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:700;"><td>TOTALES</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b.total,0))}</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b.corriente,0))}</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b['1-30'],0))}</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b['31-60'],0))}</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b['61-90'],0))}</td><td style="text-align:right;">${formatCurrency(cl.reduce((s,[,b])=>s+b['90+'],0))}</td></tr></tfoot></table></div>`}
                 </div>
             </div>
         `;
@@ -1184,7 +1184,7 @@ const Cobranza = {
         let periodLabel = '';
         if (startDate && endDate && startDate === endDate) periodLabel = ` · Fecha: ${startDate}`;
         else if (startDate || endDate) periodLabel = ` · Período: ${startDate||'...'} a ${endDate||'...'}`;
-        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${query?'Búsqueda: '+sanitizeHTML(query):'Todos los clientes'}${periodLabel} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Number(r.venta||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${c.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${Math.max(0,Number(r.venta||0)-c).toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tv.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tc.toLocaleString('en-US',{minimumFractionDigits:2})}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">$${tp.toLocaleString('en-US',{minimumFractionDigits:2})}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
+        printArea.innerHTML=`<div style="font-family:Arial,sans-serif;padding:20px;max-width:1000px;margin:0 auto;color:#000;"><h1 style="font-size:1.5rem;margin-bottom:5px;">Estado de Cuenta</h1><p style="color:#666;">${query?'Búsqueda: '+sanitizeHTML(query):'Todos los clientes'}${periodLabel} · ${today}</p><table style="width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th style="border:1px solid #ccc;padding:6px;">Guía</th><th style="border:1px solid #ccc;padding:6px;">Cliente</th><th style="border:1px solid #ccc;padding:6px;">Fecha</th><th style="border:1px solid #ccc;padding:6px;">Venta</th><th style="border:1px solid #ccc;padding:6px;">Cobrado</th><th style="border:1px solid #ccc;padding:6px;">Pendiente</th></tr></thead><tbody>${filtered.map(r=>{const c=Number(r.montoCobrado||(r.cobrado===true?r.venta:0));return`<tr><td style="border:1px solid #ccc;padding:6px;">${r.guia||''}</td><td style="border:1px solid #ccc;padding:6px;">${sanitizeHTML(r.cliente||'')}</td><td style="border:1px solid #ccc;padding:6px;">${r.fecha?formatDateShort(r.fecha):''}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(r.venta||0)}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(c)}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(Math.max(0,Number(r.venta||0)-c))}</td></tr>`;}).join('')}</tbody><tfoot><tr style="background:#e5e5e5;font-weight:bold;"><td colspan="3" style="border:1px solid #ccc;padding:6px;text-align:right;">TOTALES</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(tv)}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(tc)}</td><td style="border:1px solid #ccc;padding:6px;text-align:right;">${formatCurrency(tp)}</td></tr></tfoot></table><div style="margin-top:20px;text-align:center;color:#888;font-size:0.7rem;">${filtered.length} registro(s) · Generado ${today}</div></div>`;
         setTimeout(()=>window.print(),100);
     },
 
@@ -1225,15 +1225,15 @@ const Cobranza = {
         if (this.currentView === 'dashboard') {
             const months = this.getMonthlyComparison(records).slice(-3);
             container.innerHTML = `
-                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">CxC</div><div class="m-stat-chip-value" style="color:#f97316;">$${formatNumber(totalCxC,0)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Pend</div><div class="m-stat-chip-value">${pendientes.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">DSO</div><div class="m-stat-chip-value">${dso}d</div></div></div>
+                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">CxC</div><div class="m-stat-chip-value" style="color:#f97316;">${formatCurrency(totalCxC)}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">Pend</div><div class="m-stat-chip-value">${pendientes.length}</div></div><div class="m-stat-chip"><div class="m-stat-chip-label">DSO</div><div class="m-stat-chip-value">${dso}d</div></div></div>
                 <div style="font-size:0.7rem;color:#8e8e93;margin:8px 0 4px;">Comparativo Mensual</div>
-                ${months.map(m=>`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.7rem;"><span>${m.label}</span><span>$${formatNumber(m.cobros,0)} / $${formatNumber(m.ventas,0)}</span></div><div style="height:6px;background:#e5e5ea;border-radius:3px;"><div style="height:100%;width:${m.ventas>0?Math.round(m.cobros/m.ventas*100):0}%;background:#22c55e;border-radius:3px;"></div></div></div>`).join('')}
+                ${months.map(m=>`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.7rem;"><span>${m.label}</span><span>${formatCurrency(m.cobros)} / ${formatCurrency(m.ventas)}</span></div><div style="height:6px;background:#e5e5ea;border-radius:3px;"><div style="height:100%;width:${m.ventas>0?Math.round(m.cobros/m.ventas*100):0}%;background:#22c55e;border-radius:3px;"></div></div></div>`).join('')}
             `;
         } else if (this.currentView === 'proyeccion') {
             const proy = records.filter(r=>r.estadoCobro!=='pagado'&&r.fechaVenc).sort((a,b)=>a.fechaVenc-b.fechaVenc);
             container.innerHTML = `
-                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">Proyectado</div><div class="m-stat-chip-value">$${formatNumber(proy.reduce((s,r)=>s+r.pendiente,0),0)}</div></div></div>
-                ${proy.slice(0,15).map(r=>`<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(r.cliente||'')}</span><span class="m-card-badge ${r.agingDays>0?'error':'success'}">${r.agingDays>0?'+'+r.agingDays+'d':r.agingDays===0?'Hoy':Math.abs(r.agingDays)+'d'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Guía #${r.guia||'N/A'}</span><span class="m-card-value money" style="color:#f97316;">$${formatNumber(r.pendiente,2)}</span></div></div></div>`).join('')}
+                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">Proyectado</div><div class="m-stat-chip-value">${formatCurrency(proy.reduce((s,r)=>s+r.pendiente,0))}</div></div></div>
+                ${proy.slice(0,15).map(r=>`<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(r.cliente||'')}</span><span class="m-card-badge ${r.agingDays>0?'error':'success'}">${r.agingDays>0?'+'+r.agingDays+'d':r.agingDays===0?'Hoy':Math.abs(r.agingDays)+'d'}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Guía #${r.guia||'N/A'}</span><span class="m-card-value money" style="color:#f97316;">${formatCurrency(r.pendiente)}</span></div></div></div>`).join('')}
             `;
         } else if (this.currentView === 'alertas') {
             const alertas = this.getAlertas();
@@ -1261,7 +1261,7 @@ const Cobranza = {
                 ${allItems.length===0?'<div class="m-empty"><div class="m-empty-icon">💡</div><div class="m-empty-title">Sin ajustes</div></div>':allItems.slice(0,20).map(a=>{
                     const isNC = a._source === 'nc';
                     const tipoLabel = isNC ? 'Nota de Crédito' : (a.tipo||'');
-                    return `<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(a.cliente||'')}</span><span class="m-card-badge ${isNC?'badge-nc':''}">${tipoLabel}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</span><span class="m-card-value money" style="color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}$${formatNumber(Math.abs(a.monto||0),2)}</span></div>${isNC&&a.ncNum?`<div class="m-card-row"><span class="m-card-label">N° NC</span><span class="m-card-value">${sanitizeHTML(a.ncNum)}</span></div>`:''}</div></div>`;
+                    return `<div class="m-data-card"><div class="m-card-header"><span class="m-card-title">${sanitizeHTML(a.cliente||'')}</span><span class="m-card-badge ${isNC?'badge-nc':''}">${tipoLabel}</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">${a.fecha&&a.fecha.toDate?formatDateShort(a.fecha):''}</span><span class="m-card-value money" style="color:${(a.monto||0)<0?'#22c55e':'#ef4444'};">${(a.monto||0)<0?'−':''}${formatCurrency(Math.abs(a.monto||0))}</span></div>${isNC&&a.ncNum?`<div class="m-card-row"><span class="m-card-label">N° NC</span><span class="m-card-value">${sanitizeHTML(a.ncNum)}</span></div>`:''}</div></div>`;
                 }).join('')}
             `;
         } else {
@@ -1269,8 +1269,8 @@ const Cobranza = {
             pendientes.forEach(r=>{aging[r.agingBucket]+=r.pendiente;});
             const tot = Object.values(aging).reduce((a,b)=>a+b,0);
             container.innerHTML = `
-                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">Pendiente</div><div class="m-stat-chip-value" style="color:#f97316;">$${formatNumber(tot,0)}</div></div></div>
-                ${Object.entries(aging).map(([k,v])=>{const p=tot>0?v/tot*100:0;const c=k==='corriente'?'#10b981':k==='1-30'?'#eab308':k==='31-60'?'#f97316':k==='61-90'?'#ef4444':'#dc2626';return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.7rem;"><span>${k}</span><span>$${formatNumber(v,0)} (${p.toFixed(0)}%)</span></div><div style="height:6px;background:#e5e5ea;border-radius:3px;"><div style="height:100%;width:${p}%;background:${c};border-radius:3px;"></div></div></div>`;}).join('')}
+                <div class="m-stats-row"><div class="m-stat-chip"><div class="m-stat-chip-label">Pendiente</div><div class="m-stat-chip-value" style="color:#f97316;">${formatCurrency(tot)}</div></div></div>
+                ${Object.entries(aging).map(([k,v])=>{const p=tot>0?v/tot*100:0;const c=k==='corriente'?'#10b981':k==='1-30'?'#eab308':k==='31-60'?'#f97316':k==='61-90'?'#ef4444':'#dc2626';return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.7rem;"><span>${k}</span><span>${formatCurrency(v)} (${p.toFixed(0)}%)</span></div><div style="height:6px;background:#e5e5ea;border-radius:3px;"><div style="height:100%;width:${p}%;background:${c};border-radius:3px;"></div></div></div>`;}).join('')}
             `;
         }
     }
