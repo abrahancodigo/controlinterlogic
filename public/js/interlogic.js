@@ -997,50 +997,118 @@ const Interlogic = {
         const headerEl = event.currentTarget;
 
         document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+        this._restorePopupsToHeaders();
         this._detachPopupScroll();
 
         if (!isShowing) {
+            // Portal popup to <body> so it isn't clipped by any ancestor with
+            // `overflow: hidden/auto` (e.g. .table-container, .main-content).
+            this._portalPopupToBody(popup, headerEl);
             popup.classList.add('show');
             this.populateFilterOptions(field);
             this._positionPopup(headerEl, popup);
         }
     },
 
+    _portalPopupToBody(popup, headerEl) {
+        // Remember the original parent so we can restore the popup later.
+        if (!popup.dataset.originalParentId) {
+            popup.dataset.originalParentId = headerEl.id || '';
+        }
+        if (popup.parentElement !== document.body) {
+            popup._originalParent = popup.parentElement;
+            popup._originalNextSibling = popup.nextElementSibling;
+            document.body.appendChild(popup);
+        }
+    },
+
+    _restorePopupsToHeaders() {
+        document.querySelectorAll('.filter-popup').forEach(p => {
+            if (p._originalParent) {
+                if (p._originalNextSibling) {
+                    p._originalParent.insertBefore(p, p._originalNextSibling);
+                } else {
+                    p._originalParent.appendChild(p);
+                }
+                // Reset inline styles so CSS rules apply again.
+                p.style.position = '';
+                p.style.top = '';
+                p.style.bottom = '';
+                p.style.left = '';
+                p.style.minWidth = '';
+                p.style.maxWidth = '';
+                p.style.maxHeight = '';
+            }
+        });
+    },
+
     _positionPopup(headerEl, popup) {
         var self = this;
         var tableContainer = headerEl.closest('.table-container');
 
-        var reposition = function() {
+        // Popup is portaled to <body>, so use fixed positioning relative
+        // to the viewport. The header's getBoundingClientRect() gives us
+        // the exact coordinates regardless of overflow ancestors.
+        var rect = headerEl.getBoundingClientRect();
+        var spaceBelow = window.innerHeight - rect.bottom;
+        var spaceAbove = rect.top;
+        var maxH = Math.min(window.innerHeight * 0.7, 400);
+
+        popup.style.position = 'fixed';
+        popup.style.left = rect.left + 'px';
+        popup.style.minWidth = Math.max(250, rect.width) + 'px';
+        popup.style.maxWidth = Math.min(400, window.innerWidth - 16) + 'px';
+
+        // If not enough space below, flip popup above the header
+        if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+            popup.style.top = 'auto';
+            popup.style.bottom = (window.innerHeight - rect.top) + 'px';
+            popup.style.maxHeight = Math.min(maxH, spaceAbove - 16) + 'px';
+        } else {
+            popup.style.top = rect.bottom + 'px';
+            popup.style.bottom = 'auto';
+            popup.style.maxHeight = Math.min(maxH, spaceBelow - 16) + 'px';
+        }
+
+        // On table scroll: close the popup (like Excel behavior)
+        this._popupScrollHandler = function() {
+            document.querySelectorAll('.filter-popup').forEach(function(p) { p.classList.remove('show'); });
+            self._restorePopupsToHeaders();
+            self._detachPopupScroll();
+        };
+        if (tableContainer) tableContainer.addEventListener('scroll', this._popupScrollHandler, { passive: true });
+
+        // On window scroll: also close the popup
+        this._popupWindowScrollHandler = function() {
+            document.querySelectorAll('.filter-popup').forEach(function(p) { p.classList.remove('show'); });
+            self._restorePopupsToHeaders();
+            self._detachPopupScroll();
+        };
+        window.addEventListener('scroll', this._popupWindowScrollHandler, { passive: true });
+
+        // On window resize: recalculate position
+        this._popupResizeHandler = function() {
             if (!popup.classList.contains('show')) {
                 self._detachPopupScroll();
                 return;
             }
-            var rect = headerEl.getBoundingClientRect();
-            var spaceBelow = window.innerHeight - rect.bottom;
-            var maxH = Math.min(window.innerHeight * 0.7, 400);
-            var left = Math.max(8, Math.min(rect.left, window.innerWidth - 260));
-
-            popup.style.minWidth = Math.max(250, rect.width) + 'px';
+            var r = headerEl.getBoundingClientRect();
+            var sb = window.innerHeight - r.bottom;
+            var sa = r.top;
+            var mh = Math.min(window.innerHeight * 0.7, 400);
             popup.style.maxWidth = Math.min(400, window.innerWidth - 16) + 'px';
-            popup.style.left = left + 'px';
-
-            if (spaceBelow > 200) {
-                popup.style.top = rect.bottom + 2 + 'px';
-                popup.style.bottom = 'auto';
-                popup.style.maxHeight = Math.min(maxH, window.innerHeight - rect.bottom - 16) + 'px';
-            } else {
+            popup.style.left = r.left + 'px';
+            if (sb < 200 && sa > sb) {
                 popup.style.top = 'auto';
-                popup.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
-                popup.style.maxHeight = Math.min(maxH, rect.top - 16) + 'px';
+                popup.style.bottom = (window.innerHeight - r.top) + 'px';
+                popup.style.maxHeight = Math.min(mh, sa - 16) + 'px';
+            } else {
+                popup.style.top = r.bottom + 'px';
+                popup.style.bottom = 'auto';
+                popup.style.maxHeight = Math.min(mh, sb - 16) + 'px';
             }
         };
-
-        reposition();
-
-        this._popupScrollHandler = reposition;
-        if (tableContainer) tableContainer.addEventListener('scroll', reposition, { passive: true });
-        window.addEventListener('resize', reposition, { passive: true });
-        window.addEventListener('scroll', reposition, { passive: true });
+        window.addEventListener('resize', this._popupResizeHandler, { passive: true });
     },
 
     _detachPopupScroll() {
@@ -1048,9 +1116,15 @@ const Interlogic = {
             document.querySelectorAll('.table-container').forEach(function(tc) {
                 tc.removeEventListener('scroll', this._popupScrollHandler);
             }.bind(this));
-            window.removeEventListener('resize', this._popupScrollHandler);
-            window.removeEventListener('scroll', this._popupScrollHandler);
             this._popupScrollHandler = null;
+        }
+        if (this._popupWindowScrollHandler) {
+            window.removeEventListener('scroll', this._popupWindowScrollHandler);
+            this._popupWindowScrollHandler = null;
+        }
+        if (this._popupResizeHandler) {
+            window.removeEventListener('resize', this._popupResizeHandler);
+            this._popupResizeHandler = null;
         }
     },
 
