@@ -427,14 +427,86 @@ const Despacho = {
     toggleFilter(event, field) {
         event.stopPropagation();
         const popup = document.getElementById(`ds-filter-popup-${field}`);
+        if (!popup) return;
         const isShowing = popup.classList.contains('show');
+        const headerEl = event.currentTarget;
 
-        // Hide all popups
+        // Hide all popups and detach scroll listeners
         document.querySelectorAll('.filter-popup').forEach(p => p.classList.remove('show'));
+        this._detachPopupScroll();
 
         if (!isShowing) {
             popup.classList.add('show');
             this.populateFilterOptions(field);
+            this._positionPopup(headerEl, popup);
+        }
+    },
+
+    _positionPopup(headerEl, popup) {
+        var self = this;
+        var tableContainer = headerEl.closest('.table-container');
+
+        // Position ONCE based on header position at open time
+        var rect = headerEl.getBoundingClientRect();
+        var spaceBelow = window.innerHeight - rect.bottom;
+        var maxH = Math.min(window.innerHeight * 0.7, 400);
+        var left = Math.max(8, Math.min(rect.left, window.innerWidth - 260));
+
+        popup.style.minWidth = Math.max(250, rect.width) + 'px';
+        popup.style.maxWidth = Math.min(400, window.innerWidth - 16) + 'px';
+        popup.style.left = left + 'px';
+
+        if (spaceBelow > 200) {
+            popup.style.top = rect.bottom + 2 + 'px';
+            popup.style.bottom = 'auto';
+            popup.style.maxHeight = Math.min(maxH, window.innerHeight - rect.bottom - 16) + 'px';
+        } else {
+            popup.style.top = 'auto';
+            popup.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+            popup.style.maxHeight = Math.min(maxH, rect.top - 16) + 'px';
+        }
+
+        // On table scroll: close the popup (like Excel behavior)
+        this._popupScrollHandler = function() {
+            document.querySelectorAll('.filter-popup').forEach(function(p) { p.classList.remove('show'); });
+            self._detachPopupScroll();
+        };
+        if (tableContainer) tableContainer.addEventListener('scroll', this._popupScrollHandler, { passive: true });
+
+        // On window resize: reposition (rare but acceptable)
+        this._popupResizeHandler = function() {
+            if (!popup.classList.contains('show')) {
+                self._detachPopupScroll();
+                return;
+            }
+            var r = headerEl.getBoundingClientRect();
+            var sb = window.innerHeight - r.bottom;
+            var mh = Math.min(window.innerHeight * 0.7, 400);
+            var l = Math.max(8, Math.min(r.left, window.innerWidth - 260));
+            popup.style.left = l + 'px';
+            if (sb > 200) {
+                popup.style.top = r.bottom + 2 + 'px';
+                popup.style.bottom = 'auto';
+                popup.style.maxHeight = Math.min(mh, window.innerHeight - r.bottom - 16) + 'px';
+            } else {
+                popup.style.top = 'auto';
+                popup.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+                popup.style.maxHeight = Math.min(mh, r.top - 16) + 'px';
+            }
+        };
+        window.addEventListener('resize', this._popupResizeHandler, { passive: true });
+    },
+
+    _detachPopupScroll() {
+        if (this._popupScrollHandler) {
+            document.querySelectorAll('.table-container').forEach(function(tc) {
+                tc.removeEventListener('scroll', this._popupScrollHandler);
+            }.bind(this));
+            this._popupScrollHandler = null;
+        }
+        if (this._popupResizeHandler) {
+            window.removeEventListener('resize', this._popupResizeHandler);
+            this._popupResizeHandler = null;
         }
     },
 
