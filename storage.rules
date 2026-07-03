@@ -33,9 +33,13 @@ service firebase.storage {
     }
 
     // Reglas para problemas
+    // Cualquier usuario autenticado puede subir imagenes de soporte de
+    // sus problemas. El doc de Firestore correspondiente exige rol
+    // admin/editor para crear, pero los editores en campo necesitan poder
+    // adjuntar evidencia fotografica sin friccion.
     match /problemas/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if (isAdmin() || isEditor())
+      allow write: if isAuthenticated()
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }

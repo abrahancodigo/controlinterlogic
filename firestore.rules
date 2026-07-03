@@ -103,7 +103,7 @@ service cloud.firestore {
     match /problemas/{problemaId} {
       allow read: if isAuthenticated();
       allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin();
+      allow update: if isAdmin() || isEditor();
       allow delete: if isAdmin();
     }
 

@@ -82,7 +82,7 @@ function formatCurrency(num) {
 /**
  * Show a toast notification
  */
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', duration = 4000) {
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
@@ -109,11 +109,12 @@ function showToast(message, type = 'info') {
 
     container.appendChild(toast);
 
-    // Auto remove after 4 seconds
+    // Auto remove after the requested duration (default 4s)
+    const ttl = Number(duration) > 0 ? Number(duration) : 4000;
     setTimeout(() => {
         toast.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    }, ttl);
 }
 
 /**

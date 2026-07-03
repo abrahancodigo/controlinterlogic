@@ -656,12 +656,37 @@ const Problemas = {
         const remainingSlots = 3 - totalCount;
         if (remainingSlots <= 0) { showToast('Máximo 3 imágenes permitidas.', 'warning'); return; }
 
-        const newFiles = Array.from(files).slice(0, remainingSlots);
-        const oversized = newFiles.filter(f => f.size > 5 * 1024 * 1024);
-        if (oversized.length > 0) showToast('Algunas imágenes superan 5MB.', 'warning');
+        const incoming = Array.from(files).slice(0, remainingSlots);
+        const valid = [];
+        const rejected = { oversized: 0, badType: 0 };
 
-        this.selectedImages.push(...newFiles.filter(f => f.size <= 5 * 1024 * 1024));
+        for (const f of incoming) {
+            if (f.size > 5 * 1024 * 1024) {
+                rejected.oversized++;
+                continue;
+            }
+            // Solo imagenes. Algunos moviles reportan '' como type para HEIC.
+            if (f.type && !f.type.startsWith('image/')) {
+                rejected.badType++;
+                continue;
+            }
+            valid.push(f);
+        }
+
+        if (rejected.oversized > 0) {
+            showToast('Algunas imágenes superan 5MB y fueron descartadas.', 'warning');
+        }
+        if (rejected.badType > 0) {
+            showToast('Solo se permiten archivos de imagen (JPG/PNG/WEBP).', 'warning');
+        }
+
+        if (valid.length === 0) return;
+        this.selectedImages.push(...valid);
         this.renderImagePreviews();
+
+        // Resetear el input para permitir re-seleccionar el mismo archivo
+        const fileInput = document.getElementById('problema-images');
+        if (fileInput) fileInput.value = '';
     },
 
     renderImagePreviews() {
@@ -745,15 +770,29 @@ const Problemas = {
             if (this.selectedImages.length > 0) {
                 const uploadedUrls = await this.uploadImages(problemaId, this.selectedImages);
                 await db.collection('problemas').doc(problemaId).update({ imagenes: [...this.existingImages, ...uploadedUrls] });
+            } else if (this.editingId && this.existingImages.length === 0) {
+                // En edicion, si el usuario elimino todas las imagenes sin
+                // agregar nuevas, persistir el array vacio.
+                await db.collection('problemas').doc(problemaId).update({ imagenes: [] });
             } else if (this.editingId) {
-                await db.collection('problemas').doc(problemaId).update({ imagenes: this.existingImages });
+                // No tocamos imagenes (mantenemos las existentes tal cual).
             }
 
             showToast(this.editingId ? 'Problema actualizado' : 'Problema registrado', 'success');
             this.hideForm();
         } catch (error) {
-            console.error('Error saving:', error);
-            showToast('Error al guardar: ' + error.message, 'error');
+            console.error('Error saving problema:', error);
+            const code = error && (error.code || (error.serverResponse && error.serverResponse.error && error.serverResponse.error.code));
+            const msg = error && error.message ? error.message : 'Error desconocido';
+            if (code === 'storage/unauthorized') {
+                showToast('No tienes permisos para subir imágenes. Verifica las reglas de Storage.', 'error', 6000);
+            } else if (code === 'storage/canceled') {
+                showToast('Subida cancelada.', 'warning');
+            } else if (code === 'storage/retry-limit-exceeded' || code === 'storage/network-request-failed') {
+                showToast('Error de red al subir la imagen. Reintenta.', 'error', 6000);
+            } else {
+                showToast('Error al guardar: ' + msg, 'error', 6000);
+            }
         } finally {
             setButtonLoading(saveBtn, false);
         }
@@ -762,12 +801,29 @@ const Problemas = {
     async uploadImages(problemaId, files) {
         const urls = [];
         const storage = firebase.storage();
-        for (const file of files) {
-            const ext = file.name.split('.').pop();
-            const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
-            const ref = storage.ref(`problemas/${problemaId}/${filename}`);
-            await ref.put(file);
-            urls.push(await ref.getDownloadURL());
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+            const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : 'jpg';
+            const filename = `${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}.${safeExt}`;
+            const path = `problemas/${problemaId}/${filename}`;
+            try {
+                console.log('[problemas.upload] start', { path, size: file.size, type: file.type });
+                const ref = storage.ref(path);
+                // Forzar metadata para que la regla de storage siempre reciba
+                // un contentType image/*, incluso en navegadores que no lo
+                // detectan (ej. HEIC en algunos moviles).
+                const metadata = file.type && file.type.startsWith('image/')
+                    ? { contentType: file.type }
+                    : { contentType: 'image/jpeg' };
+                await ref.put(file, metadata);
+                const url = await ref.getDownloadURL();
+                urls.push(url);
+                console.log('[problemas.upload] ok', { path, url });
+            } catch (err) {
+                console.error('[problemas.upload] FAIL', { path, code: err && err.code, message: err && err.message });
+                throw err;
+            }
         }
         return urls;
     },

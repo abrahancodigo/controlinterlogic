@@ -13,45 +13,6 @@ const App = {
         this.loadModule('interlogic');
     },
 
-    initFirebase() {
-        if (typeof firebase === 'undefined') {
-            console.error('Firebase SDK not loaded!');
-            setTimeout(() => this.initFirebase(), 500);
-            return;
-        }
-        console.log('Initializing Firebase...');
-        const firebaseConfig = {
-            apiKey: "AIzaSyDRgqpevJMpXqyez3uWpgyFZmy7SwrgNEk",
-            authDomain: "dalse-e7b96.firebaseapp.com",
-            projectId: "dalse-e7b96",
-            storageBucket: "dalse-e7b96.firebasestorage.app",
-            messagingSenderId: "817518560330",
-            appId: "1:817518560330:web:3801a8c2aae41ff2abd2b3"
-        };
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-                console.log('✅ Firebase initialized successfully');
-            } else {
-                console.log('✅ Firebase already initialized');
-            }
-            firebase.firestore().enablePersistence()
-                .then(() => console.log('✅ Firestore persistence enabled'))
-                .catch((err) => {
-                    if (err.code === 'failed-precondition') {
-                        console.warn('Persistence failed: Multiple tabs open');
-                    } else if (err.code === 'unimplemented') {
-                        console.warn('Persistence not available in this browser');
-                    } else {
-                        console.error('Persistence error:', err);
-                    }
-                });
-        } catch (error) {
-            console.error('❌ Error initializing Firebase:', error);
-            throw error;
-        }
-    },
-
     setupNavigation() {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
