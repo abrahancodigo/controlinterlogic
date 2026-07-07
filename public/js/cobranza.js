@@ -71,14 +71,16 @@ const Cobranza = {
                 }
             };
 
-            if (this.unsubscribeRecords) this.unsubscribeRecords();
-            this.unsubscribeRecords = db.collection('interlogic')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snap => {
+            // Reuse Interlogic.records to avoid duplicate listener (cost optimization)
+            if (window.Interlogic && window.Interlogic.records && window.Interlogic.records.length > 0) {
+                this.records = window.Interlogic.records;
+                checkDone('records');
+            } else {
+                db.collection('interlogic').orderBy('createdAt', 'desc').limit(5000).get().then(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
                     checkDone('records');
-                }, err => { console.error('Error loading interlogic:', err); showToast('Error cargando registros', 'error'); checkDone('records'); });
+                }).catch(err => { console.error('Error loading interlogic:', err); checkDone('records'); });
+            }
 
             if (this.unsubscribeCobros) this.unsubscribeCobros();
             this.unsubscribeCobros = db.collection('cobros')
@@ -89,32 +91,23 @@ const Cobranza = {
                     checkDone('cobros');
                 }, err => { console.error('Error loading cobros:', err); showToast('Error cargando cobros', 'error'); checkDone('cobros'); });
 
-            if (this.unsubscribeGestiones) this.unsubscribeGestiones();
-            this.unsubscribeGestiones = db.collection('gestiones')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snap => {
-                    this.gestiones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
-                    checkDone('gestiones');
-                }, err => { console.error('Error loading gestiones:', err); showToast('Error cargando gestiones', 'error'); checkDone('gestiones'); });
+            // One-time fetch: gestiones only changes on explicit user action
+            db.collection('gestiones').orderBy('createdAt', 'desc').limit(500).get().then(snap => {
+                this.gestiones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                checkDone('gestiones');
+            }).catch(err => { console.error('Error loading gestiones:', err); checkDone('gestiones'); });
 
-            if (this.unsubscribeAjustes) this.unsubscribeAjustes();
-            this.unsubscribeAjustes = db.collection('ajustes')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snap => {
-                    this.ajustes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
-                    checkDone('ajustes');
-                }, err => { console.error('Error loading ajustes:', err); showToast('Error cargando ajustes', 'error'); checkDone('ajustes'); });
+            // One-time fetch: ajustes only changes on explicit user action
+            db.collection('ajustes').orderBy('createdAt', 'desc').limit(500).get().then(snap => {
+                this.ajustes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                checkDone('ajustes');
+            }).catch(err => { console.error('Error loading ajustes:', err); checkDone('ajustes'); });
 
-            if (this.unsubscribeNC) this.unsubscribeNC();
-            this.unsubscribeNC = db.collection('notasCredito')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snap => {
-                    this.notasCredito = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (loadedCollections.size >= totalNeeded) this.renderCurrentView();
-                    checkDone('nc');
-                }, err => { console.error('Error loading notasCredito:', err); showToast('Error cargando notas de crédito', 'error'); checkDone('nc'); });
+            // One-time fetch: notasCredito only changes on explicit user action
+            db.collection('notasCredito').orderBy('createdAt', 'desc').limit(1000).get().then(snap => {
+                this.notasCredito = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                checkDone('nc');
+            }).catch(err => { console.error('Error loading notasCredito:', err); checkDone('nc'); });
 
             db.collection('rutas').orderBy('fecha', 'desc').limit(100).get().then(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));

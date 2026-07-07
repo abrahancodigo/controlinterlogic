@@ -1403,6 +1403,7 @@ const Interlogic = {
         const db = firebase.firestore();
         this.unsubscribe = db.collection('interlogic')
             .orderBy('createdAt', 'desc')
+            .limit(5000)
             .onSnapshot(snapshot => {
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,

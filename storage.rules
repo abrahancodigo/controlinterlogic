@@ -37,11 +37,14 @@ service firebase.storage {
     // sus problemas. El doc de Firestore correspondiente exige rol
     // admin/editor para crear, pero los editores en campo necesitan poder
     // adjuntar evidencia fotografica sin friccion.
+    // Nota: Aceptamos contentType null porque algunos navegadores/moviles
+    // (especialmente iOS con HEIC) no envian el MIME type, aunque el
+    // codigo JS fuerza un contentType via metadata en el upload.
     match /problemas/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated()
                    && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
 
     // Reglas para fotos de vehículos

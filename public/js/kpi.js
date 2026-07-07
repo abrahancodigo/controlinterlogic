@@ -129,6 +129,7 @@ const KpiEvaluation = {
 
             this.unsubscribe = db.collection('kpiEvaluations')
                 .orderBy('fecha', 'desc')
+                .limit(500)
                 .onSnapshot(snapshot => {
                     this.records = snapshot.docs.map(doc => ({
                         id: doc.id,

@@ -117,48 +117,18 @@ const Problemas = {
 
         await this.loadProblemas();
 
-        // Single event delegation for desktop cards
-        const timeline = document.getElementById('problemas-timeline');
-        if (timeline && !this._desktopListenerAdded) {
-            timeline.addEventListener('click', (e) => {
-                const editBtn = e.target.closest('.prob-btn-edit');
-                if (editBtn && !editBtn.disabled) {
-                    const id = editBtn.getAttribute('data-id');
-                    if (id) this.showEditForm(id);
-                    return;
-                }
-                const deleteBtn = e.target.closest('.prob-btn-delete');
-                if (deleteBtn && !deleteBtn.disabled) {
+        // Event delegation for mobile list
+        const mList = document.getElementById('mprob-list');
+        if (mList && !this._mobileListenerAdded) {
+            mList.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.btn-delete-mprob');
+                if (deleteBtn) {
                     const id = deleteBtn.getAttribute('data-id');
                     if (id) this.deleteProblema(id);
                     return;
                 }
-                const toggleBtn = e.target.closest('.prob-obs-toggle');
-                if (toggleBtn) {
-                    const id = toggleBtn.getAttribute('data-id');
-                    if (id) this.toggleObs(id, toggleBtn);
-                    return;
-                }
-                const imgMini = e.target.closest('.prob-img-mini');
-                if (imgMini) {
-                    const id = imgMini.getAttribute('data-id');
-                    const idx = parseInt(imgMini.getAttribute('data-idx'), 10);
-                    if (id) this.viewImages(id, idx);
-                    return;
-                }
-                const btnImages = e.target.closest('.prob-btn-images');
-                if (btnImages) {
-                    const id = btnImages.getAttribute('data-id');
-                    if (id) this.viewImages(id, 0);
-                    return;
-                }
-                const emptyBtn = e.target.closest('.problemas-empty-btn');
-                if (emptyBtn) {
-                    this.showForm();
-                    return;
-                }
             });
-            this._desktopListenerAdded = true;
+            this._mobileListenerAdded = true;
         }
     },
 
@@ -168,6 +138,7 @@ const Problemas = {
         const db = firebase.firestore();
         this.unsubscribe = db.collection('problemas')
             .orderBy('createdAt', 'desc')
+            .limit(1000)
             .onSnapshot(snapshot => {
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
@@ -327,7 +298,7 @@ const Problemas = {
                 '</div>' +
                 (observacion ? '<div style="font-size:0.8rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#fef2f2;border-radius:10px;">' + sanitizeHTML(observacion.length > 120 ? observacion.substring(0, 120) + '...' : observacion) + '</div>' : '') +
                 (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;">' + record.imagenes.slice(0, 3).map(function(url) {
-                    return '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>';
+                    return '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + sanitizeHTML(url) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>';
                 }).join('') + (imgCount > 3 ? '<div style="width:60px;height:60px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#8e8e93;flex-shrink:0;">+' + (imgCount - 3) + '</div>' : '') + '</div>' : '') +
                 (canDelete ? '<div class="m-card-actions">' +
                     '<button class="m-card-action delete btn-delete-mprob" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' +
@@ -801,6 +772,7 @@ const Problemas = {
     async uploadImages(problemaId, files) {
         const urls = [];
         const storage = firebase.storage();
+        const uploadedPaths = [];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
@@ -810,18 +782,23 @@ const Problemas = {
             try {
                 console.log('[problemas.upload] start', { path, size: file.size, type: file.type });
                 const ref = storage.ref(path);
-                // Forzar metadata para que la regla de storage siempre reciba
-                // un contentType image/*, incluso en navegadores que no lo
-                // detectan (ej. HEIC en algunos moviles).
-                const metadata = file.type && file.type.startsWith('image/')
-                    ? { contentType: file.type }
-                    : { contentType: 'image/jpeg' };
-                await ref.put(file, metadata);
+                // Forzar un contentType image/* conocido, incluso cuando el
+                // navegador no lo detecte (ej. HEIC en iOS). Creamos un Blob
+                // con el MIME explicito para que las Security Rules de Storage
+                // siempre vean un contentType valido.
+                const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
+                const blob = file.slice(0, file.size, mimeType);
+                await ref.put(blob, { contentType: mimeType });
                 const url = await ref.getDownloadURL();
                 urls.push(url);
+                uploadedPaths.push(path);
                 console.log('[problemas.upload] ok', { path, url });
             } catch (err) {
                 console.error('[problemas.upload] FAIL', { path, code: err && err.code, message: err && err.message });
+                // Limpiar imagenes ya subidas antes de propagar el error
+                for (const p of uploadedPaths) {
+                    try { await storage.ref(p).delete(); } catch (_) {}
+                }
                 throw err;
             }
         }

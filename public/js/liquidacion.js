@@ -72,7 +72,7 @@ const Liquidacion = {
 
         const loadRoutes = new Promise((resolve) => {
             if (this.unsubscribeRoutes) this.unsubscribeRoutes();
-            this.unsubscribeRoutes = db.collection('rutas').orderBy('fecha', 'desc').onSnapshot(snap => {
+            this.unsubscribeRoutes = db.collection('rutas').orderBy('fecha', 'desc').limit(1000).onSnapshot(snap => {
                 this.routes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 this.populateRouteSelect();
                 this.updateStats();
@@ -90,7 +90,7 @@ const Liquidacion = {
         }, err => { console.error('Error loading repartidores:', err); showToast('Error al cargar repartidores', 'error'); });
 
         if (this.unsubscribeLiquidaciones) this.unsubscribeLiquidaciones();
-        this.unsubscribeLiquidaciones = db.collection('liquidaciones').orderBy('createdAt', 'desc').onSnapshot(snap => {
+        this.unsubscribeLiquidaciones = db.collection('liquidaciones').orderBy('createdAt', 'desc').limit(2000).onSnapshot(snap => {
             this.liquidaciones = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             this.updateStats();
         }, err => { console.error('Error loading liquidaciones:', err); showToast('Error al cargar liquidaciones', 'error'); });

@@ -158,6 +158,7 @@ const Clientes = {
       const db = firebase.firestore();
       this.unsubscribe = db.collection('clientes')
         .orderBy('nombre', 'asc')
+        .limit(3000)
         .onSnapshot(snapshot => {
           this.records = snapshot.docs.map(doc => ({
             id: doc.id,
