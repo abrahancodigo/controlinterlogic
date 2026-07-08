@@ -889,7 +889,7 @@ const Deliveries = {
                 </div>
                 
                 <div style="margin-bottom: 25px;">
-                    <h2 style="font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; color: #444;">Accesorios</h2>
+                    <h2 style="font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; color: var(--text-secondary);">Accesorios</h2>
                     <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; min-height: 80px; border: 1px solid #eee; white-space: pre-wrap; font-family: inherit; line-height: 1.5;">${sanitizeHTML(delivery.accesorios)}</div>
                 </div>
                 

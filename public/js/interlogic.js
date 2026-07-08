@@ -1464,7 +1464,7 @@ const Interlogic = {
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
                 <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
-                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: #444;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
+                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: var(--text-primary);">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Zona">${sanitizeHTML(record.zona || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>

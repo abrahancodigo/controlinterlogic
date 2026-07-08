@@ -18,6 +18,7 @@ requirements.txt
 .qwen/
 .kilo/
 backup-css/
+backup-css-v2/
 public/js/interlogic.js.check
 
 # exposed to /js/ by accident — exclude from git & from firebase
