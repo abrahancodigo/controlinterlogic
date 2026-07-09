@@ -1435,6 +1435,11 @@ tbody tr:hover {
     color: var(--gray-500);
 }
 
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .badge-editor {
     background: #fef3c7;
     color: #92400e;
@@ -5744,6 +5749,11 @@ tbody tr:hover {
 [data-theme="dark"] .badge-ghost {
     background: var(--bg-tertiary);
     color: var(--text-secondary);
+}
+
+[data-theme="dark"] .badge-warning {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
 }
 
 /* ===================================
