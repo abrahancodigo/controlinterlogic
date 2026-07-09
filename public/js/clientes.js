@@ -67,7 +67,8 @@ const Clientes = {
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('nombre')">Nombre <span class="sort-indicator" data-field="nombre"></span></th>
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('direccion')">Dirección <span class="sort-indicator" data-field="direccion"></span></th>
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('telefono')">Teléfono <span class="sort-indicator" data-field="telefono"></span></th>
-                                <th style="cursor: pointer;" onclick="Clientes.setSort('zona')">Zona <span class="sort-indicator" data-field="zona"></span></th>
+                                <th style="cursor: pointer;" onclick="Clientes.setSort('departamento')">Depto. <span class="sort-indicator" data-field="departamento"></span></th>
+                                <th style="cursor: pointer;" onclick="Clientes.setSort('municipio')">Municipio <span class="sort-indicator" data-field="municipio"></span></th>
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('vendedor')">Vendedor <span class="sort-indicator" data-field="vendedor"></span></th>
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('empresa')">Empresa <span class="sort-indicator" data-field="empresa"></span></th>
                                 <th style="cursor: pointer;" onclick="Clientes.setSort('condicionPago')">Cond. Pago <span class="sort-indicator" data-field="condicionPago"></span></th>
@@ -206,7 +207,8 @@ const Clientes = {
                 (r.nombre || '').toLowerCase().includes(q) ||
                 (r.direccion || '').toLowerCase().includes(q) ||
                 (r.telefono || '').toLowerCase().includes(q) ||
-                (r.zona || '').toLowerCase().includes(q) ||
+                (r.departamento || r.zona || '').toLowerCase().includes(q) ||
+                (r.municipio || '').toLowerCase().includes(q) ||
                 (r.vendedor || '').toLowerCase().includes(q) ||
                 (r.empresa || '').toLowerCase().includes(q)
             );
@@ -276,7 +278,8 @@ const Clientes = {
                 <td><strong>${sanitizeHTML(c.nombre || '')}</strong></td>
                 <td>${sanitizeHTML(c.direccion || '')}</td>
                 <td>${c.telefono ? `<a href="https://wa.me/${String(c.telefono).replace(/\D/g, '')}" target="_blank" style="color: var(--primary-600); text-decoration: none;">${sanitizeHTML(c.telefono)}</a>` : ''}</td>
-                <td>${sanitizeHTML(c.zona || '')}</td>
+                <td>${sanitizeHTML(c.departamento || c.zona || '')}</td>
+                <td>${sanitizeHTML(c.municipio || '')}</td>
                 <td>${sanitizeHTML(c.vendedor || '')}</td>
                 <td><span class="badge ${c.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(c.empresa || '')}</span></td>
                 <td>${sanitizeHTML(c.condicionPago || '')}</td>
@@ -345,8 +348,12 @@ const Clientes = {
                             <input type="text" id="cl-telefono" placeholder="Ej: 50370000000" value="${record?.telefono || ''}">
                         </div>
                         <div class="form-group">
-                            <label>Zona</label>
-                            <input type="text" id="cl-zona" value="${sanitizeHTML(record?.zona || '')}">
+                            <label>Departamento</label>
+                            <input type="text" id="cl-departamento" value="${sanitizeHTML(record?.departamento || record?.zona || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label>Municipio</label>
+                            <input type="text" id="cl-municipio" value="${sanitizeHTML(record?.municipio || '')}">
                         </div>
                     </div>
 
@@ -424,7 +431,9 @@ const Clientes = {
                     nombreNorm: nombre.toLowerCase().trim(),
                     direccion: document.getElementById('cl-direccion').value.trim(),
                     telefono: document.getElementById('cl-telefono').value.trim(),
-                    zona: document.getElementById('cl-zona').value.trim(),
+                    zona: document.getElementById('cl-departamento').value.trim(),
+                    departamento: document.getElementById('cl-departamento').value.trim(),
+                    municipio: document.getElementById('cl-municipio').value.trim(),
                     vendedor: document.getElementById('cl-vendedor').value.trim(),
                     empresa: document.getElementById('cl-empresa').value,
                     condicionPago: document.getElementById('cl-condicionPago').value,
@@ -539,7 +548,8 @@ const Clientes = {
             'Nombre': c.nombre || '',
             'Dirección': c.direccion || '',
             'Teléfono': c.telefono || '',
-            'Zona': c.zona || '',
+            'Departamento': c.departamento || c.zona || '',
+            'Municipio': c.municipio || '',
             'Vendedor': c.vendedor || '',
             'Empresa': c.empresa || '',
             'Condición Pago': c.condicionPago || ''
@@ -575,7 +585,7 @@ const Clientes = {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 // Only update fields if the new value is non-empty, or if existing was empty
-                const fields = ['direccion', 'telefono', 'zona', 'vendedor', 'empresa', 'condicionPago', 'observacionEntrega'];
+                const fields = ['direccion', 'telefono', 'departamento', 'municipio', 'zona', 'vendedor', 'empresa', 'condicionPago', 'observacionEntrega'];
                 fields.forEach(f => {
                     const newVal = clientData[f] || '';
                     if (newVal || !existingData[f]) {
@@ -596,7 +606,8 @@ const Clientes = {
                     nombreNorm,
                     direccion: clientData.direccion || '',
                     telefono: clientData.telefono || '',
-                    zona: clientData.zona || '',
+                    departamento: clientData.departamento || clientData.zona || '',
+                    municipio: clientData.municipio || '',
                     vendedor: clientData.vendedor || '',
                     empresa: clientData.empresa || '',
                     condicionPago: clientData.condicionPago || '',
@@ -626,7 +637,7 @@ const Clientes = {
                 <h2 style="margin-bottom: 1.5rem;">📤 Importar Clientes desde Excel</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Selecciona un archivo Excel (.xlsx) con las columnas en este orden:</p>
                 <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.85rem; overflow-x: auto;">
-                    <code>Nombre | Dirección | Teléfono | Zona | Vendedor | Empresa | Condición Pago</code>
+                    <code>Nombre | Dirección | Teléfono | Departamento | Municipio | Vendedor | Empresa | Condición Pago</code>
                 </div>
                 <div class="form-group">
                     <input type="file" id="cl-import-file" accept=".xlsx,.xls,.csv" style="padding: 1rem; border: 2px dashed var(--gray-300); border-radius: var(--radius-md); width: 100%; cursor: pointer;">
@@ -665,10 +676,11 @@ const Clientes = {
                             nombre: String(r[0] || '').trim(),
                             direccion: String(r[1] || '').trim(),
                             telefono: String(r[2] || '').trim(),
-                            zona: String(r[3] || '').trim(),
-                            vendedor: String(r[4] || '').trim(),
-                            empresa: String(r[5] || '').trim(),
-                            condicionPago: String(r[6] || '').trim()
+                            departamento: String(r[3] || '').trim(),
+                            municipio: String(r[4] || '').trim(),
+                            vendedor: String(r[5] || '').trim(),
+                            empresa: String(r[6] || '').trim(),
+                            condicionPago: String(r[7] || '').trim()
                         });
                     }
 
@@ -678,17 +690,18 @@ const Clientes = {
                         preview.innerHTML = `
                             <p style="margin-bottom: 0.5rem;"><strong>${parsedData.length} clientes encontrados:</strong></p>
                             <table style="width: 100%; font-size: 0.8rem;">
-                                <thead><tr><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th>Zona</th></tr></thead>
+                                <thead><tr><th>Nombre</th><th>Dirección</th><th>Teléfono</th><th>Depto.</th><th>Municipio</th></tr></thead>
                                 <tbody>
                                     ${parsedData.slice(0, 10).map(d => `
                                         <tr>
                                             <td>${sanitizeHTML(d.nombre)}</td>
                                             <td>${sanitizeHTML(d.direccion)}</td>
                                             <td>${d.telefono}</td>
-                                            <td>${sanitizeHTML(d.zona)}</td>
+                                            <td>${sanitizeHTML(d.departamento)}</td>
+                                            <td>${sanitizeHTML(d.municipio)}</td>
                                         </tr>
                                     `).join('')}
-                                    ${parsedData.length > 10 ? '<tr><td colspan="4" style="text-align:center">... y ' + (parsedData.length - 10) + ' más</td></tr>' : ''}
+                                    ${parsedData.length > 10 ? '<tr><td colspan="5" style="text-align:center">... y ' + (parsedData.length - 10) + ' más</td></tr>' : ''}
                                 </tbody>
                             </table>
                         `;
@@ -731,7 +744,8 @@ const Clientes = {
                         nombreNorm,
                         direccion: client.direccion,
                         telefono: client.telefono,
-                        zona: client.zona,
+                        departamento: client.departamento,
+                        municipio: client.municipio,
                         vendedor: client.vendedor,
                         empresa: client.empresa,
                         condicionPago: client.condicionPago,
@@ -850,7 +864,8 @@ const Clientes = {
                     '<div class="m-card-rows">' +
                     '<div class="m-card-row"><span class="m-card-label">Teléfono</span><span class="m-card-value">' + (c.telefono ? '<a href="tel:' + sanitizeHTML(c.telefono) + '" class="m-tel-link" style="color:#7c3aed;">' + sanitizeHTML(c.telefono) + '</a>' : '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Dirección</span><span class="m-card-value">' + sanitizeHTML(c.direccion || '-') + '</span></div>' +
-                    '<div class="m-card-row"><span class="m-card-label">Zona</span><span class="m-card-value">' + sanitizeHTML(c.zona || '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Depto.</span><span class="m-card-value">' + sanitizeHTML(c.departamento || c.zona || '-') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Municipio</span><span class="m-card-value">' + sanitizeHTML(c.municipio || '-') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Vendedor</span><span class="m-card-value">' + sanitizeHTML(c.vendedor || '-') + '</span></div>' +
                     '</div>' +
                     (window.permissions?.canEdit ? '<div class="m-card-actions"><button class="m-card-action btn-edit-m" data-id="' + sanitizeHTML(c.id) + '">✏️</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete btn-delete-m" data-id="' + sanitizeHTML(c.id) + '">🗑️</button>' : '') + '</div>' : '') +
@@ -869,7 +884,7 @@ const Clientes = {
         var c = this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;});
         if (!c) return;
         var sheet = document.createElement('div');
-        sheet.innerHTML = `<div class="m-sheet-backdrop show"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${sanitizeHTML(c.nombre || 'Cliente')}</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">${sanitizeHTML(c.empresa || '-')}</div></div>` + (c.telefono ? `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Teléfono</span><div style="font-weight:500;"><a href="tel:${sanitizeHTML(c.telefono)}" style="color:#7c3aed;text-decoration:none;">${sanitizeHTML(c.telefono)}</a></div></div>` : '') + `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">${sanitizeHTML(c.direccion || '-')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Zona</span><div style="font-weight:500;">${sanitizeHTML(c.zona || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">${sanitizeHTML(c.vendedor || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">${sanitizeHTML(c.condicionPago || '-')}</div></div></div></div></div>` + (window.permissions?.canEdit ? `<div class="m-sheet-footer"><button class="m-card-action btn-edit-m" data-id="${sanitizeHTML(c.id)}">✏️ Editar</button>` + (window.permissions?.canDelete ? `<button class="m-card-action delete btn-delete-m" data-id="${sanitizeHTML(c.id)}">🗑️ Eliminar</button>` : '') + `</div>` : '') + `</div>`;
+        sheet.innerHTML = `<div class="m-sheet-backdrop show"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">${sanitizeHTML(c.nombre || 'Cliente')}</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">${sanitizeHTML(c.empresa || '-')}</div></div>` + (c.telefono ? `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Teléfono</span><div style="font-weight:500;"><a href="tel:${sanitizeHTML(c.telefono)}" style="color:#7c3aed;text-decoration:none;">${sanitizeHTML(c.telefono)}</a></div></div>` : '') + `<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">${sanitizeHTML(c.direccion || '-')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Departamento</span><div style="font-weight:500;">${sanitizeHTML(c.departamento || c.zona || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Municipio</span><div style="font-weight:500;">${sanitizeHTML(c.municipio || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Vendedor</span><div style="font-weight:500;">${sanitizeHTML(c.vendedor || '-')}</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cond. Pago</span><div style="font-weight:500;">${sanitizeHTML(c.condicionPago || '-')}</div></div></div></div></div>` + (window.permissions?.canEdit ? `<div class="m-sheet-footer"><button class="m-card-action btn-edit-m" data-id="${sanitizeHTML(c.id)}">✏️ Editar</button>` + (window.permissions?.canDelete ? `<button class="m-card-action delete btn-delete-m" data-id="${sanitizeHTML(c.id)}">🗑️ Eliminar</button>` : '') + `</div>` : '') + `</div>`;
         var backdrop = sheet.querySelector('.m-sheet-backdrop');
         var bottomSheet = sheet.querySelector('.m-bottom-sheet');
         var closeBtn = sheet.querySelector('.m-sheet-close');
@@ -887,7 +902,7 @@ const Clientes = {
         var isEdit = !!c;
         var esc = function(v) { return String(v == null ? '' : v).replace(/"/g, '&quot;'); };
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + esc(c?.nombre) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + esc(c?.telefono) + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + esc(c?.empresa) + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + esc(c?.direccion) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Zona</label><input type="text" id="mcf-zona" value="' + esc(c?.zona) + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + esc(c?.vendedor) + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + esc(c?.limiteCredito) + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" id="mcf-cancel">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + esc(c?.nombre) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + esc(c?.telefono) + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + esc(c?.empresa) + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + esc(c?.direccion) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Depto.</label><input type="text" id="mcf-departamento" value="' + esc(c?.departamento || c?.zona) + '"></div><div class="m-form-group"><label>Municipio</label><input type="text" id="mcf-municipio" value="' + esc(c?.municipio) + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + esc(c?.vendedor) + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + esc(c?.limiteCredito) + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" id="mcf-cancel">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         var removeSheet = function() {
@@ -906,7 +921,7 @@ const Clientes = {
             try {
                 var nombre = document.getElementById('mcf-nombre').value.trim();
                 if (!nombre) { showToast('El nombre es obligatorio', 'error'); btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; return; }
-                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), zona: document.getElementById('mcf-zona').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: document.getElementById('mcf-departamento').value.trim(), municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 var db = firebase.firestore();
                 if (isEdit) { await db.collection('clientes').doc(id).update(data); }
                 else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('clientes').add(data); }
@@ -919,7 +934,7 @@ const Clientes = {
     mobileExportExcel() {
         if (typeof XLSX === 'undefined') { showToast('Excel no disponible','error'); return; }
         if (!this.filteredRecords.length) { showToast('No hay datos','warning'); return; }
-        var data = this.filteredRecords.map(function(c){return {Nombre:c.nombre||'',Teléfono:c.telefono||'',Empresa:c.empresa||'',Dirección:c.direccion||'',Zona:c.zona||'',Vendedor:c.vendedor||'',CondPago:c.condicionPago||''};});
+        var data = this.filteredRecords.map(function(c){return {Nombre:c.nombre||'',Teléfono:c.telefono||'',Empresa:c.empresa||'',Dirección:c.direccion||'',Depto:c.departamento||c.zona||'',Municipio:c.municipio||'',Vendedor:c.vendedor||'',CondPago:c.condicionPago||''};});
         var ws = XLSX.utils.json_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
