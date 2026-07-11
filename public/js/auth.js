@@ -115,9 +115,11 @@ const Auth = {
                                 createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
                             });
                         }
+                        return;
                     } catch (regError) {
                         errorEl.textContent = 'Error al activar la cuenta.';
                         setButtonLoading(submitBtn, false);
+                        return;
                     }
                 } else {
                     errorEl.textContent = this.getErrorMessage(firebaseError.code);

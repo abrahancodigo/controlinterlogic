@@ -477,33 +477,49 @@ table {
     padding: 0 !important;
     background: linear-gradient(135deg, hsl(262, 70%, 12%) 0%, hsl(262, 65%, 22%) 50%, hsl(280, 45%, 30%) 100%) !important;
 }
+.auth-orb-1 { width: 280px !important; height: 280px !important; }
+.auth-orb-2 { width: 240px !important; height: 240px !important; }
+.auth-orb-3 { width: 180px !important; height: 180px !important; }
 .auth-container {
     margin: 16px;
     border-radius: 20px !important;
-    box-shadow: 0 24px 48px -8px rgba(0,0,0,0.35) !important;
+    padding: 2rem 1.5rem 1.5rem !important;
+    box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.4) !important;
     animation: mFadeIn 0.4s ease-out;
 }
-.auth-header h1 {
-    font-size: 1.5rem !important;
+.auth-logo {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 16px !important;
 }
-.auth-header p {
-    font-size: 0.8rem !important;
+.auth-brand-text h1 {
+    font-size: 1.75rem !important;
 }
-.auth-form .form-group label {
-    font-size: 0.75rem !important;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.auth-brand-text p {
+    font-size: 0.7rem !important;
 }
-.auth-form .form-group input {
+.auth-separator {
+    margin-top: 1rem !important;
+}
+.auth-input-group label {
+    font-size: 0.7rem !important;
+}
+.auth-input-wrapper input {
     border-radius: 12px !important;
     min-height: 48px !important;
+    font-size: 0.9rem !important;
 }
-#login-submit-btn {
-    min-height: 48px;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 700;
+.auth-submit-btn {
+    min-height: 50px !important;
+    border-radius: 14px !important;
+    font-size: 0.95rem !important;
 }
+.auth-footer {
+    margin-top: 1.25rem !important;
+    padding-top: 0.75rem !important;
+}
+
+/* ---- Dashboard Premium Mobile ---- */
 
 /* ---- Page transition ---- */
 #content-area > div {
@@ -593,6 +609,7 @@ table {
 [data-theme="dark"] .m-card-badge.primary { background: rgba(129, 140, 248, 0.15); color: #a5b4fc; }
 [data-theme="dark"] .m-card-badge.warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
 [data-theme="dark"] .m-form-group label { color: #cbd5e1; }
+/* ---- Dashboard Premium Mobile Dark ---- */
 /* ---- Accessibility: Touch Targets ≥44px ---- */
 .btn, .btn-sm, .filter-trigger, .nav-item, .sidebar-toggle, .mobile-menu-btn {
     min-height: 44px;

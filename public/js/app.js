@@ -10,7 +10,7 @@ const App = {
         this.setupNavigation();
         this.setupSidebarToggle();
         this.setupMobileNav();
-        this.loadModule('interlogic');
+        this.loadModule('dashboard');
     },
 
     setupNavigation() {
@@ -227,10 +227,17 @@ const App = {
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
 
+        if (this.currentModule === 'dashboard' && window.Dashboard) {
+            if (window.Dashboard.destroy) { window.Dashboard.destroy(); }
+        }
+
         this.currentModule = moduleName;
 
         try {
             switch (moduleName) {
+                case 'dashboard':
+                    if (window.Dashboard && window.Dashboard.render) await window.Dashboard.render();
+                    break;
                 case 'deliveries':
                     if (window.Deliveries && window.Deliveries.render) await window.Deliveries.render();
                     break;
@@ -240,14 +247,14 @@ const App = {
                 case 'settings':
                     if (!(await isAdmin())) {
                         showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('interlogic'); return;
+                        this.loadModule('dashboard'); return;
                     }
                     if (window.Settings && window.Settings.init) await window.Settings.init();
                     break;
                 case 'users':
                     if (!(await isAdmin())) {
                         showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('interlogic'); return;
+                        this.loadModule('dashboard'); return;
                     }
                     if (window.Users && window.Users.render) await window.Users.render();
                     break;

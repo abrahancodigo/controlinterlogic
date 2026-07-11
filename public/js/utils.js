@@ -155,11 +155,11 @@ function debounce(func, wait) {
 function setButtonLoading(button, loading) {
     if (loading) {
         button.disabled = true;
-        button.dataset.originalText = button.textContent;
-        button.textContent = 'Cargando...';
+        button.dataset.originalHtml = button.innerHTML;
+        button.innerHTML = '<span>Cargando...</span>';
     } else {
         button.disabled = false;
-        button.textContent = button.dataset.originalText || button.textContent;
+        button.innerHTML = button.dataset.originalHtml || button.innerHTML;
     }
 }
 
