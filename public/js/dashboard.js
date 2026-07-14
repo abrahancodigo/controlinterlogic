@@ -670,20 +670,14 @@ const Dashboard = {
         this._renderDetailModal(filtered, title, color);
     },
 
-    /* ── Shared modal renderer ── */
+    /* ── Shared modal renderer (enhanced) ── */
     _renderDetailModal(filtered, title, color) {
-        filtered.sort((a, b) => {
-            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
-            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
-            return fb - fa;
-        });
-
-        const total = filtered.reduce((sum, r) => sum + (parseFloat(r.venta) || 0), 0);
-
-        const existingBd = document.querySelector('.dash-detail-backdrop');
-        if (existingBd) { existingBd.remove(); }
-        const existingM = document.querySelector('.dash-detail-modal');
-        if (existingM) { existingM.remove(); }
+        const esc = (s) => {
+            if (!s && s !== 0) return '';
+            const d = document.createElement('div');
+            d.textContent = String(s);
+            return d.innerHTML;
+        };
 
         const formatDt = (d) => {
             if (!d) return '—';
@@ -691,57 +685,100 @@ const Dashboard = {
             return dt.toLocaleDateString('es-SV', { day: '2-digit', month: '2-digit', year: 'numeric' });
         };
 
-        const rows = filtered.map(r => {
-            const condLabel = (r.condicionPago || '').charAt(0).toUpperCase() + (r.condicionPago || '').slice(1);
-            return `<tr>
-                <td>${r.guia || '—'}</td>
-                <td>${r.empresa || '—'}</td>
-                <td>${formatDt(r.fecha)}</td>
-                <td>${r.cliente || '—'}</td>
-                <td class="dash-modal-amount">$${this.formatNumber(parseFloat(r.venta) || 0)}</td>
-                <td>${condLabel}</td>
-                <td>${r.entrega || '—'}</td>
-            </tr>`;
-        }).join('');
+        const formatDtInput = (d) => {
+            if (!d) return '';
+            const dt = d.toDate ? d.toDate() : new Date(d);
+            return dt.toISOString().split('T')[0];
+        };
+
+        filtered.sort((a, b) => {
+            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
+            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
+            return fb - fa;
+        });
+
+        const total = filtered.reduce((sum, r) => sum + (parseFloat(r.venta) || 0), 0);
+        const avg = filtered.length > 0 ? total / filtered.length : 0;
+        const maxVenta = filtered.reduce((mx, r) => Math.max(mx, parseFloat(r.venta) || 0), 0);
+
+        const existingBd = document.querySelector('.dash-detail-backdrop');
+        if (existingBd) existingBd.remove();
+        const existingM = document.querySelector('.dash-detail-modal');
+        if (existingM) existingM.remove();
+
+        const dateRange = `${formatDtInput(this.fechaInicio)} → ${formatDtInput(this.fechaFin)}`;
 
         const backdrop = document.createElement('div');
         backdrop.className = 'dash-detail-backdrop';
+
+        const iconSvg = title === 'Total Ventas'
+            ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="23" y2="6"/><path d="M12 1v6m0 0L1 6m11 16v-5l-4-2 4-2 4 2-4 2v5"/></svg>'
+            : title === 'Contado'
+            ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>'
+            : title === 'Crédito'
+            ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'
+            : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
 
         const modal = document.createElement('div');
         modal.className = 'dash-detail-modal';
         modal.innerHTML = `
             <div class="dash-detail-modal-header" style="background:linear-gradient(135deg, ${color}, ${color}dd);">
                 <div class="dash-detail-modal-title">
-                    <h2>${title}</h2>
-                    <p>${filtered.length} registro${filtered.length !== 1 ? 's' : ''}</p>
+                    <div class="dash-detail-modal-title-icon">${iconSvg}</div>
+                    <div>
+                        <h2>${esc(title)}</h2>
+                        <p>${filtered.length} registro${filtered.length !== 1 ? 's' : ''} · ${esc(dateRange)}</p>
+                    </div>
                 </div>
                 <button class="dash-detail-modal-close" aria-label="Cerrar">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
+            </div>
+            <div class="dash-detail-summary">
+                <div class="dash-detail-chip dash-chip-total">
+                    <span class="dash-chip-label">Total</span>
+                    <span class="dash-chip-value">${this.formatMoney(total)}</span>
+                </div>
+                <div class="dash-detail-chip dash-chip-avg">
+                    <span class="dash-chip-label">Promedio</span>
+                    <span class="dash-chip-value">${this.formatMoney(avg)}</span>
+                </div>
+                <div class="dash-detail-chip dash-chip-max">
+                    <span class="dash-chip-label">Mayor venta</span>
+                    <span class="dash-chip-value">${this.formatMoney(maxVenta)}</span>
+                </div>
+            </div>
+            <div class="dash-detail-search">
+                <svg class="dash-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="dash-search-input" placeholder="Buscar por cliente, guía o empresa..." aria-label="Buscar registros">
             </div>
             <div class="dash-detail-modal-body">
                 <div class="dash-detail-table-wrap">
                     <table class="dash-detail-table">
                         <thead>
                             <tr>
-                                <th>Guía</th>
-                                <th>Empresa</th>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
-                                <th>Venta</th>
-                                <th>Condición</th>
-                                <th>Entrega</th>
+                                <th class="sortable" data-key="guia">Guía <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="empresa">Empresa <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="fecha">Fecha <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="cliente">Cliente <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="venta">Venta <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="condicionPago">Condición <span class="sort-arrow"></span></th>
+                                <th class="sortable" data-key="entrega">Entrega <span class="sort-arrow"></span></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${rows || '<tr><td colspan="7" class="dash-detail-empty">No hay registros</td></tr>'}
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
             <div class="dash-detail-modal-footer">
-                <span class="dash-detail-total-label">Total</span>
-                <span class="dash-detail-total-value">${this.formatMoney(total)}</span>
+                <button class="dash-export-excel-btn" title="Exportar a Excel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Exportar Excel
+                </button>
+                <div class="dash-detail-footer-totals">
+                    <span class="dash-detail-total-label">Total</span>
+                    <span class="dash-detail-total-value">${this.formatMoney(total)}</span>
+                </div>
             </div>
         `;
 
@@ -751,6 +788,130 @@ const Dashboard = {
         requestAnimationFrame(() => {
             backdrop.classList.add('show');
             modal.classList.add('show');
+            modal.querySelector('.dash-search-input')?.focus();
+        });
+
+        let sortKey = 'fecha';
+        let sortDir = -1;
+        let searchTerm = '';
+
+        const renderRows = () => {
+            let data = [...filtered];
+
+            if (searchTerm) {
+                const t = searchTerm.toLowerCase();
+                data = data.filter(r =>
+                    (r.cliente || '').toLowerCase().includes(t) ||
+                    (r.guia || '').toLowerCase().includes(t) ||
+                    (r.empresa || '').toLowerCase().includes(t) ||
+                    (r.departamento || '').toLowerCase().includes(t) ||
+                    (r.entrega || '').toLowerCase().includes(t) ||
+                    (r.docNum || '').toLowerCase().includes(t)
+                );
+            }
+
+            data.sort((a, b) => {
+                let va, vb;
+                if (sortKey === 'fecha') {
+                    va = a.fecha ? a.fecha.toDate().getTime() : 0;
+                    vb = b.fecha ? b.fecha.toDate().getTime() : 0;
+                } else if (sortKey === 'venta') {
+                    va = parseFloat(a.venta) || 0;
+                    vb = parseFloat(b.venta) || 0;
+                } else {
+                    va = (a[sortKey] || '').toString().toLowerCase();
+                    vb = (b[sortKey] || '').toString().toLowerCase();
+                }
+                if (va < vb) return -1 * sortDir;
+                if (va > vb) return 1 * sortDir;
+                return 0;
+            });
+
+            const tbody = modal.querySelector('tbody');
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="dash-detail-empty">No se encontraron registros</td></tr>';
+                modal.querySelector('.dash-detail-modal-title p').textContent = `0 registros · ${dateRange}`;
+                return;
+            }
+
+            const shown = data.length;
+            const totalCount = filtered.length;
+            const countText = shown < totalCount
+                ? `${shown} de ${totalCount} registros · ${dateRange}`
+                : `${totalCount} registro${totalCount !== 1 ? 's' : ''} · ${dateRange}`;
+            modal.querySelector('.dash-detail-modal-title p').textContent = countText;
+
+            tbody.innerHTML = data.map(r => {
+                const cond = (r.condicionPago || '').toLowerCase().trim();
+                const isContado = cond === 'contado';
+                const badgeCls = isContado ? 'dash-badge-contado' : (cond === 'credito' || cond === 'crédito' ? 'dash-badge-credito' : 'dash-badge-default');
+                const condLabel = isContado ? 'Contado' : (cond === 'credito' || cond === 'crédito' ? 'Crédito' : (r.condicionPago || '—'));
+                return `<tr class="dash-row-expandable" data-id="${esc(r.id)}">
+                    <td>${esc(r.guia || '—')}</td>
+                    <td><span class="dash-badge-empresa">${esc(r.empresa || '—')}</span></td>
+                    <td>${formatDt(r.fecha)}</td>
+                    <td>${esc(r.cliente || '—')}</td>
+                    <td class="dash-modal-amount">${this.formatMoney(parseFloat(r.venta) || 0)}</td>
+                    <td><span class="dash-badge-cond ${badgeCls}">${condLabel}</span></td>
+                    <td><span class="dash-badge-ent">${esc(r.entrega || '—')}</span></td>
+                </tr>
+                <tr class="dash-row-detail" data-parent="${esc(r.id)}" style="display:none;">
+                    <td colspan="7">
+                        <div class="dash-detail-inner">
+                            <div class="dash-detail-grid">
+                                ${r.direccion ? `<div class="dash-detail-field"><span class="dash-detail-label">Dirección</span><span class="dash-detail-value">${esc(r.direccion)}</span></div>` : ''}
+                                ${r.departamento ? `<div class="dash-detail-field"><span class="dash-detail-label">Departamento</span><span class="dash-detail-value">${esc(r.departamento)}</span></div>` : ''}
+                                ${r.municipio ? `<div class="dash-detail-field"><span class="dash-detail-label">Municipio</span><span class="dash-detail-value">${esc(r.municipio)}</span></div>` : ''}
+                                ${r.doc ? `<div class="dash-detail-field"><span class="dash-detail-label">Documento</span><span class="dash-detail-value">${esc(r.doc)}${r.docNum ? ' #' + esc(r.docNum) : ''}</span></div>` : ''}
+                                ${r.vendedor ? `<div class="dash-detail-field"><span class="dash-detail-label">Vendedor</span><span class="dash-detail-value">${esc(r.vendedor)}</span></div>` : ''}
+                                ${r.bultos ? `<div class="dash-detail-field"><span class="dash-detail-label">Bultos</span><span class="dash-detail-value">${esc(r.bultos)}</span></div>` : ''}
+                                ${r.cobrador ? `<div class="dash-detail-field"><span class="dash-detail-label">Cobrador</span><span class="dash-detail-value">${esc(r.cobrador)}</span></div>` : ''}
+                                ${r.costoEnvio ? `<div class="dash-detail-field"><span class="dash-detail-label">Costo Envío</span><span class="dash-detail-value">${this.formatMoney(parseFloat(r.costoEnvio) || 0)}</span></div>` : ''}
+                                ${r.encargado ? `<div class="dash-detail-field"><span class="dash-detail-label">Encargado</span><span class="dash-detail-value">${esc(r.encargado)}</span></div>` : ''}
+                                ${r.telefono ? `<div class="dash-detail-field"><span class="dash-detail-label">Teléfono</span><span class="dash-detail-value">${esc(r.telefono)}</span></div>` : ''}
+                                ${r.observations ? `<div class="dash-detail-field dash-detail-field-full"><span class="dash-detail-label">Observaciones</span><span class="dash-detail-value">${esc(r.observations)}</span></div>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tbody.querySelectorAll('.dash-row-expandable').forEach(row => {
+                row.addEventListener('click', () => {
+                    const id = row.dataset.id;
+                    const detailRow = tbody.querySelector(`.dash-row-detail[data-parent="${id}"]`);
+                    if (!detailRow) return;
+                    const isVisible = detailRow.style.display !== 'none';
+                    tbody.querySelectorAll('.dash-row-detail').forEach(r => r.style.display = 'none');
+                    tbody.querySelectorAll('.dash-row-expandable').forEach(r => r.classList.remove('expanded'));
+                    if (!isVisible) {
+                        detailRow.style.display = 'table-row';
+                        row.classList.add('expanded');
+                    }
+                });
+            });
+        };
+
+        renderRows();
+
+        modal.querySelector('.dash-search-input').addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            renderRows();
+        });
+
+        modal.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                if (sortKey === key) {
+                    sortDir *= -1;
+                } else {
+                    sortKey = key;
+                    sortDir = 1;
+                }
+                modal.querySelectorAll('.sortable').forEach(s => s.classList.remove('sorted-asc', 'sorted-desc'));
+                th.classList.add(sortDir === 1 ? 'sorted-asc' : 'sorted-desc');
+                renderRows();
+            });
         });
 
         const closeModal = () => {
@@ -761,6 +922,77 @@ const Dashboard = {
 
         modal.querySelector('.dash-detail-modal-close').addEventListener('click', closeModal);
         backdrop.addEventListener('click', closeModal);
+        document.addEventListener('keydown', function escHandler(e) {
+            if (e.key === 'Escape' && document.body.contains(modal)) {
+                closeModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        });
+
+        modal.querySelector('.dash-export-excel-btn').addEventListener('click', () => {
+            this.exportDetailToExcel(filtered, title);
+        });
+    },
+
+    /* ── Export detail to Excel ── */
+    exportDetailToExcel(data, title) {
+        showToast('Generando Excel...', 'info');
+
+        const sorted = [...data].sort((a, b) => {
+            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
+            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
+            return fb - fa;
+        });
+
+        const formatDt = (d) => {
+            if (!d) return '';
+            const dt = d.toDate ? d.toDate() : new Date(d);
+            return dt.toLocaleDateString('es-SV', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        const rows = sorted.map(r => ({
+            'Guía': r.guia || '',
+            'Empresa': r.empresa || '',
+            'Fecha': formatDt(r.fecha),
+            'Cliente': r.cliente || '',
+            'Dirección': r.direccion || '',
+            'Departamento': r.departamento || '',
+            'Municipio': r.municipio || '',
+            'Documento': r.doc || '',
+            'Doc #': r.docNum || '',
+            'Vendedor': r.vendedor || '',
+            'Condición': r.condicionPago || '',
+            'Venta': parseFloat(r.venta) || 0,
+            'Bultos': parseInt(r.bultos) || 0,
+            'Cobrador': r.cobrador || '',
+            'Costo Envío': parseFloat(r.costoEnvio) || 0,
+            '% Costo': parseFloat(r.costoPorcentaje) || 0,
+            'Entrega': r.entrega || '',
+            'Cobra': r.cobra || '',
+            'Encargado': r.encargado || '',
+            'Teléfono': r.telefono || '',
+            'Observaciones': r.observations || ''
+        }));
+
+        try {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+
+            const colWidths = Object.keys(rows[0] || {}).map(k => ({
+                wch: Math.max(k.length, ...rows.map(r => String(r[k] || '').length)) + 2
+            }));
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Detalle');
+
+            const fechaStr = this.fechaInicio.toISOString().split('T')[0];
+            XLSX.writeFile(wb, `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaStr}.xlsx`);
+
+            showToast('Excel exportado exitosamente', 'success');
+        } catch (err) {
+            console.error('[Dashboard] Export Excel error:', err);
+            showToast('Error al exportar Excel', 'error');
+        }
     },
 
     /* ── Export ── */

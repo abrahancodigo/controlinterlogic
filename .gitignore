@@ -17,9 +17,14 @@ requirements.txt
 .commandcode/
 .qwen/
 .kilo/
+.mimocode/
+.opencode/
+.backup-css/
 backup-css/
 backup-css-v2/
 public/js/interlogic.js.check
+$null
+nul
 
 # exposed to /js/ by accident — exclude from git & from firebase
 public/js/api-config.js
