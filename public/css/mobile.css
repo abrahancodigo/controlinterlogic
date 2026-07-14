@@ -477,46 +477,72 @@ table {
     padding: 0 !important;
     background: linear-gradient(135deg, hsl(262, 70%, 12%) 0%, hsl(262, 65%, 22%) 50%, hsl(280, 45%, 30%) 100%) !important;
 }
-.auth-orb-1 { width: 280px !important; height: 280px !important; }
-.auth-orb-2 { width: 240px !important; height: 240px !important; }
-.auth-orb-3 { width: 180px !important; height: 180px !important; }
+.auth-orbs { display: block !important; }
+.auth-orb-1 { width: 300px !important; height: 300px !important; opacity: 0.5 !important; }
+.auth-orb-2 { width: 250px !important; height: 250px !important; opacity: 0.4 !important; }
+.auth-orb-3 { width: 200px !important; height: 200px !important; opacity: 0.35 !important; }
 .auth-container {
-    margin: 16px;
-    border-radius: 20px !important;
-    padding: 2rem 1.5rem 1.5rem !important;
-    box-shadow: 0 24px 48px -8px rgba(0, 0, 0, 0.4) !important;
-    animation: mFadeIn 0.4s ease-out;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0 !important;
+    padding: 2.5rem 1.75rem 2rem !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: rgba(15, 18, 35, 0.88) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: none !important;
+    animation: mFadeIn 0.5s ease-out;
+    border: none !important;
 }
+.auth-container::before { display: none !important; }
 .auth-logo {
-    width: 56px !important;
-    height: 56px !important;
-    border-radius: 16px !important;
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 18px !important;
 }
 .auth-brand-text h1 {
-    font-size: 1.75rem !important;
+    font-size: 1.85rem !important;
 }
 .auth-brand-text p {
-    font-size: 0.7rem !important;
+    font-size: 0.75rem !important;
 }
 .auth-separator {
     margin-top: 1rem !important;
 }
 .auth-input-group label {
-    font-size: 0.7rem !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
 }
 .auth-input-wrapper input {
-    border-radius: 12px !important;
-    min-height: 48px !important;
-    font-size: 0.9rem !important;
+    border-radius: 14px !important;
+    min-height: 50px !important;
+    font-size: 1rem !important;
+}
+.auth-options {
+    margin-top: -4px !important;
 }
 .auth-submit-btn {
-    min-height: 50px !important;
+    min-height: 52px !important;
     border-radius: 14px !important;
-    font-size: 0.95rem !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
 }
 .auth-footer {
-    margin-top: 1.25rem !important;
-    padding-top: 0.75rem !important;
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
+}
+
+[data-theme="dark"] .auth-container {
+    background: rgba(15, 18, 35, 0.9) !important;
+    border: none !important;
+}
+[data-theme="dark"] .auth-screen {
+    background: hsl(245, 55%, 8%) !important;
 }
 
 /* ---- Dashboard Premium Mobile ---- */

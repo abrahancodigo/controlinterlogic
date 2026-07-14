@@ -2,6 +2,24 @@
 // Authentication Module
 // ===================================
 
+// Helper: reset button from loading state
+function authResetBtn(btn) {
+    if (!btn) return;
+    btn.classList.remove('loading');
+    btn.disabled = false;
+}
+
+// Helper: show error with shake
+function authShowError(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('shake');
+    // Force reflow for animation to replay
+    void el.offsetWidth;
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 600);
+}
+
 const Auth = {
     init() {
         // Show loading until auth state resolves
@@ -28,6 +46,64 @@ const Auth = {
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.logout());
         }
+
+        // Restore remembered username
+        try {
+            const remembered = localStorage.getItem('dalse-remembered-user');
+            if (remembered) {
+                document.getElementById('login-username').value = remembered;
+                document.getElementById('login-remember').checked = true;
+                document.getElementById('login-password').focus();
+            }
+        } catch (e) {}
+
+        // Password visibility toggle
+        const pwToggle = document.getElementById('pw-toggle');
+        const pwInput = document.getElementById('login-password');
+        if (pwToggle && pwInput) {
+            pwToggle.addEventListener('click', () => {
+                const isVisible = pwToggle.classList.toggle('visible');
+                pwInput.type = isVisible ? 'text' : 'password';
+                pwToggle.setAttribute('aria-label', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            });
+        }
+
+        // Mouse parallax on login screen
+        this.initParallax();
+    },
+
+    initParallax() {
+        const screen = document.getElementById('login-screen');
+        if (!screen || window.innerWidth < 768) return; // skip on mobile
+
+        const orbsWrap = document.querySelector('.auth-orbs');
+        const container = document.querySelector('.auth-container');
+
+        // Wait for entrance animation to finish
+        setTimeout(() => {
+            let mx = 0, my = 0, raf = null;
+
+            const onMove = (e) => {
+                mx = (e.clientX / window.innerWidth) * 2 - 1;
+                my = (e.clientY / window.innerHeight) * 2 - 1;
+                if (!raf) raf = requestAnimationFrame(update);
+            };
+
+            const update = () => {
+                raf = null;
+                if (orbsWrap) orbsWrap.style.transform = `translate(${mx * 20}px, ${my * 20}px)`;
+                if (container) container.style.transform =
+                    `perspective(800px) rotateX(${my * -1.2}deg) rotateY(${mx * 1.2}deg)`;
+            };
+
+            screen.addEventListener('mousemove', onMove);
+            screen.addEventListener('mouseleave', () => {
+                mx = 0; my = 0;
+                if (raf) { cancelAnimationFrame(raf); raf = null; }
+                if (orbsWrap) orbsWrap.style.transform = '';
+                if (container) container.style.transform = '';
+            });
+        }, 900);
     },
 
     async handleLogin(e) {
@@ -37,9 +113,21 @@ const Auth = {
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('login-error');
         const submitBtn = document.getElementById('login-submit-btn');
+        const rememberChk = document.getElementById('login-remember');
+
+        // Handle remember me
+        try {
+            if (rememberChk && rememberChk.checked) {
+                localStorage.setItem('dalse-remembered-user', username);
+            } else {
+                localStorage.removeItem('dalse-remembered-user');
+            }
+        } catch (e) {}
 
         errorEl.textContent = '';
-        setButtonLoading(submitBtn, true);
+        errorEl.classList.remove('shake');
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
 
         try {
             if (username.includes('@')) {
@@ -66,8 +154,8 @@ const Auth = {
             }
 
             if (!userRegistryDoc.exists) {
-                errorEl.textContent = 'Usuario o contraseña incorrectos';
-                setButtonLoading(submitBtn, false);
+                authShowError(errorEl, 'Usuario o contraseña incorrectos');
+                authResetBtn(submitBtn);
                 return;
             }
 
@@ -83,8 +171,8 @@ const Auth = {
             }
 
             if (!passwordValid) {
-                errorEl.textContent = 'Usuario o contraseña incorrectos';
-                setButtonLoading(submitBtn, false);
+                authShowError(errorEl, 'Usuario o contraseña incorrectos');
+                authResetBtn(submitBtn);
                 return;
             }
 
@@ -117,18 +205,18 @@ const Auth = {
                         }
                         return;
                     } catch (regError) {
-                        errorEl.textContent = 'Error al activar la cuenta.';
-                        setButtonLoading(submitBtn, false);
+                        authShowError(errorEl, 'Error al activar la cuenta.');
+                        authResetBtn(submitBtn);
                         return;
                     }
                 } else {
-                    errorEl.textContent = this.getErrorMessage(firebaseError.code);
-                    setButtonLoading(submitBtn, false);
+                    authShowError(errorEl, this.getErrorMessage(firebaseError.code));
+                    authResetBtn(submitBtn);
                 }
             }
         } catch (error) {
-            errorEl.textContent = 'Error de conexión.';
-            setButtonLoading(submitBtn, false);
+            authShowError(errorEl, 'Error de conexión.');
+            authResetBtn(submitBtn);
         }
     },
 
@@ -195,8 +283,7 @@ const Auth = {
         } catch (error) {
             showToast('Error al cargar datos de usuario', 'error');
         } finally {
-            const submitBtn = document.getElementById('login-submit-btn');
-            if (submitBtn) setButtonLoading(submitBtn, false);
+            authResetBtn(document.getElementById('login-submit-btn'));
         }
     },
 
@@ -214,10 +301,9 @@ const Auth = {
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.reset();
-            const submitBtn = document.getElementById('login-submit-btn');
-            if (submitBtn) setButtonLoading(submitBtn, false);
+            authResetBtn(document.getElementById('login-submit-btn'));
             const errorEl = document.getElementById('login-error');
-            if (errorEl) errorEl.textContent = '';
+            if (errorEl) { errorEl.textContent = ''; errorEl.classList.remove('shake'); }
         }
 
         document.getElementById('loading-screen').style.display = 'none';

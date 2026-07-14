@@ -172,11 +172,6 @@ const Dashboard = {
         <div class="dash-carrier-grid" id="dash-carrier-stats"></div>
     </div>
 
-    <div class="dash-chart-card dash-chart-full">
-        <div class="dash-chart-header"><h3>Evolución por Entregador</h3></div>
-        <div class="dash-chart-body" id="dash-area-chart"></div>
-    </div>
-
     <div class="dash-section" id="dash-daily-section" style="display:none;">
         <div class="dash-section-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -239,6 +234,17 @@ const Dashboard = {
         if (exportBtn) {
             exportBtn.addEventListener('click', () => this.exportDashboard());
         }
+
+        /* ── KPI card click → detail modal ── */
+        const kpiTypes = ['total', 'contado', 'credito', 'dalse'];
+        document.querySelectorAll('.dash-kpi-card').forEach((card, index) => {
+            if (index < 4) {
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', () => {
+                    this.showDetailModal(kpiTypes[index]);
+                });
+            }
+        });
     },
 
     /* ── Firestore subscriptions ── */
@@ -278,7 +284,6 @@ const Dashboard = {
         let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0 };
         const carrierStats = {};
         const dailyStats = {};
-        const dailyByEmpresa = {};
 
         records.forEach(r => {
             const m = parseFloat(r.venta) || 0;
@@ -309,10 +314,6 @@ const Dashboard = {
             if (cond === 'contado') { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
             else { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
             if (ent === 'DALSE') dailyStats[dk].dalse += m;
-
-            if (!dailyByEmpresa[dk]) dailyByEmpresa[dk] = {};
-            if (!dailyByEmpresa[dk][ent]) dailyByEmpresa[dk][ent] = 0;
-            dailyByEmpresa[dk][ent] += m;
         });
 
         const sortedDays = Object.entries(dailyStats).sort((a, b) => a[0].localeCompare(b[0]));
@@ -331,16 +332,10 @@ const Dashboard = {
             Math.round((carrierStats[name] && carrierStats[name].monto) || 0)
         );
 
-        const areaSeries = carrierNames.map(emp => ({
-            name: emp,
-            data: sortedDays.map(([k]) => Math.round((dailyByEmpresa[k] && dailyByEmpresa[k][emp]) || 0))
-        }));
-
         this.updateKpiCards(stats, sparkData);
         this.updateCharts({
             donut: { contado: Math.round(stats.contado), credito: Math.round(stats.credito) },
-            bar: { categories: carrierNames, data: carrierBarData },
-            area: { series: areaSeries, categories: chartDays }
+            bar: { categories: carrierNames, data: carrierBarData }
         });
         this.updateCarrierStats(carrierStats, stats.total);
         this.updateDailyTable(dailyStats);
@@ -466,7 +461,7 @@ const Dashboard = {
         };
 
         const barOptions = {
-            chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false } },
+            chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = ['DALSE', 'INTERLOGISTIC', 'XPRESS']; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
             series: [{ name: 'Ventas', data: [] }],
             xaxis: { categories: [], labels: { style: { fontSize: '11px', fontWeight: 600 } } },
             yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '11px' } } },
@@ -490,29 +485,11 @@ const Dashboard = {
             responsive: [{ breakpoint: 768, options: { chart: { height: 250 }, dataLabels: { enabled: false } } }]
         };
 
-        const areaOptions = {
-            chart: { type: 'area', fontFamily: 'Inter, sans-serif', stacked: true, toolbar: { show: false } },
-            series: [],
-            xaxis: { categories: [], labels: { style: { fontSize: '11px', fontWeight: 500 } } },
-            yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '11px' } } },
-            colors: ['#7c3aed', '#3b82f6', '#ec4899'],
-            fill: { type: 'gradient', gradient: { opacityFrom: 0.55, opacityTo: 0.05 } },
-            stroke: { curve: 'smooth', width: 2 },
-            dataLabels: { enabled: false },
-            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
-            legend: { position: 'top', fontSize: '12px', fontWeight: 500 },
-            grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
-            theme: { mode: theme },
-            responsive: [{ breakpoint: 768, options: { chart: { height: 280 } } }]
-        };
-
         const donutEl = document.getElementById('dash-donut-chart');
         const barEl = document.getElementById('dash-bar-chart');
-        const areaEl = document.getElementById('dash-area-chart');
 
         if (donutEl) this.charts.donut = new ApexCharts(donutEl, donutOptions);
         if (barEl) this.charts.bar = new ApexCharts(barEl, barOptions);
-        if (areaEl) this.charts.area = new ApexCharts(areaEl, areaOptions);
 
         Object.values(this.charts).forEach(c => { if (c) c.render(); });
 
@@ -547,13 +524,6 @@ const Dashboard = {
                 xaxis: { categories: data.bar.categories },
                 yaxis: { min: 0, max: barMax || 10, forceNiceScale: false },
                 series: [{ data: data.bar.data }]
-            });
-        }
-
-        if (this.charts.area && data.area.series.length > 0) {
-            this.charts.area.updateOptions({
-                xaxis: { categories: data.area.categories },
-                series: data.area.series
             });
         }
     },
@@ -669,22 +639,185 @@ const Dashboard = {
         }).join('');
     },
 
+    /* ── Detail Modal for KPI cards ── */
+    showDetailModal(type) {
+        let filtered = [];
+        let title = '';
+        let color = '';
+
+        this.records.forEach(r => {
+            const cond = (r.condicionPago || '').toLowerCase().trim();
+            const ent = (r.entrega || '').toUpperCase().trim();
+
+            let match = false;
+            if (type === 'total') { match = true; title = 'Total Ventas'; color = '#7c3aed'; }
+            else if (type === 'contado') { match = (cond === 'contado'); title = 'Contado'; color = '#10b981'; }
+            else if (type === 'credito') { match = (cond === 'credito' || cond === 'crédito'); title = 'Crédito'; color = '#f59e0b'; }
+            else if (type === 'dalse') { match = (ent === 'DALSE'); title = 'Dalse'; color = '#06b6d4'; }
+
+            if (match) filtered.push(r);
+        });
+
+        this._renderDetailModal(filtered, title, color);
+    },
+
+    /* ── Detail Modal for carrier bars ── */
+    showCarrierDetailModal(carrierName) {
+        const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
+        const title = carrierName;
+        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#3b82f6', XPRESS: '#ec4899' };
+        const color = colors[carrierName] || '#6b7280';
+        this._renderDetailModal(filtered, title, color);
+    },
+
+    /* ── Shared modal renderer ── */
+    _renderDetailModal(filtered, title, color) {
+        filtered.sort((a, b) => {
+            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
+            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
+            return fb - fa;
+        });
+
+        const total = filtered.reduce((sum, r) => sum + (parseFloat(r.venta) || 0), 0);
+
+        const existingBd = document.querySelector('.dash-detail-backdrop');
+        if (existingBd) { existingBd.remove(); }
+        const existingM = document.querySelector('.dash-detail-modal');
+        if (existingM) { existingM.remove(); }
+
+        const formatDt = (d) => {
+            if (!d) return '—';
+            const dt = d.toDate ? d.toDate() : new Date(d);
+            return dt.toLocaleDateString('es-SV', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+
+        const rows = filtered.map(r => {
+            const condLabel = (r.condicionPago || '').charAt(0).toUpperCase() + (r.condicionPago || '').slice(1);
+            return `<tr>
+                <td>${r.guia || '—'}</td>
+                <td>${r.empresa || '—'}</td>
+                <td>${formatDt(r.fecha)}</td>
+                <td>${r.cliente || '—'}</td>
+                <td class="dash-modal-amount">$${this.formatNumber(parseFloat(r.venta) || 0)}</td>
+                <td>${condLabel}</td>
+                <td>${r.entrega || '—'}</td>
+            </tr>`;
+        }).join('');
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'dash-detail-backdrop';
+
+        const modal = document.createElement('div');
+        modal.className = 'dash-detail-modal';
+        modal.innerHTML = `
+            <div class="dash-detail-modal-header" style="background:linear-gradient(135deg, ${color}, ${color}dd);">
+                <div class="dash-detail-modal-title">
+                    <h2>${title}</h2>
+                    <p>${filtered.length} registro${filtered.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button class="dash-detail-modal-close" aria-label="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="dash-detail-modal-body">
+                <div class="dash-detail-table-wrap">
+                    <table class="dash-detail-table">
+                        <thead>
+                            <tr>
+                                <th>Guía</th>
+                                <th>Empresa</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Venta</th>
+                                <th>Condición</th>
+                                <th>Entrega</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows || '<tr><td colspan="7" class="dash-detail-empty">No hay registros</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="dash-detail-modal-footer">
+                <span class="dash-detail-total-label">Total</span>
+                <span class="dash-detail-total-value">${this.formatMoney(total)}</span>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(modal);
+
+        requestAnimationFrame(() => {
+            backdrop.classList.add('show');
+            modal.classList.add('show');
+        });
+
+        const closeModal = () => {
+            backdrop.classList.remove('show');
+            modal.classList.remove('show');
+            setTimeout(() => { backdrop.remove(); modal.remove(); }, 300);
+        };
+
+        modal.querySelector('.dash-detail-modal-close').addEventListener('click', closeModal);
+        backdrop.addEventListener('click', closeModal);
+    },
+
     /* ── Export ── */
     exportDashboard() {
         const el = document.querySelector('.dash');
         if (!el) return;
         if (typeof html2pdf === 'undefined') { showToast('Exportando... espere un momento', 'info'); return; }
 
+        showToast('Generando PDF...', 'info');
+
+        /* clonamos el dashboard en un contenedor temporal con tema claro */
+        const clone = el.cloneNode(true);
+        clone.style.background = '#ffffff';
+        clone.style.color = '#0f172a';
+
+        /* forzamos tema claro en el clon */
+        clone.querySelectorAll('[class*="dash-"]').forEach(child => {
+            child.style.setProperty('--bg-primary', '#ffffff');
+            child.style.setProperty('--bg-secondary', '#f8fafc');
+            child.style.setProperty('--text-primary', '#0f172a');
+            child.style.setProperty('--text-secondary', '#64748b');
+            child.style.setProperty('--border-color', '#e2e8f0');
+        });
+
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = '-9999px';
+        wrapper.style.top = '0';
+        wrapper.style.width = '800px';
+        wrapper.style.background = '#ffffff';
+        wrapper.appendChild(clone);
+        document.body.appendChild(wrapper);
+
         const opt = {
-            margin: 0.5,
+            margin: 0.4,
             filename: `dashboard-ventas-${this.fechaInicio.toISOString().split('T')[0]}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowWidth: 800,
+                onclone: (doc) => {
+                    doc.querySelectorAll('.dash-kpi-sparkline').forEach(el => el.style.display = 'none');
+                    doc.querySelectorAll('.dash-chip').forEach(el => el.style.display = 'none');
+                    doc.querySelectorAll('.dash-period-chips, .dash-date-pill, .dash-export-btn').forEach(el => el.style.display = 'none');
+                }
+            },
             jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        showToast('Generando PDF...', 'info');
-        html2pdf().set(opt).from(el).save();
+        html2pdf().set(opt).from(clone).save().then(() => {
+            wrapper.remove();
+        }).catch(() => {
+            wrapper.remove();
+            showToast('Error al generar PDF', 'error');
+        });
     },
 
     /* ── Helpers ── */
