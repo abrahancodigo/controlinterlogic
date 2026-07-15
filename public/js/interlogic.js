@@ -404,10 +404,12 @@ const Interlogic = {
         document.getElementById('filter-start-date').addEventListener('change', (e) => {
             this.filters.startDate = e.target.value;
             this.applyFilters();
+            this.reloadListener(true);
         });
         document.getElementById('filter-end-date').addEventListener('change', (e) => {
             this.filters.endDate = e.target.value;
             this.applyFilters();
+            this.reloadListener(true);
         });
         document.getElementById('btn-add-record').addEventListener('click', () => {
             if (canCreate) this.showForm();
@@ -554,8 +556,8 @@ const Interlogic = {
 
         await this.loadRecords();
 
-        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); this.reloadListener(); });
-        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); this.reloadListener(); });
+        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); this.reloadListener(true); });
+        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); this.reloadListener(true); });
         document.getElementById('m-global-search').addEventListener('input', e => { this.filters.search = e.target.value; this.applyFilters(); });
         document.getElementById('m-btn-add').addEventListener('click', () => this.showMobileForm());
         document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
@@ -1408,7 +1410,7 @@ const Interlogic = {
         if (searchInput) searchInput.value = '';
 
         this.applyFilters();
-        this.reloadListener();
+        this.reloadListener(false);
     },
 
     // ── Date string → Firestore Timestamp ──
@@ -1418,8 +1420,10 @@ const Interlogic = {
         return firebase.firestore.Timestamp.fromDate(new Date(y, m - 1, d, 12, 0, 0));
     },
 
-    // Load records from Firestore with real-time sync — SOLO rango de fechas
-    async loadRecords() {
+    // Load records from Firestore with real-time sync — últimos 90 días por createdAt
+    // Carga inicial por createdAt (últimos 90 días) — rápida y barata
+    // Cuando el usuario cambia fechas, se usa loadByDateRange() con filtro exacto por fecha
+    async loadRecords(useDateRange = false) {
         if (this._loadingRecords) return;
         this._loadingRecords = true;
         if (this.unsubscribe) {
@@ -1427,25 +1431,34 @@ const Interlogic = {
         }
 
         const db = firebase.firestore();
+        let query;
 
-        // Usar filtro de fecha en la consulta, NO traer 5000 registros
-        const startDate = this.filters.startDate || getLocalDateString();
-        let endDate = this.filters.endDate || getLocalDateString();
-        let startTs = this._dateToTs(startDate);
-        let endTs = this._dateToTs(endDate);
-        // Ajustar endTs al final del día
-        if (endTs) {
-            const eDate = endTs.toDate();
-            eDate.setHours(23, 59, 59, 999);
-            endTs = firebase.firestore.Timestamp.fromDate(eDate);
-        }
+        if (useDateRange) {
+            // Modo "fecha exacta": cuando el usuario selecciona fechas específicas
+            const startDate = this.filters.startDate || getLocalDateString();
+            let endDate = this.filters.endDate || getLocalDateString();
+            const sParts = startDate.split('-').map(Number);
+            const eParts = endDate.split('-').map(Number);
+            const startTs = firebase.firestore.Timestamp.fromDate(new Date(sParts[0], sParts[1]-1, sParts[2], 0, 0, 0));
+            const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1]-1, eParts[2], 23, 59, 59));
 
-        try {
-            let query = db.collection('interlogic')
+            query = db.collection('interlogic')
                 .where('fecha', '>=', startTs)
                 .where('fecha', '<=', endTs)
                 .orderBy('fecha', 'desc');
+        } else {
+            // Modo "normal": últimos 90 días por createdAt (siempre existe)
+            const ninetyDaysAgo = new Date();
+            ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+            ninetyDaysAgo.setHours(0, 0, 0, 0);
+            const startTs = firebase.firestore.Timestamp.fromDate(ninetyDaysAgo);
 
+            query = db.collection('interlogic')
+                .where('createdAt', '>=', startTs)
+                .orderBy('createdAt', 'desc');
+        }
+
+        try {
             this.unsubscribe = query.onSnapshot(snapshot => {
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
@@ -1470,10 +1483,10 @@ const Interlogic = {
         this._loadingRecords = false;
     },
 
-    // Reinicia listener cuando cambia rango de fechas
-    async reloadListener() {
+    // Reinicia el listener, opcionalmente con filtro exacto por fecha
+    async reloadListener(useDateRange = false) {
         this._loadingRecords = false;
-        await this.loadRecords();
+        await this.loadRecords(useDateRange);
     },
 // Render records table
     renderTable() {

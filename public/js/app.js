@@ -204,8 +204,8 @@ const App = {
         if (this.currentModule === 'kpi' && window.KpiEvaluation && window.KpiEvaluation.unsubscribe) {
             window.KpiEvaluation.unsubscribe(); window.KpiEvaluation.unsubscribe = null;
         }
-        if (this.currentModule === 'clientes' && window.Clientes && window.Clientes.unsubscribe) {
-            window.Clientes.unsubscribe(); window.Clientes.unsubscribe = null;
+        if (this.currentModule === 'clientes' && window.Clientes) {
+            window.Clientes._cacheExpiry = 0; // invalida caché al salir
             window.Clientes.selectedRecords.clear();
         }
         if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {

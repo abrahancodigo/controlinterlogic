@@ -82,8 +82,8 @@ const Cobranza = {
                 sixMonthsAgo.setHours(0,0,0,0);
                 const startTs = firebase.firestore.Timestamp.fromDate(sixMonthsAgo);
                 db.collection('interlogic')
-                    .where('fecha', '>=', startTs)
-                    .orderBy('fecha', 'desc')
+                    .where('createdAt', '>=', startTs)
+                    .orderBy('createdAt', 'desc')
                     .limit(3000).get().then(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     checkDone('records');

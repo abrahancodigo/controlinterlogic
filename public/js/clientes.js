@@ -1,4 +1,4 @@
-// ===================================
+﻿// ===================================
 // Clientes (Client Management) Module
 // ===================================
 
@@ -143,45 +143,46 @@ const Clientes = {
         await this.loadRecords();
     },
 
-// Load records from Firestore with real-time sync
-  // Returns a Promise that resolves when the first data arrives
+// Load records from Firestore — one-time fetch con caché
+  // Returns a Promise that resolves when data arrives
   loadRecords() {
-    // If already loading, return the existing promise
-    if (this._loadPromise) {
-      return this._loadPromise;
+    // Si ya hay datos frescos (< 5 min), no hacer otra lectura
+    if (this._cacheExpiry && Date.now() < this._cacheExpiry && this.records.length > 0) {
+      return Promise.resolve();
     }
 
-    this._loadPromise = new Promise((resolve, reject) => {
-      if (this.unsubscribe) {
-        this.unsubscribe();
-      }
+    if (this._loadingRecords) {
+      return this._loadPromise || Promise.resolve();
+    }
+    this._loadingRecords = true;
 
+    this._loadPromise = new Promise((resolve, reject) => {
       const db = firebase.firestore();
-      this.unsubscribe = db.collection('clientes')
+      db.collection('clientes')
         .orderBy('nombre', 'asc')
         .limit(3000)
-        .onSnapshot(snapshot => {
+        .get()
+        .then(snapshot => {
           this.records = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
+          this._cacheExpiry = Date.now() + 5 * 60 * 1000; // 5 minutos de caché
           this.applyFilters();
 
           if (this.loading) {
             this.loading = false;
           }
 
-          // Resolve the promise so callers waiting for data can proceed
-          if (this._loadPromise) {
-            this._loadPromise = null;
-          }
+          this._loadingRecords = false;
+          this._loadPromise = null;
           resolve();
-        }, error => {
-          console.error('Error in clientes listener:', error);
-          showToast('Error en sincronización: ' + error.message, 'error');
-          if (this._loadPromise) {
-            this._loadPromise = null;
-          }
+        })
+        .catch(error => {
+          console.error('Error loading clientes:', error);
+          showToast('Error al cargar clientes', 'error');
+          this._loadingRecords = false;
+          this._loadPromise = null;
           reject(error);
         });
     });
@@ -189,11 +190,16 @@ const Clientes = {
     return this._loadPromise;
   },
 
+  // Refresca forzadamente los datos (llamado manual o desde UI)
+  refreshRecords() {
+    this._cacheExpiry = 0; // invalida caché
+    this._loadingRecords = false;
+    return this.loadRecords();
+  },
+
     destroy() {
-        if (this.unsubscribe) {
-            this.unsubscribe();
-            this.unsubscribe = null;
-        }
+        // Sin listener que limpiar (usamos get()), solo liberar referencia
+        this._cacheExpiry = 0;
     },
 
     // Apply search and sort
@@ -454,6 +460,7 @@ const Clientes = {
                     showToast('✓ Cliente creado', 'success');
                 }
 
+                this._cacheExpiry = 0; // invalidar caché para próxima visita
                 modal.remove();
             } catch (error) {
                 console.error('Error saving client:', error);
@@ -923,8 +930,8 @@ const Clientes = {
                 if (!nombre) { showToast('El nombre es obligatorio', 'error'); btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; return; }
                 var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: document.getElementById('mcf-departamento').value.trim(), municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 var db = firebase.firestore();
-                if (isEdit) { await db.collection('clientes').doc(id).update(data); }
-                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('clientes').add(data); }
+                if (isEdit) { await db.collection('clientes').doc(id).update(data); Clientes._cacheExpiry = 0; }
+                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('clientes').add(data); Clientes._cacheExpiry = 0; }
                 showToast(isEdit ? 'Actualizado' : 'Creado', 'success');
                 removeSheet();
             } catch(err) { showToast('Error: '+err.message,'error'); btn.disabled=false; btn.textContent=isEdit?'Guardar':'Crear'; }
