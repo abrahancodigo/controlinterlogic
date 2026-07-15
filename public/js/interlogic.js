@@ -1,4 +1,4 @@
-// ===================================
+﻿// ===================================
 // Control Interlogic Module
 // ===================================
 
@@ -554,8 +554,8 @@ const Interlogic = {
 
         await this.loadRecords();
 
-        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
-        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); this.reloadListener(); });
+        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); this.reloadListener(); });
         document.getElementById('m-global-search').addEventListener('input', e => { this.filters.search = e.target.value; this.applyFilters(); });
         document.getElementById('m-btn-add').addEventListener('click', () => this.showMobileForm());
         document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
@@ -1408,9 +1408,17 @@ const Interlogic = {
         if (searchInput) searchInput.value = '';
 
         this.applyFilters();
+        this.reloadListener();
     },
 
-    // Load records from Firestore with real-time sync
+    // ── Date string → Firestore Timestamp ──
+    _dateToTs(dateStr) {
+        if (!dateStr) return null;
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return firebase.firestore.Timestamp.fromDate(new Date(y, m - 1, d, 12, 0, 0));
+    },
+
+    // Load records from Firestore with real-time sync — SOLO rango de fechas
     async loadRecords() {
         if (this._loadingRecords) return;
         this._loadingRecords = true;
@@ -1419,10 +1427,26 @@ const Interlogic = {
         }
 
         const db = firebase.firestore();
-        this.unsubscribe = db.collection('interlogic')
-            .orderBy('createdAt', 'desc')
-            .limit(5000)
-            .onSnapshot(snapshot => {
+
+        // Usar filtro de fecha en la consulta, NO traer 5000 registros
+        const startDate = this.filters.startDate || getLocalDateString();
+        let endDate = this.filters.endDate || getLocalDateString();
+        let startTs = this._dateToTs(startDate);
+        let endTs = this._dateToTs(endDate);
+        // Ajustar endTs al final del día
+        if (endTs) {
+            const eDate = endTs.toDate();
+            eDate.setHours(23, 59, 59, 999);
+            endTs = firebase.firestore.Timestamp.fromDate(eDate);
+        }
+
+        try {
+            let query = db.collection('interlogic')
+                .where('fecha', '>=', startTs)
+                .where('fecha', '<=', endTs)
+                .orderBy('fecha', 'desc');
+
+            this.unsubscribe = query.onSnapshot(snapshot => {
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -1438,10 +1462,20 @@ const Interlogic = {
                 console.error('Error in real-time listener:', error);
                 showToast('Error en sincronización: ' + error.message, 'error');
             });
+        } catch (e) {
+            console.error('Error setting up listener:', e);
+            showToast('Error al cargar datos. Verifica el índice de Firestore.', 'error');
+            this._loadingRecords = false;
+        }
         this._loadingRecords = false;
     },
 
-    // Render records table
+    // Reinicia listener cuando cambia rango de fechas
+    async reloadListener() {
+        this._loadingRecords = false;
+        await this.loadRecords();
+    },
+// Render records table
     renderTable() {
         const tableBody = document.getElementById('interlogic-table-body');
         if (!tableBody) return;

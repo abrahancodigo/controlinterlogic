@@ -1,4 +1,4 @@
-// ===================================
+﻿// ===================================
 // Cobranza Module - Cuentas por Cobrar
 // Sistema completo: Dashboard, Estado de Cuenta, Antigüedad, 
 // Proyección, Alertas, Gestiones, Ajustes
@@ -76,7 +76,15 @@ const Cobranza = {
                 this.records = window.Interlogic.records;
                 checkDone('records');
             } else {
-                db.collection('interlogic').orderBy('createdAt', 'desc').limit(5000).get().then(snap => {
+                // Cargar últimos 180 días con tope 3000 en vez de 5000
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
+                sixMonthsAgo.setHours(0,0,0,0);
+                const startTs = firebase.firestore.Timestamp.fromDate(sixMonthsAgo);
+                db.collection('interlogic')
+                    .where('fecha', '>=', startTs)
+                    .orderBy('fecha', 'desc')
+                    .limit(3000).get().then(snap => {
                     this.records = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     checkDone('records');
                 }).catch(err => { console.error('Error loading interlogic:', err); checkDone('records'); });
