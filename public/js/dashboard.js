@@ -172,6 +172,69 @@ const Dashboard = {
         <div class="dash-carrier-grid" id="dash-carrier-stats"></div>
     </div>
 
+    <div class="dash-charts-row">
+        <div class="dash-chart-card">
+            <div class="dash-chart-header"><h3>Ventas por Vendedor</h3></div>
+            <div class="dash-chart-body" id="dash-vendedor-chart"></div>
+        </div>
+        <div class="dash-chart-card">
+            <div class="dash-chart-header"><h3>Ventas por Departamento</h3></div>
+            <div class="dash-chart-body" id="dash-zona-chart"></div>
+        </div>
+    </div>
+
+    <div class="dash-section has-toggle">
+        <div class="dash-section-header">
+            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-vendedor-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <h2 class="dash-section-title">Desglose por Vendedor</h2>
+            <span class="dash-section-badge" id="dash-vendedor-resumen"></span>
+        </div>
+        <div id="dash-vendedor-content">
+            <div class="dash-vendedor-grid" id="dash-vendedor-grid"></div>
+        </div>
+    </div>
+
+    <div class="dash-section has-toggle">
+        <div class="dash-section-header">
+            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-zona-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <h2 class="dash-section-title">Desglose por Departamento</h2>
+            <span class="dash-section-badge" id="dash-zona-resumen"></span>
+        </div>
+        <div id="dash-zona-content">
+            <div class="dash-zona-grid" id="dash-zona-grid"></div>
+        </div>
+    </div>
+
+    <div class="dash-section has-toggle">
+        <div class="dash-section-header">
+            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-matriz-content">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            <h2 class="dash-section-title">Matriz Vendedor × Departamento</h2>
+            <span class="dash-section-badge" id="dash-matriz-resumen"></span>
+        </div>
+        <div id="dash-matriz-content">
+            <div class="dash-matrix-wrap">
+                <table class="dash-table dash-matrix-table" id="dash-matrix-table">
+                    <thead id="dash-matrix-thead"></thead>
+                    <tbody id="dash-matrix-tbody"></tbody>
+                </table>
+            </div>
+            <p class="dash-matrix-legend">
+                <span class="dash-legend-dot dash-legend-dot-contado"></span>Contado
+                <span class="dash-legend-dot dash-legend-dot-credito" style="margin-left:1rem;"></span>Crédito
+                <span style="margin-left:1rem;color:var(--text-secondary);font-size:0.75rem;">Click en celda para filtrar x vendedor/zona</span>
+            </p>
+        </div>
+    </div>
+
     <div class="dash-section" id="dash-daily-section" style="display:none;">
         <div class="dash-section-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -235,6 +298,17 @@ const Dashboard = {
             exportBtn.addEventListener('click', () => this.exportDashboard());
         }
 
+        /* ── Section toggle (colapsar/expandir) ── */
+        document.querySelectorAll('.dash-section-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sectionId = btn.dataset.section;
+                const content = document.getElementById(sectionId);
+                if (!content) return;
+                const isCollapsed = content.classList.toggle('dash-section-collapsed');
+                btn.classList.toggle('collapsed', isCollapsed);
+            });
+        });
+
         /* ── KPI card click → detail modal ── */
         const kpiTypes = ['total', 'contado', 'credito', 'dalse'];
         document.querySelectorAll('.dash-kpi-card').forEach((card, index) => {
@@ -284,26 +358,55 @@ const Dashboard = {
         let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0 };
         const carrierStats = {};
         const dailyStats = {};
+        const vendedorStats = {};
+        const zonaStats = {};
+        const matriz = {};
 
         records.forEach(r => {
             const m = parseFloat(r.venta) || 0;
             const cond = (r.condicionPago || '').toLowerCase().trim();
+            const isContado = cond === 'contado';
+            const isCredito = cond === 'credito' || cond === 'crédito';
             const emp = (r.empresa || '').toUpperCase().trim();
             const ent = (r.entrega || 'Sin asignar').toUpperCase().trim();
+            const vendedor = (r.vendedor || 'Sin vendedor').trim() || 'Sin vendedor';
+            const zona = (r.departamento || r.zona || 'Sin departamento').trim() || 'Sin departamento';
             const fec = r.fecha ? r.fecha.toDate() : new Date();
             const dk = fec.toISOString().split('T')[0];
             const dl = this.formatDateShort(fec);
 
             stats.total += m; stats.totalCount++;
-            if (cond === 'contado') { stats.contado += m; stats.contadoCount++; }
-            else if (cond === 'credito' || cond === 'crédito') { stats.credito += m; stats.creditoCount++; }
+            if (isContado) { stats.contado += m; stats.contadoCount++; }
+            else if (isCredito) { stats.credito += m; stats.creditoCount++; }
             if (ent === 'DALSE') { stats.dalse += m; stats.dalseCount++; }
 
             if (!carrierStats[ent]) carrierStats[ent] = { monto: 0, count: 0, contado: 0, credito: 0 };
             carrierStats[ent].monto += m;
             carrierStats[ent].count++;
-            if (cond === 'contado') carrierStats[ent].contado += m;
+            if (isContado) carrierStats[ent].contado += m;
             else carrierStats[ent].credito += m;
+
+            /* Vendedor aggregation */
+            if (!vendedorStats[vendedor]) vendedorStats[vendedor] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            vendedorStats[vendedor].monto += m;
+            vendedorStats[vendedor].count++;
+            if (isContado) vendedorStats[vendedor].contado += m;
+            else if (isCredito) vendedorStats[vendedor].credito += m;
+
+            /* Zona aggregation */
+            if (!zonaStats[zona]) zonaStats[zona] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            zonaStats[zona].monto += m;
+            zonaStats[zona].count++;
+            if (isContado) zonaStats[zona].contado += m;
+            else if (isCredito) zonaStats[zona].credito += m;
+
+            /* Matriz vendedor×zona */
+            if (!matriz[vendedor]) matriz[vendedor] = {};
+            if (!matriz[vendedor][zona]) matriz[vendedor][zona] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            matriz[vendedor][zona].monto += m;
+            matriz[vendedor][zona].count++;
+            if (isContado) matriz[vendedor][zona].contado += m;
+            else if (isCredito) matriz[vendedor][zona].credito += m;
 
             if (!dailyStats[dk]) dailyStats[dk] = {
                 label: dl, total: 0, totalCount: 0,
@@ -311,7 +414,7 @@ const Dashboard = {
             };
             dailyStats[dk].total += m;
             dailyStats[dk].totalCount++;
-            if (cond === 'contado') { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
+            if (isContado) { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
             else { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
             if (ent === 'DALSE') dailyStats[dk].dalse += m;
         });
@@ -338,6 +441,9 @@ const Dashboard = {
             bar: { categories: carrierNames, data: carrierBarData }
         });
         this.updateCarrierStats(carrierStats, stats.total);
+        this.updateVendedorStats(vendedorStats, stats.total);
+        this.updateZonaStats(zonaStats, stats.total);
+        this.updateMatriz(matriz, vendedorStats, zonaStats);
         this.updateDailyTable(dailyStats);
         this.updateDayCards(dailyStats);
     },
@@ -442,47 +548,59 @@ const Dashboard = {
     initCharts() {
         if (this.chartInit) return;
         const theme = this.getChartTheme();
+        const labelColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
+        const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
 
         const donutOptions = {
-            chart: { type: 'donut', fontFamily: 'Inter, sans-serif' },
+            chart: { type: 'donut', fontFamily: 'Inter, sans-serif', sparkline: { enabled: false } },
             series: [0, 0],
             labels: ['Contado', 'Crédito'],
             colors: ['#10b981', '#f59e0b'],
             plotOptions: {
                 pie: {
-                    donut: { size: '68%', labels: { show: true, total: { show: true, label: 'Total', formatter: () => '$0' } } }
+                    donut: {
+                        size: '72%',
+                        labels: {
+                            show: true,
+                            name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
+                            value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Math.round(v).toLocaleString('es-SV') },
+                            total: { show: true, label: 'Total', fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor, formatter: () => '$0' }
+                        }
+                    }
                 }
             },
-            dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '11px', fontWeight: 600 } },
-            legend: { position: 'bottom', fontSize: '12px', fontWeight: 500 },
-            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+            stroke: { width: 2, colors: [theme === 'dark' ? '#1e293b' : '#ffffff'] },
+            dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
+            legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
+            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
             theme: { mode: theme },
-            responsive: [{ breakpoint: 768, options: { chart: { height: 250 }, legend: { position: 'bottom' } } }]
+            responsive: [{ breakpoint: 768, options: { chart: { height: 320 }, legend: { position: 'bottom', fontSize: '13px' }, dataLabels: { style: { fontSize: '12px' } } } }]
         };
 
         const barOptions = {
             chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = ['DALSE', 'INTERLOGISTIC', 'XPRESS']; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
             series: [{ name: 'Ventas', data: [] }],
-            xaxis: { categories: [], labels: { style: { fontSize: '11px', fontWeight: 600 } } },
-            yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '11px' } } },
+            xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
+            yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif', colors: mutedColor } } },
             colors: ['#7c3aed', '#3b82f6', '#ec4899'],
             plotOptions: {
-                bar: { borderRadius: 4, columnWidth: '55%', distributed: true, dataLabels: { position: 'top' } }
+                bar: { borderRadius: 8, columnWidth: '50%', distributed: true, dataLabels: { position: 'top', maxItems: 8 } }
             },
             dataLabels: {
                 enabled: true,
                 formatter: function(val) {
                     const total = window.Dashboard?.barTotal || 0;
                     const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                    return '$' + Math.round(val).toLocaleString('es-SV') + '  |  ' + pct + '%';
+                    return '$' + Math.round(val).toLocaleString('es-SV') + '\n' + pct + '%';
                 },
-                style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: ['#0f172a'] },
-                offsetY: -18
+                style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
+                offsetY: -22,
+                dropShadow: { enabled: false }
             },
-            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
-            grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
+            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
+            grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { top: 30 } },
             theme: { mode: theme },
-            responsive: [{ breakpoint: 768, options: { chart: { height: 250 }, dataLabels: { enabled: false } } }]
+            responsive: [{ breakpoint: 768, options: { chart: { height: 300 }, dataLabels: { enabled: false, style: { fontSize: '12px' } } } }]
         };
 
         const donutEl = document.getElementById('dash-donut-chart');
@@ -491,14 +609,69 @@ const Dashboard = {
         if (donutEl) this.charts.donut = new ApexCharts(donutEl, donutOptions);
         if (barEl) this.charts.bar = new ApexCharts(barEl, barOptions);
 
-        Object.values(this.charts).forEach(c => { if (c) c.render(); });
+        /* ── Vendedor chart (horizontal bar, top 10) ── */
+        const vendedorEl = document.getElementById('dash-vendedor-chart');
+        if (vendedorEl) {
+            const vendedorOptions = {
+                chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._vendedorChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
+                series: [{ name: 'Ventas', data: [] }],
+                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%', dataLabels: { position: 'top', maxItems: 10 } } },
+                xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
+                yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
+                colors: ['#8b5cf6'],
+                dataLabels: {
+                    enabled: true,
+                    formatter: v => v > 0 ? '$' + Math.round(v).toLocaleString('es-SV') : '',
+                    style: { fontSize: '12px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
+                    offsetX: 6,
+                    dropShadow: { enabled: false }
+                },
+                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { right: 80, left: 10 } },
+                theme: { mode: theme },
+                responsive: [{ breakpoint: 768, options: { chart: { height: 380 }, dataLabels: { style: { fontSize: '11px' } } } }]
+            };
+            this.charts.vendedor = new ApexCharts(vendedorEl, vendedorOptions);
+        }
+
+        /* ── Zona chart (horizontal bar, top 10) ── */
+        const zonaEl = document.getElementById('dash-zona-chart');
+        if (zonaEl) {
+            const zonaOptions = {
+                chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._zonaChartNames || []; if (names[idx]) this.showZonaDetailModal(names[idx]); } } },
+                series: [{ name: 'Ventas', data: [] }],
+                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%', dataLabels: { position: 'top', maxItems: 10 } } },
+                xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
+                yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
+                colors: ['#0ea5e9'],
+                dataLabels: {
+                    enabled: true,
+                    formatter: v => v > 0 ? '$' + Math.round(v).toLocaleString('es-SV') : '',
+                    style: { fontSize: '12px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
+                    offsetX: 6,
+                    dropShadow: { enabled: false }
+                },
+                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { right: 80, left: 10 } },
+                theme: { mode: theme },
+                responsive: [{ breakpoint: 768, options: { chart: { height: 380 }, dataLabels: { style: { fontSize: '11px' } } } }]
+            };
+            this.charts.zona = new ApexCharts(zonaEl, zonaOptions);
+        }
+
+        Object.values(this.charts).forEach(c => { if (c && typeof c.render === 'function') c.render(); });
 
         this.chartInit = true;
 
         this.themeObserver = new MutationObserver(() => {
             const t = this.getChartTheme();
             Object.entries(this.charts).forEach(([k, c]) => {
-                if (c) c.updateOptions({ theme: { mode: t }, grid: { borderColor: t === 'dark' ? '#334155' : '#e2e8f0' } });
+                if (!c) return;
+                if (k === 'sparklines') {
+                    Object.values(c).forEach(sc => { if (sc) sc.updateOptions({ theme: { mode: t } }); });
+                    return;
+                }
+                c.updateOptions({ theme: { mode: t }, grid: { borderColor: t === 'dark' ? '#334155' : '#e2e8f0' } });
             });
         });
         this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -526,6 +699,262 @@ const Dashboard = {
                 series: [{ data: data.bar.data }]
             });
         }
+
+        if (this.charts.vendedor && data.vendedor) {
+            const vdata = data.vendedor.categories.map((name, i) => Math.round(data.vendedor.data[i]));
+            window.Dashboard._vendedorChartNames = data.vendedor.categories;
+            this.charts.vendedor.updateOptions({
+                xaxis: { categories: data.vendedor.categories },
+                series: [{ data: vdata }]
+            });
+        }
+
+        if (this.charts.zona && data.zona) {
+            const zdata = data.zona.categories.map((name, i) => Math.round(data.zona.data[i]));
+            window.Dashboard._zonaChartNames = data.zona.categories;
+            this.charts.zona.updateOptions({
+                xaxis: { categories: data.zona.categories },
+                series: [{ data: zdata }]
+            });
+        }
+    },
+
+/* ── Vendedor stats ── */
+    updateVendedorStats(vendedorStats, totalMonto) {
+        const grid = document.getElementById('dash-vendedor-grid');
+        const badge = document.getElementById('dash-vendedor-resumen');
+        if (!grid) return;
+
+        const vendedores = Object.entries(vendedorStats)
+            .filter(([name]) => name && name !== 'Sin vendedor')
+            .sort((a, b) => b[1].monto - a[1].monto);
+
+        if (badge) badge.textContent = vendedores.length + ' vendedores';
+
+        if (vendedores.length === 0) {
+            grid.innerHTML = '<div class="dash-empty" style="grid-column:1/-1;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><p>No hay datos de vendedores en este rango</p></div>';
+            return;
+        }
+
+        grid.innerHTML = vendedores.map(([name, d], index) => {
+            const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
+            const avg = d.count > 0 ? d.monto / d.count : 0;
+            const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
+            const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
+            const avatarColors = ['#7c3aed', '#8b5cf6', '#a78bfa', '#6366f1', '#9333ea', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+            const avatarColor = avatarColors[index % avatarColors.length];
+            const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || name.substring(0, 2).toUpperCase();
+            return `<div class="dash-vendedor-card" data-vendedor="${this._escapeAttr(name)}">
+                <div class="dash-vendedor-rank">${index + 1}</div>
+                <div class="dash-vendedor-card-inner">
+                    <div class="dash-vendedor-card-top">
+                        <div class="dash-vendedor-avatar" style="background:${avatarColor}"><span class="dash-vendedor-avatar-text">${initials}</span></div>
+                        <div class="dash-vendedor-body">
+                            <div class="dash-vendedor-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
+                            <div class="dash-vendedor-amount">${this.formatMoney(d.monto)}</div>
+                            <div class="dash-vendedor-meta"><span>${d.count} ent.</span><span class="dash-vendedor-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-vendedor-sep">·</span><span>${pct}% del total</span></div>
+                        </div>
+                    </div>
+                    <div class="dash-vendedor-bar-wrap">
+                        <div class="dash-vendedor-bar">
+                            <div class="dash-vendedor-bar-contado" style="width:${ctPct}%" title="Contado: ${this.formatMoney(d.contado)}"></div>
+                            <div class="dash-vendedor-bar-credito" style="width:${crPct}%" title="Crédito: ${this.formatMoney(d.credito)}"></div>
+                        </div>
+                        <div class="dash-vendedor-bar-labels">
+                            <span class="dash-vendedor-bar-label-contado">${ctPct.toFixed(0)}% contado</span>
+                            <span class="dash-vendedor-bar-label-credito">${crPct.toFixed(0)}% crédito</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        grid.querySelectorAll('[data-vendedor]').forEach(card => {
+            card.addEventListener('click', () => this.showVendedorDetailModal(card.dataset.vendedor));
+        });
+
+        const topVendedores = vendedores.slice(0, 10);
+        if (this.charts.vendedor) {
+            const chartData = topVendedores.map(([, d]) => d.monto);
+            const chartNames = topVendedores.map(([name]) => name.length > 14 ? name.substring(0, 13) + '\u2026' : name);
+            window.Dashboard._vendedorChartNames = topVendedores.map(([name]) => name);
+            this.charts.vendedor.updateOptions({
+                xaxis: { categories: chartNames },
+                series: [{ data: chartData }]
+            });
+        }
+    },
+
+    /* ── Zona stats ── */
+    updateZonaStats(zonaStats, totalMonto) {
+        const grid = document.getElementById('dash-zona-grid');
+        const badge = document.getElementById('dash-zona-resumen');
+        if (!grid) return;
+
+        const zonas = Object.entries(zonaStats)
+            .filter(([name]) => name && name !== 'Sin departamento')
+            .sort((a, b) => b[1].monto - a[1].monto);
+
+        if (badge) badge.textContent = zonas.length + ' deptos.';
+
+        if (zonas.length === 0) {
+            grid.innerHTML = '<div class="dash-empty" style="grid-column:1/-1;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><p>No hay datos de departamentos en este rango</p></div>';
+            return;
+        }
+
+        grid.innerHTML = zonas.map(([name, d], index) => {
+            const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
+            const avg = d.count > 0 ? d.monto / d.count : 0;
+            const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
+            const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
+            const zonaColors = ['#0891b2', '#0ea5e9', '#06b6d4', '#0284c7', '#2563eb', '#6366f1', '#7c3aed', '#0d9488', '#059669', '#d946ef'];
+            const zonaColor = zonaColors[index % zonaColors.length];
+            return `<div class="dash-zona-card" data-zona="${this._escapeAttr(name)}">
+                <div class="dash-zona-card-inner">
+                    <div class="dash-zona-card-top">
+                        <div class="dash-zona-icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${zonaColor};"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                        <div class="dash-zona-body">
+                            <div class="dash-zona-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
+                            <div class="dash-zona-amount">${this.formatMoney(d.monto)}</div>
+                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span></div>
+                        </div>
+                    </div>
+                    <div class="dash-zona-bar-wrap">
+                        <div class="dash-zona-bar">
+                            <div class="dash-zona-bar-contado" style="width:${ctPct}%" title="Contado: ${this.formatMoney(d.contado)}"></div>
+                            <div class="dash-zona-bar-credito" style="width:${crPct}%" title="Crédito: ${this.formatMoney(d.credito)}"></div>
+                        </div>
+                        <div class="dash-zona-bar-labels">
+                            <span class="dash-zona-bar-label-contado">${this.formatMoney(d.contado)} contado</span>
+                            <span class="dash-zona-bar-label-credito">${this.formatMoney(d.credito)} crédito</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        grid.querySelectorAll('[data-zona]').forEach(card => {
+            card.addEventListener('click', () => this.showZonaDetailModal(card.dataset.zona));
+        });
+
+        const topZonas = zonas.slice(0, 10);
+        if (this.charts.zona) {
+            const chartData = topZonas.map(([, d]) => d.monto);
+            const chartNames = topZonas.map(([name]) => name.length > 14 ? name.substring(0, 13) + '\u2026' : name);
+            window.Dashboard._zonaChartNames = topZonas.map(([name]) => name);
+            this.charts.zona.updateOptions({
+                xaxis: { categories: chartNames },
+                series: [{ data: chartData }]
+            });
+        }
+    },
+
+/* ── Matriz vendedor×zona ── */
+    updateMatriz(matriz, vendedorStats, zonaStats) {
+        const thead = document.getElementById('dash-matrix-thead');
+        const tbody = document.getElementById('dash-matrix-tbody');
+        const badge = document.getElementById('dash-matriz-resumen');
+        if (!thead || !tbody) return;
+
+        const topVendedores = Object.entries(vendedorStats)
+            .filter(([name]) => name && name !== 'Sin vendedor')
+            .sort((a, b) => b[1].monto - a[1].monto)
+            .slice(0, 10)
+            .map(([name]) => name);
+        const topZonas = Object.entries(zonaStats)
+            .filter(([name]) => name && name !== 'Sin departamento')
+            .sort((a, b) => b[1].monto - a[1].monto)
+            .slice(0, 8)
+            .map(([name]) => name);
+
+        if (badge) badge.textContent = topVendedores.length + ' × ' + topZonas.length;
+
+        if (topVendedores.length === 0 || topZonas.length === 0) {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="2" class="dash-empty" style="padding:2rem;text-align:center;">No hay datos suficientes para la matriz</td></tr>';
+            return;
+        }
+
+        const allValues = [];
+        topVendedores.forEach(v => topZonas.forEach(z => { const m = matriz[v]?.[z]?.monto || 0; if (m > 0) allValues.push(m); }));
+        allValues.sort((a, b) => a - b);
+        const n = allValues.length;
+        const tercil1 = n > 2 ? allValues[Math.floor(n / 3)] : (allValues[0] || 0);
+        const tercil2 = n > 2 ? allValues[Math.floor(2 * n / 3)] : (allValues[n - 1] || 0);
+
+        thead.innerHTML = '<tr><th class="dash-matrix-corner">Vendedor / Dept.</th>' +
+            topZonas.map(z => `<th class="dash-matrix-colheader" title="${this._escapeAttr(z)}">${this._escapeHtml(z.length > 15 ? z.substring(0, 14) + '\u2026' : z)}</th>`).join('') +
+            '<th class="dash-matrix-total">Total</th></tr>';
+
+        let totalGlobal = 0;
+        tbody.innerHTML = topVendedores.map(v => {
+            let rowTotal = 0;
+            const cells = topZonas.map(z => {
+                const cell = matriz[v]?.[z] || { monto: 0, contado: 0, credito: 0, count: 0 };
+                rowTotal += cell.monto;
+                const hasData = cell.monto > 0;
+                let heatClass = '';
+                if (hasData) {
+                    if (cell.monto >= tercil2) heatClass = 'heat-high';
+                    else if (cell.monto >= tercil1) heatClass = 'heat-mid';
+                    else heatClass = 'heat-low';
+                }
+                const cellContent = hasData
+                    ? `<div class="dash-matrix-amount">$${this.formatNumber(cell.monto)}</div><div class="dash-matrix-split"><span class="dash-split-contado">$${this.formatNumber(cell.contado)}</span><span class="dash-split-credito">$${this.formatNumber(cell.credito)}</span></div><div class="dash-matrix-count">${cell.count} ent.</div>`
+                    : '<div class="dash-matrix-empty">—</div>';
+                return `<td class="dash-matrix-cell ${hasData ? 'dash-matrix-cell-active ' + heatClass : ''}" data-vendedor="${this._escapeAttr(v)}" data-zona="${this._escapeAttr(z)}">${cellContent}</td>`;
+            }).join('');
+            totalGlobal += rowTotal;
+            return `<tr><td class="dash-matrix-rowheader">${this._escapeHtml(v.length > 18 ? v.substring(0, 17) + '\u2026' : v)}</td>${cells}<td class="dash-matrix-row-total">$${this.formatNumber(rowTotal)}</td></tr>`;
+        }).join('') + (() => {
+            const totals = topZonas.map(z => { let t = 0; topVendedores.forEach(v => { t += (matriz[v]?.[z]?.monto || 0); }); return t; });
+            return `<tr class="dash-matrix-total-row"><td class="dash-matrix-corner">Total</td>${totals.map(t => `<td class="dash-matrix-col-total">$${this.formatNumber(t)}</td>`).join('')}<td class="dash-matrix-grand-total">$${this.formatNumber(totalGlobal)}</td></tr>`;
+        })();
+
+        tbody.querySelectorAll('.dash-matrix-cell-active').forEach(cell => {
+            cell.addEventListener('click', () => this.showVendedorZonaDetailModal(cell.dataset.vendedor, cell.dataset.zona));
+        });
+    },
+
+    /* ── Escape helpers ── */
+    _escapeHtml(s) {
+        if (s == null) return '';
+        const d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+    },
+    _escapeAttr(s) {
+        return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    },
+
+    /* ── Detail modal: Vendedor ── */
+    showVendedorDetailModal(vendedorName) {
+        const filtered = this.records.filter(r => {
+            const v = (r.vendedor || '').trim();
+            return v && (v === vendedorName || (v === 'Sin vendedor' && vendedorName === 'Sin vendedor'));
+        });
+        this._renderDetailModal(filtered, 'Vendedor: ' + vendedorName, '#8b5cf6');
+    },
+
+    /* ── Detail modal: Zona ── */
+    showZonaDetailModal(zonaName) {
+        const filtered = this.records.filter(r => {
+            const z = (r.departamento || r.zona || '').trim();
+            return z && (z === zonaName || (z === 'Sin departamento' && zonaName === 'Sin departamento'));
+        });
+        this._renderDetailModal(filtered, 'Departamento: ' + zonaName, '#0ea5e9');
+    },
+
+    /* ── Detail modal: Vendedor×Zona ── */
+    showVendedorZonaDetailModal(vendedorName, zonaName) {
+        const filtered = this.records.filter(r => {
+            const v = (r.vendedor || '').trim();
+            const z = (r.departamento || r.zona || '').trim();
+            const matchV = v === vendedorName || (v === '' && vendedorName === 'Sin vendedor');
+            const matchZ = z === zonaName || (z === '' && zonaName === 'Sin departamento');
+            return matchV && matchZ;
+        });
+        this._renderDetailModal(filtered, vendedorName + ' · ' + zonaName, '#7c3aed');
     },
 
     /* ── Carrier stats ── */
@@ -1089,6 +1518,9 @@ const Dashboard = {
         this.chartInit = false;
         this.records = [];
         this.prevRecords = [];
+        window.Dashboard._vendedorChartNames = null;
+        window.Dashboard._zonaChartNames = null;
+        window.Dashboard.barTotal = 0;
     }
 };
 

@@ -7660,44 +7660,579 @@ tbody tr:hover {
 }
 
 .dash-chart-header h3 {
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 800;
     color: var(--text-primary);
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .dash-chart-body {
-    min-height: 280px;
+    min-height: 380px;
+}
+
+.dash-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
 }
 
 .dash-chart-card:first-child .dash-chart-body {
-    min-height: 260px;
+    min-height: 340px;
 }
 
 /* ── Sections ── */
 .dash-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .dash-section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 0.85rem;
+    gap: 12px;
+    margin-bottom: 1.1rem;
 }
 
 .dash-section-header svg {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     color: var(--brand);
     flex-shrink: 0;
 }
 
 .dash-section-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+/* ── Section toggle ── */
+.dash-section.has-toggle .dash-section-header {
+    cursor: default;
+}
+
+.dash-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: transform 0.25s, background 0.15s;
+    flex-shrink: 0;
+    padding: 0;
+    margin-right: 4px;
+}
+
+.dash-section-toggle:hover {
+    background: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.dash-section-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.dash-section-collapsed {
+    display: none !important;
+}
+
+.dash-section-badge {
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--gray-100);
+    letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .dash-section-badge {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Vendedor cards ── */
+.dash-vendedor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.dash-vendedor-card {
+    background: var(--bg-primary);
+    border-radius: 18px;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.15s;
+    animation: dashCardIn 0.4s ease-out both;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.dash-vendedor-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(124, 58, 237, 0.10);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.dash-vendedor-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #7c3aed 0%, #a78bfa 100%);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.dash-vendedor-card:hover::after {
+    opacity: 1;
+}
+
+.dash-vendedor-rank {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    align-self: center;
+}
+
+.dash-vendedor-card:nth-child(1) .dash-vendedor-rank,
+.dash-vendedor-card:nth-child(2) .dash-vendedor-rank,
+.dash-vendedor-card:nth-child(3) .dash-vendedor-rank {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: white;
+    box-shadow: 0 3px 10px rgba(124, 58, 237, 0.35);
+}
+
+[data-theme="dark"] .dash-vendedor-rank {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.dash-vendedor-card-inner {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-vendedor-card-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.dash-vendedor-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.dash-vendedor-avatar-text {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: white;
+    letter-spacing: 0.03em;
+}
+
+.dash-vendedor-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-vendedor-name {
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.dash-vendedor-amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+
+.dash-vendedor-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.dash-vendedor-sep {
+    opacity: 0.35;
+    font-weight: 400;
+}
+
+.dash-vendedor-bar-wrap {
+    margin-top: 10px;
+}
+
+.dash-vendedor-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--gray-100);
+}
+
+.dash-vendedor-bar-contado {
+    background: linear-gradient(90deg, #10b981, #34d399);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-vendedor-bar-credito {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-vendedor-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.dash-vendedor-bar-label-contado { color: #10b981; }
+.dash-vendedor-bar-label-credito { color: #f59e0b; }
+
+/* ── Zona cards ── */
+.dash-zona-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.dash-zona-card {
+    background: var(--bg-primary);
+    border-radius: 18px;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: dashCardIn 0.4s ease-out both;
+}
+
+.dash-zona-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(2, 132, 199, 0.12);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+.dash-zona-card-inner {
+    min-width: 0;
+}
+
+.dash-zona-card-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.dash-zona-icon-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .dash-zona-icon-wrap {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.dash-zona-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-zona-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+
+.dash-zona-amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+
+.dash-zona-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.dash-zona-sep {
+    opacity: 0.35;
+    font-weight: 400;
+}
+
+.dash-zona-bar-wrap {
+    margin-top: 10px;
+}
+
+.dash-zona-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--gray-100);
+}
+
+.dash-zona-bar-contado {
+    background: linear-gradient(90deg, #10b981, #34d399);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-zona-bar-credito {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-zona-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.dash-zona-bar-label-contado { color: #10b981; }
+.dash-zona-bar-label-credito { color: #f59e0b; }
+
+/* ── Matrix heatmap ── */
+.heat-high {
+    background: rgba(124, 58, 237, 0.20) !important;
+}
+
+.heat-mid {
+    background: rgba(124, 58, 237, 0.10) !important;
+}
+
+.heat-low {
+    background: rgba(124, 58, 237, 0.04) !important;
+}
+
+[data-theme="dark"] .heat-high {
+    background: rgba(139, 92, 246, 0.26) !important;
+}
+
+[data-theme="dark"] .heat-mid {
+    background: rgba(139, 92, 246, 0.12) !important;
+}
+
+[data-theme="dark"] .heat-low {
+    background: rgba(139, 92, 246, 0.05) !important;
+}
+
+/* ── Matrix table (vendedor×zona) ── */
+.dash-matrix-wrap {
+    overflow-x: auto;
+    background: var(--bg-primary);
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    margin-bottom: 0.5rem;
+}
+
+.dash-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 780px;
+}
+
+.dash-matrix-table th,
+.dash-matrix-table td {
+    padding: 14px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    font-size: 0.92rem;
+    vertical-align: middle;
+}
+
+.dash-matrix-table th {
+    background: var(--bg-secondary);
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.dash-matrix-corner {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--bg-secondary);
+    text-align: left;
+    min-width: 160px;
+}
+
+.dash-matrix-rowheader {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-primary);
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    min-width: 160px;
+}
+
+[data-theme="dark"] .dash-matrix-rowheader {
+    background: var(--bg-primary);
+}
+
+.dash-matrix-colheader {
+    min-width: 120px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dash-matrix-cell {
+    cursor: default;
+    transition: background 0.15s, outline 0.15s;
+    min-width: 120px;
+}
+
+.dash-matrix-cell-active {
+    cursor: pointer;
+}
+
+.dash-matrix-cell-active:hover {
+    outline: 2px solid #7c3aed;
+    outline-offset: -2px;
+}
+
+.dash-matrix-amount {
+    font-weight: 800;
+    color: var(--text-primary);
+    font-size: 1rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+.dash-matrix-split {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.dash-split-contado { color: #10b981; }
+.dash-split-credito { color: #f59e0b; }
+
+.dash-matrix-count {
+    margin-top: 3px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.dash-matrix-empty {
+    color: var(--text-secondary);
+    opacity: 0.35;
+    font-size: 1.1rem;
+}
+
+.dash-matrix-row-total,
+.dash-matrix-col-total {
+    font-weight: 800;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    font-size: 0.95rem;
+}
+
+.dash-matrix-total-row .dash-matrix-col-total,
+.dash-matrix-total-row .dash-matrix-grand-total {
+    background: var(--gray-100);
+    font-weight: 800;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+[data-theme="dark"] .dash-matrix-total-row .dash-matrix-col-total,
+[data-theme="dark"] .dash-matrix-total-row .dash-matrix-grand-total {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dash-matrix-grand-total {
+    color: #7c3aed;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.dash-matrix-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 /* ── Carrier Cards ── */
@@ -8033,7 +8568,7 @@ tbody tr:hover {
     .dash-kpi-icon { width: 36px; height: 36px; border-radius: 10px; }
     .dash-kpi-value { font-size: 1rem; }
     .dash-charts-row { grid-template-columns: 1fr; }
-    .dash-chart-body { min-height: 220px; }
+    .dash-chart-body { min-height: 300px; }
     .dash-chart-card { border-radius: 16px; padding: 1rem; }
     .dash-carrier-grid { grid-template-columns: 1fr; }
     .dash-carrier-card { padding: 1rem; border-radius: 16px; }
