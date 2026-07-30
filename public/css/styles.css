@@ -1895,6 +1895,26 @@ tbody tr:hover {
     color: #92400e;
 }
 
+.badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+
+.badge-purple {
+    background: #faf5ff;
+    color: #6b21a8;
+}
+
+.mfp-btn {
+    padding: 1rem 0.5rem;
+    border: 2px solid #d1d5db;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    font-size: 0.95rem;
+}
 .badge-editor {
     background: #fef3c7;
     color: #92400e;
@@ -2201,7 +2221,7 @@ tbody tr:hover {
    Mobile Responsive Enhancements
    =================================== */
 
-/* -- Tablet & Mobile (≤768px) -- */
+/* -- Tablet & Mobile (Ã¢â€°Â¤768px) -- */
 @media (max-width: 768px) {
 
     /* Module header: stack title and buttons */
@@ -2383,7 +2403,7 @@ tbody tr:hover {
     }
 }
 
-/* -- Small Phones (≤480px) -- */
+/* -- Small Phones (Ã¢â€°Â¤480px) -- */
 @media (max-width: 480px) {
     :root {
         --sidebar-width: 100%;
@@ -4599,7 +4619,7 @@ tbody tr:hover {
 }
 
 /* ============================================================
-   MOBILE APP REDESIGN - Native App Experience (≤768px)
+   MOBILE APP REDESIGN - Native App Experience (Ã¢â€°Â¤768px)
    ============================================================ */
 @media (max-width: 768px) {
 
@@ -4933,7 +4953,7 @@ tbody tr:hover {
         min-height: 38px;
     }
 
-    /* ---------- Tables → Card View ---------- */
+    /* ---------- Tables Ã¢â€ â€™ Card View ---------- */
     .table-container {
         border-radius: 12px;
         border: none;
@@ -5050,7 +5070,7 @@ tbody tr:hover {
         font-size: 0.8rem;
     }
 
-    /* ---------- Modal → Bottom Sheet ---------- */
+    /* ---------- Modal Ã¢â€ â€™ Bottom Sheet ---------- */
     .modal-backdrop {
         padding: 0 !important;
         align-items: flex-end !important;
@@ -5283,7 +5303,7 @@ tbody tr:hover {
 }
 
 /* ============================================================
-   Small Phones (≤380px) - Extra Compact
+   Small Phones (Ã¢â€°Â¤380px) - Extra Compact
    ============================================================ */
 @media (max-width: 380px) {
     .stats-grid {
@@ -5774,7 +5794,7 @@ tbody tr:hover {
     }
 }
 
-/* Observación de Entrega del Cliente */
+/* ObservaciÃƒÂ³n de Entrega del Cliente */
 .cliente-observacion {
     display: none;
     margin-top: 0.5rem;
@@ -6678,7 +6698,7 @@ tbody tr:hover {
 }
 
 /* ===================================
-   Auth Screen — Dark Mode
+   Auth Screen Ã¢â‚¬â€ Dark Mode
    =================================== */
 [data-theme="dark"] .auth-screen {
     background: radial-gradient(ellipse at top, hsl(245, 50%, 18%) 0%, hsl(245, 55%, 10%) 50%, hsl(245, 60%, 6%) 100%);
@@ -6778,7 +6798,7 @@ tbody tr:hover {
 }
 
 /* ===================================
-   Dashboard Premium — Dark Mode v2
+   Dashboard Premium Ã¢â‚¬â€ Dark Mode v2
    =================================== */
 [data-theme="dark"] .dash-hero {
     background: linear-gradient(135deg, #4c1d95 0%, #3b0764 40%, #1e1b4b 100%);
@@ -7343,10 +7363,10 @@ tbody tr:hover {
 }
 
 /* ===================================
-   Dashboard Module — Premium Redesign v2
+   Dashboard Module Ã¢â‚¬â€ Premium Redesign v2
    =================================== */
 
-/* ── Container ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Container Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash {
     animation: dashFadeIn 0.35s ease-out;
 }
@@ -7356,7 +7376,7 @@ tbody tr:hover {
     to { opacity: 1; }
 }
 
-/* ── Hero Section (no orbs, static blob) ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Hero Section (no orbs, static blob) Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-hero {
     position: relative;
     background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 40%, #5b21b6 100%);
@@ -7416,7 +7436,7 @@ tbody tr:hover {
     flex-wrap: wrap;
 }
 
-/* ── Period Chips ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Period Chips Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-period-chips {
     display: flex;
     gap: 4px;
@@ -7449,7 +7469,7 @@ tbody tr:hover {
     backdrop-filter: blur(4px);
 }
 
-/* ── Date Pill ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Date Pill Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-date-pill {
     display: flex;
     align-items: center;
@@ -7504,7 +7524,7 @@ tbody tr:hover {
 .dash-pill-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.05); }
 .dash-pill-btn:active { transform: scale(0.95); }
 
-/* ── Export Button ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Export Button Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-export-btn {
     width: 36px;
     height: 36px;
@@ -7522,7 +7542,7 @@ tbody tr:hover {
 
 .dash-export-btn:hover { background: rgba(255, 255, 255, 0.22); transform: scale(1.05); }
 
-/* ── KPI Grid ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ KPI Grid Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -7627,12 +7647,21 @@ tbody tr:hover {
     height: 32px;
 }
 
-/* ── Charts Row ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Charts Row Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-charts-row {
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: 14px;
     margin-bottom: 1.5rem;
+}
+
+.dash-charts-row-equal {
+    grid-template-columns: 1fr 1fr;
+}
+
+.dash-charts-row.empresa-inline {
+    grid-template-columns: 1fr;
+    max-width: 480px;
 }
 
 .dash-chart-card {
@@ -7667,22 +7696,70 @@ tbody tr:hover {
     letter-spacing: -0.01em;
 }
 
-.dash-chart-body {
-    min-height: 380px;
+/* Chart total badge (added for total display) */
+.dash-chart-total {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.10), rgba(6,182,212,0.10));
+    border: 1px solid rgba(124,58,237,0.18);
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
-.dash-charts-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
+.dash-chart-total-money {
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.dash-chart-total-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding-left: 8px;
+    border-left: 1px solid rgba(124,58,237,0.18);
+}
+
+[data-theme="dark"] .dash-chart-total {
+    background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(6,182,212,0.18));
+    border-color: rgba(167,139,250,0.30);
+}
+
+[data-theme="dark"] .dash-chart-total-count {
+    border-left-color: rgba(167,139,250,0.30);
+    color: rgba(226,232,240,0.7);
+}
+
+@media (max-width: 640px) {
+    .dash-chart-total {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+        gap: 6px;
+    }
+    .dash-chart-total-count {
+        font-size: 0.65rem;
+        padding-left: 6px;
+    }
+}
+
+.dash-chart-body {
+    min-height: 380px;
 }
 
 .dash-chart-card:first-child .dash-chart-body {
     min-height: 340px;
 }
 
-/* ── Sections ── */
+#dash-vendedor-chart,
+#dash-zona-chart {
+    min-height: 420px;
+}
+
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Sections Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-section {
     margin-bottom: 2rem;
 }
@@ -7709,7 +7786,7 @@ tbody tr:hover {
     letter-spacing: -0.01em;
 }
 
-/* ── Section toggle ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Section toggle Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-section.has-toggle .dash-section-header {
     cursor: default;
 }
@@ -7759,7 +7836,7 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.06);
 }
 
-/* ── Vendedor cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Vendedor cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-vendedor-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -7934,7 +8011,7 @@ tbody tr:hover {
 .dash-vendedor-bar-label-contado { color: #10b981; }
 .dash-vendedor-bar-label-credito { color: #f59e0b; }
 
-/* ── Zona cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Zona cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-zona-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -8057,7 +8134,7 @@ tbody tr:hover {
 .dash-zona-bar-label-contado { color: #10b981; }
 .dash-zona-bar-label-credito { color: #f59e0b; }
 
-/* ── Matrix heatmap ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Matrix heatmap Ã¢â€â‚¬Ã¢â€â‚¬ */
 .heat-high {
     background: rgba(124, 58, 237, 0.20) !important;
 }
@@ -8082,7 +8159,7 @@ tbody tr:hover {
     background: rgba(139, 92, 246, 0.05) !important;
 }
 
-/* ── Matrix table (vendedor×zona) ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Matrix table (vendedorÃƒâ€”zona) Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-matrix-wrap {
     overflow-x: auto;
     background: var(--bg-primary);
@@ -8235,7 +8312,7 @@ tbody tr:hover {
     color: var(--text-secondary);
 }
 
-/* ── Carrier Cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Carrier Cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-carrier-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -8325,7 +8402,7 @@ tbody tr:hover {
     transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Table ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Table Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-table-wrap {
     overflow-x: auto;
     background: var(--bg-primary);
@@ -8370,7 +8447,7 @@ tbody tr:hover {
 .dash-td-total { font-weight: 700; color: var(--text-primary); }
 .dash-td-count { color: var(--text-secondary); }
 
-/* ── Day Cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Day Cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-day-grid {
     display: flex;
     flex-direction: column;
@@ -8492,7 +8569,7 @@ tbody tr:hover {
     font-size: 0.68rem;
 }
 
-/* ── Skeleton ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Skeleton Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-skeleton {
     background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
     background-size: 200% 100%;
@@ -8528,7 +8605,7 @@ tbody tr:hover {
     margin-bottom: 1.5rem;
 }
 
-/* ── Empty State ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Empty State Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-empty {
     display: flex;
     flex-direction: column;
@@ -8543,7 +8620,7 @@ tbody tr:hover {
     font-weight: 500;
 }
 
-/* ── Value Pop Animation ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Value Pop Animation Ã¢â€â‚¬Ã¢â€â‚¬ */
 @keyframes valuePop {
     0% { transform: scale(1); }
     50% { transform: scale(1.08); }
@@ -8554,7 +8631,7 @@ tbody tr:hover {
     animation: valuePop 0.35s ease-out;
 }
 
-/* ── Responsive tweaks for desktop (keep 4-col on hero) ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Responsive tweaks for desktop (keep 4-col on hero) Ã¢â€â‚¬Ã¢â€â‚¬ */
 @media (max-width: 1100px) {
     .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .dash-charts-row { grid-template-columns: 1fr; }
@@ -8586,7 +8663,7 @@ tbody tr:hover {
     .dash-kpi-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* ── KPI Empty State (Dalse sin entregas) ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ KPI Empty State (Dalse sin entregas) Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-kpi-card.dash-kpi-empty {
     opacity: 0.6;
 }
@@ -8606,7 +8683,7 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.03);
 }
 
-/* ── Detail Modal for KPI cards ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Detail Modal for KPI cards Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-backdrop {
     position: fixed;
     top: 0;
@@ -8742,7 +8819,7 @@ tbody tr:hover {
     font-style: italic;
 }
 
-/* ── Enhanced modal: title with icon ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: title with icon Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-modal-title { display: flex; align-items: center; gap: 0.75rem; }
 
 .dash-detail-modal-title-icon {
@@ -8754,7 +8831,7 @@ tbody tr:hover {
 }
 .dash-detail-modal-title-icon svg { width: 22px; height: 22px; }
 
-/* ── Enhanced modal: mini summary chips ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: mini summary chips Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-summary {
     display: flex; gap: 0.75rem; padding: 0.9rem 1.5rem;
     background: var(--bg-secondary);
@@ -8778,7 +8855,7 @@ tbody tr:hover {
 [data-theme="dark"] .dash-chip-avg .dash-chip-value { color: #93c5fd; }
 [data-theme="dark"] .dash-chip-max .dash-chip-value { color: #6ee7b7; }
 
-/* ── Enhanced modal: search bar ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: search bar Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-search {
     display: flex; align-items: center; gap: 0.5rem;
     padding: 0.6rem 1.5rem; border-bottom: 1px solid var(--border-color);
@@ -8792,17 +8869,17 @@ tbody tr:hover {
 }
 .dash-search-input::placeholder { color: var(--text-tertiary); }
 
-/* ── Enhanced modal: sortable table headers ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: sortable table headers Ã¢â€â‚¬Ã¢â€â‚¬ */
 .sortable { cursor: pointer; user-select: none; white-space: nowrap; }
 .sortable:hover { color: var(--text-primary); }
 .sort-arrow { display: inline-block; margin-left: 3px; font-size: 0.6rem; opacity: 0.3; transition: opacity 0.15s; }
 .sortable:hover .sort-arrow { opacity: 0.7; }
-.sortable.sorted-asc .sort-arrow::after { content: '▲'; opacity: 1; }
-.sortable.sorted-desc .sort-arrow::after { content: '▼'; opacity: 1; }
+.sortable.sorted-asc .sort-arrow::after { content: 'Ã¢â€“Â²'; opacity: 1; }
+.sortable.sorted-desc .sort-arrow::after { content: 'Ã¢â€“Â¼'; opacity: 1; }
 .sortable.sorted-asc .sort-arrow,
 .sortable.sorted-desc .sort-arrow { opacity: 1; }
 
-/* ── Enhanced modal: badges for condition ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: badges for condition Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-badge-cond {
     display: inline-block; padding: 2px 8px; border-radius: 20px;
     font-size: 0.7rem; font-weight: 700; text-transform: capitalize;
@@ -8827,7 +8904,7 @@ tbody tr:hover {
 }
 [data-theme="dark"] .dash-badge-ent { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
 
-/* ── Enhanced modal: expandable rows ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: expandable rows Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-row-expandable { cursor: pointer; transition: background 0.15s; }
 .dash-row-expandable:hover { background: var(--bg-secondary); }
 .dash-row-expandable.expanded { background: var(--bg-secondary); }
@@ -8870,7 +8947,7 @@ tbody tr:hover {
 
 [data-theme="dark"] .dash-row-detail { background: rgba(255, 255, 255, 0.03); }
 
-/* ── Enhanced modal: footer with export button ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: footer with export button Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-modal-footer {
     display: flex; justify-content: space-between; align-items: center;
     padding: 1rem 1.5rem;
@@ -8902,7 +8979,7 @@ tbody tr:hover {
     font-size: 1.25rem; font-weight: 800; color: var(--text-primary);
 }
 
-/* ── Dark mode ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Dark mode Ã¢â€â‚¬Ã¢â€â‚¬ */
 [data-theme="dark"] .dash-detail-modal {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -8920,7 +8997,7 @@ tbody tr:hover {
 
 [data-theme="dark"] .dash-detail-modal-footer { background: var(--bg-tertiary); }
 
-/* ── Responsive ── */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Responsive Ã¢â€â‚¬Ã¢â€â‚¬ */
 @media (max-width: 768px) {
     .dash-detail-modal { width: 96%; max-height: 90vh; border-radius: 16px; }
     .dash-detail-modal-header { padding: 1rem 1.25rem; }
@@ -8957,4 +9034,184 @@ tbody tr:hover {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Tabs
+   =================================== */
+.dash-tabs {
+    display: flex; gap: 0; border-bottom: 2px solid var(--gray-100);
+    margin-bottom: 1.5rem; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.dash-tabs::-webkit-scrollbar { display: none; }
+.dash-tab {
+    flex-shrink: 0; padding: 0.75rem 1.5rem; cursor: pointer;
+    font-size: 0.88rem; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s ease;
+    white-space: nowrap; position: relative;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.dash-tab:hover { color: var(--text-primary); background: var(--gray-50); border-radius: 8px 8px 0 0; }
+.dash-tab.active { color: var(--brand-600); border-bottom-color: var(--brand-600); }
+.dash-tab-badge {
+    background: var(--brand-100); color: var(--brand-700); font-size: 0.68rem;
+    font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 9999px;
+}
+.dash-tab.active .dash-tab-badge { background: var(--brand-200); }
+
+/* Tab panels */
+.dash-tab-panel { display: none; animation: dashFadeIn 0.3s ease; }
+.dash-tab-panel.active { display: block; }
+@keyframes dashFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Mini KPI Cards
+   =================================== */
+.dash-mini-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.dash-mini-kpi {
+    background: var(--bg-primary); border-radius: 14px; padding: 1rem 1.15rem;
+    border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; gap: 0.75rem;
+    transition: all 0.2s ease; cursor: default;
+}
+.dash-mini-kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.dash-mini-icon {
+    width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1.2rem;
+}
+.dash-mini-icon.green { background: #d1fae5; color: #059669; }
+.dash-mini-icon.orange { background: #fef3c7; color: #d97706; }
+.dash-mini-icon.blue { background: #dbeafe; color: #2563eb; }
+.dash-mini-icon.pink { background: #fce7f3; color: #db2777; }
+.dash-mini-icon.red { background: #fee2e2; color: #dc2626; }
+.dash-mini-icon.cyan { background: #cffafe; color: #0891b2; }
+.dash-mini-icon.purple { background: #ede9fe; color: #6d28d9; }
+.dash-mini-body { min-width: 0; }
+.dash-mini-value { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); line-height: 1.1; }
+.dash-mini-label { font-size: 0.7rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.dash-mini-sub { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.15rem; }
+@media (max-width: 1024px) { .dash-mini-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .dash-mini-grid { grid-template-columns: 1fr 1fr; } .dash-mini-value { font-size: 1.2rem; } .dash-mini-icon { width: 34px; height: 34px; } }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Trend Chart
+   =================================== */
+.dash-trend-wrap { margin-bottom: 1.25rem; }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Alert Card
+   =================================== */
+.dash-alert-card {
+    background: var(--bg-primary); border: 1px solid var(--border-color);
+    border-radius: 16px; box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.dash-alert-header {
+    padding: 0.85rem 1.15rem; border-bottom: 1px solid var(--gray-100);
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.88rem; font-weight: 700; color: var(--text-primary);
+}
+.dash-alert-list { padding: 0.25rem 0; }
+.dash-alert-item {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 1.15rem;
+    cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid var(--gray-50);
+}
+.dash-alert-item:last-child { border-bottom: none; }
+.dash-alert-item:hover { background: var(--gray-50); }
+.dash-alert-item-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.9rem;
+}
+.dash-alert-item-text { flex: 1; font-size: 0.82rem; color: var(--text-primary); }
+.dash-alert-item-count {
+    font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.55rem;
+    border-radius: 9999px; background: var(--gray-100); color: var(--text-secondary);
+}
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Rutas table
+   =================================== */
+.dash-rutas-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.dash-rutas-table th {
+    text-align: left; padding: 0.55rem 0.65rem; font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);
+    border-bottom: 2px solid var(--gray-100); white-space: nowrap;
+}
+.dash-rutas-table td {
+    padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--gray-50);
+    white-space: nowrap; cursor: pointer;
+}
+.dash-rutas-table tbody tr { transition: background 0.15s; }
+.dash-rutas-table tbody tr:hover { background: var(--gray-50); }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Flota list
+   =================================== */
+.dash-flota-list { max-height: 280px; overflow-y: auto; }
+.dash-flota-item {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0;
+    border-bottom: 1px solid var(--gray-50);
+}
+.dash-flota-item:last-child { border-bottom: none; }
+.dash-flota-placa { font-weight: 700; font-size: 0.85rem; min-width: 70px; }
+.dash-flota-dias {
+    font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 9999px;
+    font-weight: 600;
+}
+.dash-flota-dias.critico { background: #fee2e2; color: #dc2626; }
+.dash-flota-dias.alerta { background: #fef3c7; color: #d97706; }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Problemas list
+   =================================== */
+.dash-problema-item {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem 0;
+    border-bottom: 1px solid var(--gray-50); font-size: 0.8rem;
+    cursor: pointer; transition: background 0.15s;
+}
+.dash-problema-item:hover { background: var(--gray-50); }
+.dash-problema-fecha { color: var(--text-tertiary); font-size: 0.72rem; min-width: 75px; }
+.dash-problema-cliente { font-weight: 600; flex: 1; }
+.dash-problema-monto { font-weight: 700; color: var(--error); }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ ProyecciÃƒÂ³n table
+   =================================== */
+.dash-proyeccion-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.dash-proyeccion-table th {
+    text-align: left; padding: 0.5rem 0.6rem; font-size: 0.66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary);
+    border-bottom: 2px solid var(--gray-100); white-space: nowrap;
+}
+.dash-proyeccion-table td {
+    padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--gray-50);
+}
+.dash-proyeccion-table tbody tr:hover { background: var(--gray-50); }
+.dash-proyeccion-dias {
+    font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 9999px; font-weight: 600;
+}
+.dash-proyeccion-dias.proximo { background: #fee2e2; color: #dc2626; }
+.dash-proyeccion-dias.futuro { background: #d1fae5; color: #059669; }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Section spacing
+   =================================== */
+.dash-chart-card + .dash-section { margin-top: 1.25rem; }
+.dash-section + .dash-section { margin-top: 1.25rem; }
+
+/* ===================================
+   Dashboard 360Ã‚Â° Ã¢â‚¬â€ Responsive
+   =================================== */
+@media (max-width: 768px) {
+    .dash-tab { padding: 0.65rem 1rem; font-size: 0.78rem; }
+    .dash-kpi-grid { grid-template-columns: 1fr 1fr; }
+    .dash-hero-inner { padding: 1rem; }
 }

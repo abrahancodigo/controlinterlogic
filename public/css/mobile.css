@@ -1,5 +1,10 @@
+
+.m-card-entregada {
+    border-left: 4px solid #16a34a !important;
+    background: #dcfce7 !important;
+}
 /* ============================================================
-   MOBILE DESIGN SYSTEM - Native App Experience (≤768px)
+   MOBILE DESIGN SYSTEM - Native App Experience (â‰¤768px)
    Material-like design with cards, FAB, bottom sheets
    ============================================================ */
 @media (max-width: 768px) {
@@ -636,7 +641,7 @@ table {
 [data-theme="dark"] .m-card-badge.warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
 [data-theme="dark"] .m-form-group label { color: #cbd5e1; }
 /* ---- Dashboard Premium Mobile Dark ---- */
-/* ---- Accessibility: Touch Targets ≥44px ---- */
+/* ---- Accessibility: Touch Targets â‰¥44px ---- */
 .btn, .btn-sm, .filter-trigger, .nav-item, .sidebar-toggle, .mobile-menu-btn {
     min-height: 44px;
     min-width: 44px;

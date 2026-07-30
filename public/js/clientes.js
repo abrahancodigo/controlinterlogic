@@ -167,8 +167,34 @@ const Clientes = {
             id: doc.id,
             ...doc.data()
           }));
+          // Normalizar departamento/zona — si departamento está vacío, usar zona
+          this.records.forEach(r => {
+            if (!r.departamento && r.zona) {
+              r.departamento = r.zona;
+            } else if (r.departamento && !r.zona) {
+              r.zona = r.departamento;
+            }
+          });
           this._cacheExpiry = Date.now() + 5 * 60 * 1000; // 5 minutos de caché
           this.applyFilters();
+
+          // Migración en background: sincronizar departamento/zona en Firestore
+          if (!this._deptMigrationDone) {
+            this._deptMigrationDone = true;
+            const toFix = this.records.filter(r => {
+              const d = r.departamento || '';
+              const z = r.zona || '';
+              return (d && !z) || (!d && z);
+            });
+            if (toFix.length > 0) {
+              const batch = db.batch();
+              toFix.forEach(r => {
+                const val = r.departamento || r.zona || '';
+                batch.update(db.collection('clientes').doc(r.id), { departamento: val, zona: val });
+              });
+              batch.commit().catch(() => {});
+            }
+          }
 
           if (this.loading) {
             this.loading = false;
@@ -452,15 +478,23 @@ const Clientes = {
                 const db = firebase.firestore();
                 if (recordId) {
                     await db.collection('clientes').doc(recordId).update(data);
+                    // Actualizar registro en memoria
+                    const idx = this.records.findIndex(r => r.id === recordId);
+                    if (idx >= 0) {
+                        this.records[idx] = { ...this.records[idx], ...data };
+                    }
+                    this.applyFilters();
                     showToast('✓ Cliente actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     data.createdBy = firebase.auth().currentUser.uid;
-                    await db.collection('clientes').add(data);
+                    const docRef = await db.collection('clientes').add(data);
+                    this.records.push({ id: docRef.id, ...data });
+                    this.applyFilters();
                     showToast('✓ Cliente creado', 'success');
                 }
 
-                this._cacheExpiry = 0; // invalidar caché para próxima visita
+                this._cacheExpiry = Date.now() + 5 * 60 * 1000;
                 modal.remove();
             } catch (error) {
                 console.error('Error saving client:', error);
@@ -565,7 +599,7 @@ const Clientes = {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
-        XLSX.writeFile(wb, `Clientes_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `Clientes_${formatDateForInput(new Date())}.xlsx`);
         showToast('✓ Archivo exportado', 'success');
     },
 
@@ -592,13 +626,17 @@ const Clientes = {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 // Only update fields if the new value is non-empty, or if existing was empty
-                const fields = ['direccion', 'telefono', 'departamento', 'municipio', 'zona', 'vendedor', 'empresa', 'condicionPago', 'observacionEntrega'];
+                const fields = ['direccion', 'telefono', 'municipio', 'vendedor', 'empresa', 'condicionPago', 'observacionEntrega'];
                 fields.forEach(f => {
                     const newVal = clientData[f] || '';
                     if (newVal || !existingData[f]) {
                         updateData[f] = newVal;
                     }
                 });
+                // Sincronizar departamento/zona — mantener ambos iguales
+                const deptVal = clientData.departamento || clientData.zona || existingData.departamento || existingData.zona || '';
+                updateData.departamento = deptVal;
+                updateData.zona = deptVal;
                 await db.collection('clientes').doc(existing.docs[0].id).update(updateData);
 
                 // Update local cache immediately
@@ -608,12 +646,14 @@ const Clientes = {
                 }
             } else {
                 // Create new client
+                const deptVal = clientData.departamento || clientData.zona || '';
                 const data = {
                     nombre: clientData.nombre.trim(),
                     nombreNorm,
                     direccion: clientData.direccion || '',
                     telefono: clientData.telefono || '',
-                    departamento: clientData.departamento || clientData.zona || '',
+                    departamento: deptVal,
+                    zona: deptVal,
                     municipio: clientData.municipio || '',
                     vendedor: clientData.vendedor || '',
                     empresa: clientData.empresa || '',
@@ -928,10 +968,21 @@ const Clientes = {
             try {
                 var nombre = document.getElementById('mcf-nombre').value.trim();
                 if (!nombre) { showToast('El nombre es obligatorio', 'error'); btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; return; }
-                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: document.getElementById('mcf-departamento').value.trim(), municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                var deptVal = document.getElementById('mcf-departamento').value.trim();
+                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: deptVal, zona: deptVal, municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 var db = firebase.firestore();
-                if (isEdit) { await db.collection('clientes').doc(id).update(data); Clientes._cacheExpiry = 0; }
-                else { data.createdAt = firebase.firestore.FieldValue.serverTimestamp(); await db.collection('clientes').add(data); Clientes._cacheExpiry = 0; }
+                if (isEdit) {
+                    await db.collection('clientes').doc(id).update(data);
+                    var idx = Clientes.records.findIndex(function(r){return r.id===id;});
+                    if (idx >= 0) { Clientes.records[idx] = Object.assign({}, Clientes.records[idx], data); }
+                    Clientes.applyFilters();
+                } else {
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    var docRef = await db.collection('clientes').add(data);
+                    Clientes.records.push(Object.assign({id: docRef.id}, data));
+                    Clientes.applyFilters();
+                }
+                Clientes._cacheExpiry = Date.now() + 5 * 60 * 1000;
                 showToast(isEdit ? 'Actualizado' : 'Creado', 'success');
                 removeSheet();
             } catch(err) { showToast('Error: '+err.message,'error'); btn.disabled=false; btn.textContent=isEdit?'Guardar':'Crear'; }
@@ -945,7 +996,7 @@ const Clientes = {
         var ws = XLSX.utils.json_to_sheet(data);
         var wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
-        XLSX.writeFile(wb, 'Clientes_'+new Date().toISOString().split('T')[0]+'.xlsx');
+        XLSX.writeFile(wb, 'Clientes_'+formatDateForInput(new Date())+'.xlsx');
         showToast('Excel exportado');
     }
 };

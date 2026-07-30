@@ -609,7 +609,7 @@ const Problemas = {
         if (clienteDisplay) clienteDisplay.textContent = record.cliente || '—';
         if (montoDisplay) montoDisplay.textContent = formatCurrency(record.venta || 0);
 
-        document.getElementById('problema-fecha').value = record.fecha ? (record.fecha.toDate ? record.fecha.toDate().toISOString().split('T')[0] : record.fecha) : '';
+        document.getElementById('problema-fecha').value = record.fecha ? (record.fecha.toDate ? formatDateForInput(record.fecha.toDate()) : record.fecha) : '';
         document.getElementById('problema-doc').value = record.doc || '';
         document.getElementById('problema-cliente').value = record.cliente || '';
         document.getElementById('problema-monto').value = record.venta || 0;
@@ -726,7 +726,7 @@ const Problemas = {
                 });
             } else {
                 const record = this.selectedFactura;
-                const fechaStr = record.fecha ? (record.fecha.toDate ? record.fecha.toDate().toISOString().split('T')[0] : record.fecha) : '';
+                const fechaStr = record.fecha ? (record.fecha.toDate ? formatDateForInput(record.fecha.toDate()) : record.fecha) : '';
                 const newDoc = await db.collection('problemas').add({
                     interlogicId: record.id, fecha: fechaStr, doc: record.doc || '',
                     docNum: record.docNum || '', cliente: record.cliente || '',

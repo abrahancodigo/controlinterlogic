@@ -39,6 +39,7 @@ function formatDateShort(date) {
 
 /**
  * Format a date to YYYY-MM-DD for input fields
+ * Uses LOCAL time (not UTC) — safe for El Salvador (UTC-6).
  */
 function formatDateForInput(date) {
     if (!date) return '';
@@ -49,6 +50,20 @@ function formatDateForInput(date) {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
 
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * Convert any date-like value into a YYYY-MM-DD day key using LOCAL time.
+ * Use this for grouping records by day — NOT toISOString() which shifts
+ * the day forward/back depending on timezone (problem in UTC-6 El Salvador).
+ */
+function toDateKey(date) {
+    if (!date) return '';
+    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
@@ -77,6 +92,49 @@ function formatCurrency(num) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
+}
+
+/**
+ * Parse a value from an Excel cell into a number, tolerating currency formats
+ * (US: "$1,250.37" / ES: "$1.250,37") and stray characters ($, %, spaces,
+ * quotes, non-breaking spaces). Returns 0 if it cannot parse.
+ */
+function parseExcelNumber(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    let s = String(val).trim();
+    if (!s) return 0;
+    // Strip currency symbols, percent, spaces (including NBSP), quotes, "USD"
+    s = s.replace(/[\$%\u00A0\u202F"'`]/g, '').replace(/USD/gi, '').trim();
+    if (!s) return 0;
+    const hasComma = s.indexOf(',') !== -1;
+    const hasDot = s.indexOf('.') !== -1;
+    if (hasComma && hasDot) {
+        // Both separators present: the last one is the decimal separator.
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            // ES format: "1.250,37" → remove dots, replace comma with dot
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // US format: "1,250.37" → remove commas
+            s = s.replace(/,/g, '');
+        }
+    } else if (hasComma) {
+        // Only comma. Treat as decimal separator if 1-2 digits after it,
+        // otherwise it's a thousands separator to drop.
+        const parts = s.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+            s = parts[0] + '.' + parts[1];
+        } else {
+            s = s.replace(/,/g, '');
+        }
+    } else if (hasDot) {
+        // Only dot. If multiple dots → thousands separators (ES): drop them.
+        if (s.split('.').length > 2) {
+            s = s.replace(/\./g, '');
+        }
+    }
+    const n = Number(s);
+    return isNaN(n) ? 0 : n;
 }
 
 /**

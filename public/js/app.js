@@ -263,7 +263,10 @@ const App = {
                 case 'liquidacion-credito':
                     if (window.Liquidacion && window.Liquidacion.render) await window.Liquidacion.render();
                     break;
-                case 'repartidores':
+                                case 'entregas':
+                    if (window.Entregas && window.Entregas.render) await window.Entregas.render();
+                    break;
+case 'repartidores':
                     if (window.Repartidores && window.Repartidores.render) await window.Repartidores.render();
                     break;
                 case 'kpi':

@@ -7,8 +7,8 @@ const KpiEvaluation = {
     filteredRecords: [],
     unsubscribe: null,
     filters: {
-        startDate: new Date().toISOString().split('T')[0].slice(0, 7) + '-01', // First day of current month
-        endDate: new Date().toISOString().split('T')[0]
+        startDate: (function(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; })(),
+        endDate: (function(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })()
     },
 
     kpiAspects: [
@@ -150,7 +150,7 @@ const KpiEvaluation = {
         this.filteredRecords = this.records.filter(r => {
             if (!r.fecha) return true;
             const recordDate = r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha);
-            const dateStr = recordDate.toISOString().split('T')[0];
+            const dateStr = toDateKey(recordDate);
 
             if (this.filters.startDate && dateStr < this.filters.startDate) return false;
             if (this.filters.endDate && dateStr > this.filters.endDate) return false;
@@ -295,11 +295,11 @@ const KpiEvaluation = {
 
         let dateValue = '';
         if (record && record.fecha) {
-            const d = record.fecha.toDate ? record.fecha.toDate() : new Date(record.fecha);
-            dateValue = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+            dateValue = formatDateForInput(record.fecha);
         }
         if (!dateValue) {
-            dateValue = new Date().toISOString().split('T')[0];
+            const d = new Date();
+            dateValue = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
 
         const modal = document.createElement('div');
@@ -485,7 +485,8 @@ const KpiEvaluation = {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'KPI');
 
-        const dateNow = new Date().toISOString().split('T')[0];
+        const d = new Date();
+        const dateNow = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         XLSX.writeFile(workbook, `Evaluacion_KPI_${dateNow}.xlsx`);
         showToast('Reporte KPI exportado.');
     },

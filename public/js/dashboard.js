@@ -47,8 +47,8 @@ const Dashboard = {
         if (!area) return;
         this.init();
 
-        const dateInicio = this.fechaInicio.toISOString().split('T')[0];
-        const dateFin = this.fechaFin.toISOString().split('T')[0];
+        const dateInicio = formatDateForInput(this.fechaInicio);
+        const dateFin = formatDateForInput(this.fechaFin);
         const todayLabel = this.formatDateFull(new Date());
 
         area.innerHTML = `
@@ -155,11 +155,17 @@ const Dashboard = {
 
     <div class="dash-charts-row">
         <div class="dash-chart-card">
-            <div class="dash-chart-header"><h3>Contado vs Crédito</h3></div>
+            <div class="dash-chart-header"><h3>Contado vs Crédito</h3><span class="dash-chart-total" id="dash-donut-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-donut-chart"></div>
         </div>
         <div class="dash-chart-card">
-            <div class="dash-chart-header"><h3>Ventas por Despachador</h3></div>
+            <div class="dash-chart-header"><h3>Dalse vs Incede</h3><span class="dash-chart-total" id="dash-incede-chart-total"></span></div>
+            <div class="dash-chart-body" id="dash-incede-chart"></div>
+        </div>
+    </div>
+    <div class="dash-charts-row">
+        <div class="dash-chart-card dash-chart-full">
+            <div class="dash-chart-header"><h3>Ventas por Despachador</h3><span class="dash-chart-total" id="dash-bar-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-bar-chart"></div>
         </div>
     </div>
@@ -174,12 +180,32 @@ const Dashboard = {
 
     <div class="dash-charts-row">
         <div class="dash-chart-card">
-            <div class="dash-chart-header"><h3>Ventas por Vendedor</h3></div>
+            <div class="dash-chart-header"><h3>Ventas por Vendedor</h3><span class="dash-chart-total" id="dash-vendedor-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-vendedor-chart"></div>
         </div>
         <div class="dash-chart-card">
-            <div class="dash-chart-header"><h3>Ventas por Departamento</h3></div>
+            <div class="dash-chart-header"><h3>Ventas por Departamento</h3><span class="dash-chart-total" id="dash-zona-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-zona-chart"></div>
+        </div>
+    </div>
+
+    <div class="dash-charts-row">
+        <div class="dash-chart-card dash-chart-full">
+            <div class="dash-chart-header"><h3>Acumulado por Vendedor</h3><span class="dash-chart-total" id="dash-acum-chart-total"></span></div>
+            <div class="dash-chart-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                <div class="dash-acum-list-wrap" style="flex:1;min-width:260px;">
+                    <div class="dash-acum-toolbar">
+                        <button class="dash-acum-btn" id="dash-acum-select-all">Seleccionar Todos</button>
+                        <button class="dash-acum-btn" id="dash-acum-deselect-all">Deseleccionar Todos</button>
+                        <div class="dash-acum-total-wrap">
+                            <span class="dash-acum-total-label">Total Acumulado</span>
+                            <span class="dash-acum-total" id="dash-acum-total-value">$0</span>
+                        </div>
+                    </div>
+                    <div class="dash-acum-list" id="dash-acum-list"></div>
+                </div>
+                <div style="flex:1;min-width:280px;max-width:420px;" id="dash-acum-chart"></div>
+            </div>
         </div>
     </div>
 
@@ -275,8 +301,8 @@ const Dashboard = {
                 const d = this.getPeriodDates(period);
                 this.fechaInicio = d.inicio;
                 this.fechaFin = d.fin;
-                document.getElementById('dash-date-inicio').value = d.inicio.toISOString().split('T')[0];
-                document.getElementById('dash-date-fin').value = d.fin.toISOString().split('T')[0];
+                document.getElementById('dash-date-inicio').value = formatDateForInput(d.inicio);
+                document.getElementById('dash-date-fin').value = formatDateForInput(d.fin);
                 this.subscribeToData();
             });
         });
@@ -355,7 +381,7 @@ const Dashboard = {
     /* ── Data aggregation ── */
     computeAndRender() {
         const records = this.records;
-        let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0 };
+        let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0, incede: 0, incedeCount: 0 };
         const carrierStats = {};
         const dailyStats = {};
         const vendedorStats = {};
@@ -372,13 +398,14 @@ const Dashboard = {
             const vendedor = (r.vendedor || 'Sin vendedor').trim() || 'Sin vendedor';
             const zona = (r.departamento || r.zona || 'Sin departamento').trim() || 'Sin departamento';
             const fec = r.fecha ? r.fecha.toDate() : new Date();
-            const dk = fec.toISOString().split('T')[0];
+            const dk = toDateKey(fec);
             const dl = this.formatDateShort(fec);
 
             stats.total += m; stats.totalCount++;
             if (isContado) { stats.contado += m; stats.contadoCount++; }
             else if (isCredito) { stats.credito += m; stats.creditoCount++; }
             if (ent === 'DALSE') { stats.dalse += m; stats.dalseCount++; }
+            if (emp === 'INCEDE') { stats.incede += m; stats.incedeCount++; }
 
             if (!carrierStats[ent]) carrierStats[ent] = { monto: 0, count: 0, contado: 0, credito: 0 };
             carrierStats[ent].monto += m;
@@ -438,11 +465,13 @@ const Dashboard = {
         this.updateKpiCards(stats, sparkData);
         this.updateCharts({
             donut: { contado: Math.round(stats.contado), credito: Math.round(stats.credito) },
+            incede: { dalse: Math.round(stats.dalse), incede: Math.round(stats.incede), dalseCount: stats.dalseCount, incedeCount: stats.incedeCount, total: stats.totalCount },
             bar: { categories: carrierNames, data: carrierBarData }
         });
         this.updateCarrierStats(carrierStats, stats.total);
         this.updateVendedorStats(vendedorStats, stats.total);
         this.updateZonaStats(zonaStats, stats.total);
+        this.updateAcumuladoVendedor(vendedorStats);
         this.updateMatriz(matriz, vendedorStats, zonaStats);
         this.updateDailyTable(dailyStats);
         this.updateDayCards(dailyStats);
@@ -552,7 +581,7 @@ const Dashboard = {
         const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
 
         const donutOptions = {
-            chart: { type: 'donut', fontFamily: 'Inter, sans-serif', sparkline: { enabled: false } },
+            chart: { type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('contado'); else if (idx === 1) this.showDetailModal('credito'); } } },
             series: [0, 0],
             labels: ['Contado', 'Crédito'],
             colors: ['#10b981', '#f59e0b'],
@@ -604,9 +633,41 @@ const Dashboard = {
         };
 
         const donutEl = document.getElementById('dash-donut-chart');
+        const incedeEl = document.getElementById('dash-incede-chart');
         const barEl = document.getElementById('dash-bar-chart');
 
         if (donutEl) this.charts.donut = new ApexCharts(donutEl, donutOptions);
+
+        /* ── Dalse vs Incede chart (donut) ── */
+        if (incedeEl) {
+            const incedeOptions = {
+                chart: { type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('dalse'); else if (idx === 1) this.showIncedeDetailModal(); } } },
+                series: [0, 0],
+                labels: ['Dalse', 'Incede'],
+                colors: ['#06b6d4', '#f43f5e'],
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '72%',
+                            labels: {
+                                show: true,
+                                name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
+                                value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Math.round(v).toLocaleString('es-SV') },
+                                total: { show: true, label: 'Total', fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor, formatter: () => '$0' }
+                            }
+                        }
+                    }
+                },
+                stroke: { width: 2, colors: [theme === 'dark' ? '#1e293b' : '#ffffff'] },
+                dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
+                legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
+                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
+                theme: { mode: theme },
+                responsive: [{ breakpoint: 768, options: { chart: { height: 320 }, legend: { position: 'bottom', fontSize: '13px' }, dataLabels: { style: { fontSize: '12px' } } } }]
+            };
+            this.charts.incede = new ApexCharts(incedeEl, incedeOptions);
+        }
+
         if (barEl) this.charts.bar = new ApexCharts(barEl, barOptions);
 
         /* ── Vendedor chart (horizontal bar, top 10) ── */
@@ -659,6 +720,38 @@ const Dashboard = {
             this.charts.zona = new ApexCharts(zonaEl, zonaOptions);
         }
 
+        /* ── Acumulado por Vendedor chart (pie) ── */
+        const acumEl = document.getElementById('dash-acum-chart');
+        if (acumEl) {
+            const acumOptions = {
+                chart: { type: 'pie', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
+                series: [],
+                labels: [],
+                colors: ['#7c3aed','#8b5cf6','#6366f1','#9333ea','#3b82f6','#06b6d4','#10b981','#f59e0b','#ec4899','#84cc16','#f97316','#ef4444','#14b8a6','#d946ef','#fb923c'],
+                plotOptions: {
+                    pie: {
+                        expandOnClick: true,
+                        dataLabels: { offset: -10, minAngleToShowLabel: 8 }
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: (v, opts) => {
+                        const series = opts.w.config.series;
+                        const total = series.reduce((a, b) => a + b, 0);
+                        return total > 0 ? ((series[opts.seriesIndex] / total) * 100).toFixed(1) + '%' : '0%';
+                    },
+                    style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' },
+                    dropShadow: { enabled: false }
+                },
+                legend: { position: 'bottom', fontSize: '13px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor } },
+                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                theme: { mode: theme },
+                responsive: [{ breakpoint: 768, options: { chart: { height: 300 }, legend: { fontSize: '11px' } } }]
+            };
+            this.charts.acum = new ApexCharts(acumEl, acumOptions);
+        }
+
         Object.values(this.charts).forEach(c => { if (c && typeof c.render === 'function') c.render(); });
 
         this.chartInit = true;
@@ -682,40 +775,59 @@ const Dashboard = {
 
         if (this.charts.donut) {
             const total = data.donut.contado + data.donut.credito;
+            const count = (data.donut.contadoCount || 0) + (data.donut.creditoCount || 0);
             this.charts.donut.updateOptions({
                 series: [data.donut.contado, data.donut.credito],
                 plotOptions: {
-                    pie: { donut: { labels: { total: { formatter: () => '$' + (total).toLocaleString('es-SV') } } } }
+                    pie: { donut: { labels: { total: { formatter: () => this._moneyFull(total) } } } }
                 }
             });
+            this._setChartTotal('dash-donut-chart-total', total, count);
+        }
+
+        if (this.charts.incede && data.incede) {
+            const incedeTotal = data.incede.dalse + data.incede.incede;
+            this.charts.incede.updateOptions({
+                series: [data.incede.dalse, data.incede.incede],
+                plotOptions: {
+                    pie: { donut: { labels: { total: { formatter: () => this._moneyFull(incedeTotal) } } } }
+                }
+            });
+            this._setChartTotal('dash-incede-chart-total', incedeTotal);
         }
 
         if (this.charts.bar) {
             const barMax = Math.max(...data.bar.data, 0) * 1.35;
-            window.Dashboard.barTotal = data.bar.data.reduce((a, b) => a + b, 0);
+            const total = data.bar.data.reduce((a, b) => a + b, 0);
+            window.Dashboard.barTotal = total;
             this.charts.bar.updateOptions({
                 xaxis: { categories: data.bar.categories },
                 yaxis: { min: 0, max: barMax || 10, forceNiceScale: false },
                 series: [{ data: data.bar.data }]
             });
+            this._setChartTotal('dash-bar-chart-total', total);
         }
 
         if (this.charts.vendedor && data.vendedor) {
             const vdata = data.vendedor.categories.map((name, i) => Math.round(data.vendedor.data[i]));
+            const totalVendedor = vdata.reduce((a, b) => a + b, 0);
             window.Dashboard._vendedorChartNames = data.vendedor.categories;
             this.charts.vendedor.updateOptions({
                 xaxis: { categories: data.vendedor.categories },
                 series: [{ data: vdata }]
             });
+            this._setChartTotal('dash-vendedor-chart-total', totalVendedor);
         }
 
         if (this.charts.zona && data.zona) {
             const zdata = data.zona.categories.map((name, i) => Math.round(data.zona.data[i]));
+            const totalZona = zdata.reduce((a, b) => a + b, 0);
             window.Dashboard._zonaChartNames = data.zona.categories;
             this.charts.zona.updateOptions({
                 xaxis: { categories: data.zona.categories },
                 series: [{ data: zdata }]
             });
+            this._setChartTotal('dash-zona-chart-total', totalZona);
         }
     },
 
@@ -845,6 +957,135 @@ const Dashboard = {
             this.charts.zona.updateOptions({
                 xaxis: { categories: chartNames },
                 series: [{ data: chartData }]
+            });
+        }
+    },
+
+    /* ── Acumulado por Vendedor (pie chart interactivo) ── */
+    _acumInit: false,
+    _acumColors: ['#ef4444','#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1','#14b8a6','#eab308','#dc2626','#0ea5e9','#10b981','#d946ef','#f43f5e','#8b5cf6','#65a30d','#0891b2','#db2777','#9333ea','#ea580c','#2563eb'],
+
+    updateAcumuladoVendedor(vendedorStats) {
+        const list = document.getElementById('dash-acum-list');
+        const totalEl = document.getElementById('dash-acum-total-value');
+        if (!list) return;
+
+        const vendedores = Object.entries(vendedorStats)
+            .filter(([name]) => name && name !== 'Sin vendedor')
+            .sort((a, b) => b[1].monto - a[1].monto);
+
+        if (!this._acumInit) {
+            this.acumSelectedVendors = new Set();
+            this._acumInit = true;
+        }
+
+        const renderChips = () => {
+            list.innerHTML = vendedores.map(([name, d], i) => {
+                const color = this._acumColors[i % this._acumColors.length];
+                const active = this.acumSelectedVendors.has(name);
+                return `<div class="dash-acum-chip${active ? ' active' : ''}" data-name="${this._escapeAttr(name)}" style="--chip-color:${color};">
+                    <span class="dash-acum-chip-check"></span>
+                    <span class="dash-acum-chip-name">${this._escapeHtml(name.length > 20 ? name.substring(0, 19) + '\u2026' : name)}</span>
+                    <span class="dash-acum-chip-amount">${this.formatMoney(d.monto)}</span>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('.dash-acum-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const name = chip.dataset.name;
+                    if (this.acumSelectedVendors.has(name)) {
+                        this.acumSelectedVendors.delete(name);
+                    } else {
+                        this.acumSelectedVendors.add(name);
+                    }
+                    this._refreshAcumChart(vendedorStats);
+                });
+            });
+
+            this._refreshAcumChart(vendedorStats);
+        };
+
+        const setupButtons = () => {
+            const selectAll = document.getElementById('dash-acum-select-all');
+            const deselectAll = document.getElementById('dash-acum-deselect-all');
+            if (selectAll) {
+                selectAll.onclick = () => {
+                    vendedores.forEach(([name]) => this.acumSelectedVendors.add(name));
+                    this._refreshAcumChart(vendedorStats);
+                };
+            }
+            if (deselectAll) {
+                deselectAll.onclick = () => {
+                    this.acumSelectedVendors.clear();
+                    this._refreshAcumChart(vendedorStats);
+                };
+            }
+        };
+
+        setupButtons();
+        renderChips();
+    },
+
+    _refreshAcumChart(vendedorStats) {
+        const vendedores = Object.entries(vendedorStats)
+            .filter(([name]) => name && name !== 'Sin vendedor')
+            .sort((a, b) => b[1].monto - a[1].monto);
+
+        const selected = vendedores.filter(([name]) => this.acumSelectedVendors.has(name));
+
+        const totalEl = document.getElementById('dash-acum-total-value');
+        const chartTotalEl = document.getElementById('dash-acum-chart-total');
+
+        const totalAcum = selected.reduce((sum, [, d]) => sum + d.monto, 0);
+        const countAcum = selected.reduce((sum, [, d]) => sum + d.count, 0);
+
+        if (totalEl) totalEl.textContent = this.formatMoney(totalAcum);
+        if (chartTotalEl) {
+            chartTotalEl.innerHTML = '<span class="dash-chart-total-money">' + this._moneyFull(totalAcum) + '</span><span class="dash-chart-total-count">' + countAcum + ' entrega' + (countAcum !== 1 ? 's' : '') + '</span>';
+        }
+
+        if (this.charts.acum) {
+            const series = selected.map(([, d]) => Math.round(d.monto));
+            const labels = selected.map(([name]) => name.length > 16 ? name.substring(0, 15) + '\u2026' : name);
+            window.Dashboard._acumChartNames = selected.map(([name]) => name);
+            const colors = selected.map((_, i) => this._acumColors[i % this._acumColors.length]);
+
+            if (series.length === 0) {
+                this.charts.acum.updateSeries([1]);
+                this.charts.acum.updateOptions({
+                    labels: ['Sin selección'],
+                    colors: ['#cbd5e1'],
+                    dataLabels: { enabled: false },
+                    plotOptions: { pie: { expandOnClick: false } }
+                });
+            } else {
+                this.charts.acum.updateSeries(series);
+                this.charts.acum.updateOptions({
+                    labels: labels,
+                    colors: colors,
+                    dataLabels: {
+                        enabled: true,
+                        formatter: (v, opts) => {
+                            const total = opts.w.config.series.reduce((a, b) => a + b, 0);
+                            return total > 0 ? ((opts.w.config.series[opts.seriesIndex] / total) * 100).toFixed(1) + '%' : '0%';
+                        },
+                        style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' },
+                        dropShadow: { enabled: false }
+                    },
+                    plotOptions: { pie: { expandOnClick: true } }
+                });
+            }
+        }
+
+        const list = document.getElementById('dash-acum-list');
+        if (list) {
+            list.querySelectorAll('.dash-acum-chip').forEach(chip => {
+                const name = chip.dataset.name;
+                if (this.acumSelectedVendors.has(name)) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
             });
         }
     },
@@ -1090,6 +1331,12 @@ const Dashboard = {
         this._renderDetailModal(filtered, title, color);
     },
 
+    /* ── Detail Modal: Incede ── */
+    showIncedeDetailModal() {
+        const filtered = this.records.filter(r => (r.empresa || '').toUpperCase().trim() === 'INCEDE');
+        this._renderDetailModal(filtered, 'Incede', '#f43f5e');
+    },
+
     /* ── Detail Modal for carrier bars ── */
     showCarrierDetailModal(carrierName) {
         const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
@@ -1114,11 +1361,7 @@ const Dashboard = {
             return dt.toLocaleDateString('es-SV', { day: '2-digit', month: '2-digit', year: 'numeric' });
         };
 
-        const formatDtInput = (d) => {
-            if (!d) return '';
-            const dt = d.toDate ? d.toDate() : new Date(d);
-            return dt.toISOString().split('T')[0];
-        };
+        const formatDtInput = (d) => formatDateForInput(d);
 
         filtered.sort((a, b) => {
             const fa = a.fecha ? a.fecha.toDate() : new Date(0);
@@ -1414,7 +1657,7 @@ const Dashboard = {
 
             XLSX.utils.book_append_sheet(wb, ws, 'Detalle');
 
-            const fechaStr = this.fechaInicio.toISOString().split('T')[0];
+            const fechaStr = formatDateForInput(this.fechaInicio);
             XLSX.writeFile(wb, `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaStr}.xlsx`);
 
             showToast('Excel exportado exitosamente', 'success');
@@ -1457,7 +1700,7 @@ const Dashboard = {
 
         const opt = {
             margin: 0.4,
-            filename: `dashboard-ventas-${this.fechaInicio.toISOString().split('T')[0]}.pdf`,
+            filename: `dashboard-ventas-${formatDateForInput(this.fechaInicio)}.pdf`,
             image: { type: 'jpeg', quality: 0.95 },
             html2canvas: {
                 scale: 2,
@@ -1498,6 +1741,21 @@ const Dashboard = {
         return ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][m] || '';
     },
 
+    /* Helper: actualiza el badge de total de un chart */
+    _setChartTotal(elementId, total, count) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const money = this._moneyFull(total);
+        if (count && count > 0) {
+            el.innerHTML = '<span class="dash-chart-total-money">' + money + '</span><span class="dash-chart-total-count">' + count + ' entrega' + (count !== 1 ? 's' : '') + '</span>';
+        } else {
+            el.innerHTML = '<span class="dash-chart-total-money">' + money + '</span>';
+        }
+    },
+
+    _moneyFull(v) {
+        return '$' + (Number(v) || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
     formatMoney(amount) {
         return '$' + this.formatNumber(amount);
     },
@@ -1516,6 +1774,8 @@ const Dashboard = {
         }
         this.charts = {};
         this.chartInit = false;
+        this._acumInit = false;
+        this.acumSelectedVendors = new Set();
         this.records = [];
         this.prevRecords = [];
         window.Dashboard._vendedorChartNames = null;

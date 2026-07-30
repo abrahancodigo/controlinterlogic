@@ -157,6 +157,25 @@ const Deliveries = {
         await this.loadDeliveries();
     },
 
+    // Generate folio atomically using config/counters (same logic as desktop handleSubmit)
+    async generateFolio() {
+        const db = firebase.firestore();
+        const currentYear = new Date().getFullYear();
+        const counterRef = db.collection('config').doc('counters');
+        const yearKey = `deliveries_${currentYear}`;
+        let folio = null;
+
+        await db.runTransaction(async (transaction) => {
+            const counterDoc = await transaction.get(counterRef);
+            const counters = counterDoc.exists ? counterDoc.data() : {};
+            const nextNumber = (counters[yearKey] || 0) + 1;
+            folio = `${currentYear}${String(nextNumber).padStart(3, '0')}`;
+            transaction.set(counterRef, { [yearKey]: nextNumber }, { merge: true });
+        });
+
+        return folio;
+    },
+
     // Generate next folio preview
     async generateNextFolio() {
         const folioEl = document.getElementById('delivery-folio');
@@ -1135,16 +1154,21 @@ const Deliveries = {
         this.closeAllModals();
         const sheet = document.createElement('div');
         this.activeModals.push(sheet);
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? d.fecha.toDate().toISOString().split('T')[0] : String(d.fecha).split('T')[0]) : new Date().toISOString().split('T')[0]) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="Deliveries.closeAllModals()">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? formatDateForInput(d.fecha.toDate()) : String(d.fecha).split('T')[0]) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="Deliveries.closeAllModals()">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         document.getElementById('mdf-submit').addEventListener('click', async () => {
             const btn = document.getElementById('mdf-submit');
             btn.disabled = true; btn.textContent = 'Guardando...';
+            // Parse date like desktop flow: noon local time avoids UTC-6 day-shift
+            const mdfDateStr = document.getElementById('mdf-fecha').value;
+            const [mdfYear, mdfMonth, mdfDay] = mdfDateStr.split('-').map(Number);
+            const mdfLocalDate = new Date(mdfYear, mdfMonth - 1, mdfDay, 12, 0, 0);
+
             const data = {
                 cliente: document.getElementById('mdf-cliente').value,
                 tienda: document.getElementById('mdf-tienda').value,
-                fecha: document.getElementById('mdf-fecha').value,
+                fecha: firebase.firestore.Timestamp.fromDate(mdfLocalDate),
                 tipoMueble: document.getElementById('mdf-tipoMueble').value,
                 accesorios: document.getElementById('mdf-accesorios').value,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()

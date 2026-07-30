@@ -126,7 +126,7 @@ const Liquidacion = {
         set('liq-stat-rutas', this.routes.length);
         set('liq-stat-pendientes', this.routes.filter(r => r.estado !== 'liquidado').length);
         const hoyLiquidado = this.liquidaciones.filter(l => {
-            const d = l.fecha && l.fecha.toDate ? l.fecha.toDate().toISOString().split('T')[0] : '';
+            const d = l.fecha && l.fecha.toDate ? toDateKey(l.fecha.toDate()) : '';
             return d === hoy;
         }).reduce((s, l) => s + (Number(l.efectivoDepositado) || 0), 0);
         set('liq-stat-liquidado', formatCurrency(hoyLiquidado));
@@ -553,7 +553,7 @@ const Liquidacion = {
         this._addPlanRow = () => {
             const i = this._planRows++;
             const d = new Date(); d.setDate(d.getDate() + 7 * (i + 1));
-            const fechaDefault = d.toISOString().split('T')[0];
+            const fechaDefault = formatDateForInput(d);
             const row = document.createElement('div');
             row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px;';
             row.innerHTML = `<input type="date" id="rdl-ab-plan-fecha-${i}" value="${fechaDefault}" style="flex:1;padding:4px;font-size:0.8rem;border:1px solid #e2e8f0;border-radius:4px;"><input type="number" id="rdl-ab-plan-monto-${i}" step="0.01" min="0.01" style="width:100px;padding:4px;font-size:0.8rem;border:1px solid #e2e8f0;border-radius:4px;" placeholder="$" oninput="Liquidacion._recalcPlanTotal()"><button type="button" class="btn-icon btn-sm btn-danger" style="font-size:0.6rem;padding:2px 4px;" onclick="this.parentElement.remove();Liquidacion._recalcPlanTotal();">✕</button>`;
