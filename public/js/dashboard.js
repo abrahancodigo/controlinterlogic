@@ -86,65 +86,57 @@ const Dashboard = {
 
             <div class="dash-kpi-grid">
                 <div class="dash-kpi-card">
-                    <div class="dash-kpi-icon dash-kpi-icon-total">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="23" y2="6"/><path d="M12 1v6m0 0L1 6m11 16v-5l-4-2 4-2 4 2-4 2v5"/></svg>
+                    <div class="dash-kpi-head">
+                        <div class="dash-kpi-icon dash-kpi-icon-total">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="23" y2="6"/><path d="M12 1v6m0 0L1 6m11 16v-5l-4-2 4-2 4 2-4 2v5"/></svg>
+                        </div>
+                        <div class="dash-kpi-delta" id="dash-total-delta"></div>
                     </div>
                     <div class="dash-kpi-body">
-                        <div class="dash-kpi-top">
-                            <div>
-                                <div class="dash-kpi-label">Total Ventas</div>
-                                <div class="dash-kpi-value" id="dash-total-monto">$0</div>
-                            </div>
-                            <div class="dash-kpi-delta" id="dash-total-delta"></div>
-                        </div>
+                        <div class="dash-kpi-label">Total Ventas</div>
+                        <div class="dash-kpi-value" id="dash-total-monto">$0</div>
                         <div class="dash-kpi-meta" id="dash-total-count">0 entregas</div>
                         <div class="dash-kpi-sparkline" id="dash-total-spark"></div>
                     </div>
                 </div>
                 <div class="dash-kpi-card">
-                    <div class="dash-kpi-icon dash-kpi-icon-contado">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    <div class="dash-kpi-head">
+                        <div class="dash-kpi-icon dash-kpi-icon-contado">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        </div>
+                        <div class="dash-kpi-delta" id="dash-contado-delta"></div>
                     </div>
                     <div class="dash-kpi-body">
-                        <div class="dash-kpi-top">
-                            <div>
-                                <div class="dash-kpi-label">Contado</div>
-                                <div class="dash-kpi-value" id="dash-contado-monto">$0</div>
-                            </div>
-                            <div class="dash-kpi-delta" id="dash-contado-delta"></div>
-                        </div>
+                        <div class="dash-kpi-label">Contado</div>
+                        <div class="dash-kpi-value" id="dash-contado-monto">$0</div>
                         <div class="dash-kpi-meta" id="dash-contado-count">0 entregas</div>
                         <div class="dash-kpi-sparkline" id="dash-contado-spark"></div>
                     </div>
                 </div>
                 <div class="dash-kpi-card">
-                    <div class="dash-kpi-icon dash-kpi-icon-credito">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    <div class="dash-kpi-head">
+                        <div class="dash-kpi-icon dash-kpi-icon-credito">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                        </div>
+                        <div class="dash-kpi-delta" id="dash-credito-delta"></div>
                     </div>
                     <div class="dash-kpi-body">
-                        <div class="dash-kpi-top">
-                            <div>
-                                <div class="dash-kpi-label">Credito</div>
-                                <div class="dash-kpi-value" id="dash-credito-monto">$0</div>
-                            </div>
-                            <div class="dash-kpi-delta" id="dash-credito-delta"></div>
-                        </div>
+                        <div class="dash-kpi-label">Crédito</div>
+                        <div class="dash-kpi-value" id="dash-credito-monto">$0</div>
                         <div class="dash-kpi-meta" id="dash-credito-count">0 entregas</div>
                         <div class="dash-kpi-sparkline" id="dash-credito-spark"></div>
                     </div>
                 </div>
                 <div class="dash-kpi-card">
-                    <div class="dash-kpi-icon dash-kpi-icon-dalse">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <div class="dash-kpi-head">
+                        <div class="dash-kpi-icon dash-kpi-icon-dalse">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        </div>
+                        <div class="dash-kpi-delta" id="dash-dalse-delta"></div>
                     </div>
                     <div class="dash-kpi-body">
-                        <div class="dash-kpi-top">
-                            <div>
-                                <div class="dash-kpi-label">Dalse</div>
-                                <div class="dash-kpi-value" id="dash-dalse-monto">$0</div>
-                            </div>
-                            <div class="dash-kpi-delta" id="dash-dalse-delta"></div>
-                        </div>
+                        <div class="dash-kpi-label">Dalse</div>
+                        <div class="dash-kpi-value" id="dash-dalse-monto">$0</div>
                         <div class="dash-kpi-meta" id="dash-dalse-count">0 entregas</div>
                         <div class="dash-kpi-sparkline" id="dash-dalse-spark"></div>
                     </div>
