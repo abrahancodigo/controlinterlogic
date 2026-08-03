@@ -917,3 +917,44 @@
     .dash-kpi-card:hover .dash-kpi-icon { transform: none; }
 }
 
+
+/* ============================================================
+   Móvil: Resumen KPI → carrusel horizontal deslizable
+   Cada tarjeta a ancho cómodo; se desliza con el dedo para
+   que NUNCA se vea la información cortada.
+   ============================================================ */
+@media (max-width: 768px) {
+    .dash-kpi-grid {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        grid-template-columns: none !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scroll-padding-left: 4px;
+        gap: 12px;
+        padding: 2px 1px 10px;
+        margin: 0 -4px;
+        scrollbar-width: none;          /* Firefox */
+        -ms-overflow-style: none;       /* IE/Edge */
+    }
+    .dash-kpi-grid::-webkit-scrollbar { display: none; }
+
+    .dash-kpi-card {
+        flex: 0 0 auto;
+        width: 82%;
+        max-width: 360px;
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+
+    .dash-kpi-value {
+        font-size: 1.05rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .dash-kpi-top { flex-wrap: wrap; }
+}
+
