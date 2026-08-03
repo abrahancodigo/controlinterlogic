@@ -4859,6 +4859,13 @@ tbody tr:hover {
         text-align: center;
     }
 
+    .more-item-icon svg {
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+        color: var(--primary-600);
+    }
+
     .more-item-label {
         font-weight: 500;
     }

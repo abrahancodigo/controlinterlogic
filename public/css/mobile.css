@@ -155,6 +155,7 @@ body {
 }
 .more-item:active { background: var(--m-primary-light); }
 .more-item-icon { font-size: 1.2rem; width: 34px; text-align: center; }
+.more-item-icon svg { width: 20px; height: 20px; vertical-align: middle; color: var(--m-primary); }
 
 /* ---- FAB ---- */
 .fab-btn {

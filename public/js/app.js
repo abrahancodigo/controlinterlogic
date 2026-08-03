@@ -143,24 +143,25 @@ const App = {
         const list = document.getElementById('more-menu-list');
         if (!list || list.children.length > 0) return;
 
-        const items = [
-            { icon: '🚨', label: 'Problemas', module: 'problemas' },
-            { icon: '📈', label: 'Evaluación KPI', module: 'kpi' },
+        // Los módulos ya presentes en la barra inferior no se repiten en "Más"
+        const bottomModules = ['dashboard', 'deliveries', 'clientes', 'liquidacion-ruta'];
 
-            { icon: '🚛', label: 'Repartidores', module: 'repartidores' },
-            { icon: '🚚', label: 'Flota y Manto.', module: 'flota' },
-            { icon: '🧾', label: 'Liquidación de Ruta', module: 'liquidacion-ruta' },
-            { icon: '💳', label: 'Cobranza y CxC', module: 'cobranza' },
-            { icon: '📅', label: 'Asistencia', module: 'asistencia' },
-            { icon: '⚙️', label: 'Configuraciones', module: 'settings' },
-            { icon: '🛡️', label: 'Gestión de Usuarios', module: 'users' },
-        ];
+        // Construye "Más" a partir de los ítems del sidebar, así móvil muestra
+        // exactamente las mismas opciones que la versión PC (mobile-first).
+        const navItems = document.querySelectorAll('.nav-item[data-module]');
+        navItems.forEach(item => {
+            const module = item.dataset.module;
+            if (bottomModules.includes(module)) return;
+            if (item.style.display === 'none') return;
 
-        items.forEach(item => {
+            const icon = item.querySelector('.nav-icon');
+            const label = item.querySelector('.nav-text');
             const div = document.createElement('button');
             div.className = 'more-item';
-            div.dataset.module = item.module;
-            div.innerHTML = `<span class="more-item-icon">${item.icon}</span><span class="more-item-label">${item.label}</span>`;
+            div.dataset.module = module;
+            div.innerHTML =
+                `<span class="more-item-icon">${icon ? icon.innerHTML : ''}</span>` +
+                `<span class="more-item-label">${label ? label.textContent : module}</span>`;
             list.appendChild(div);
         });
     },
