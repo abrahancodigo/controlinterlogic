@@ -8650,7 +8650,11 @@ tbody tr:hover {
     .dash-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .dash-kpi-card { padding: 12px; border-radius: 14px; }
     .dash-kpi-icon { width: 36px; height: 36px; border-radius: 10px; }
-    .dash-kpi-value { font-size: 1rem; }
+    /* Allow long amounts to shrink/wrap instead of being clipped by the hero's overflow:hidden */
+    .dash-kpi-card { min-width: 0; }
+    .dash-kpi-body { min-width: 0; }
+    .dash-kpi-value { font-size: 0.95rem; white-space: normal; overflow-wrap: anywhere; word-break: break-word; line-height: 1.2; }
+    .dash-kpi-top { flex-wrap: wrap; }
     .dash-charts-row { grid-template-columns: 1fr; }
     .dash-chart-body { min-height: 300px; }
     .dash-chart-card { border-radius: 16px; padding: 1rem; }
@@ -8668,6 +8672,8 @@ tbody tr:hover {
 
 @media (max-width: 480px) {
     .dash-kpi-grid { grid-template-columns: 1fr 1fr; }
+    .dash-kpi-value { font-size: 0.85rem; }
+    .dash-kpi-delta { font-size: 0.62rem; padding: 2px 5px; }
 }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ KPI Empty State (Dalse sin entregas) Ã¢â€â‚¬Ã¢â€â‚¬ */
