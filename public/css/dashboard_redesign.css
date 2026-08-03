@@ -1181,5 +1181,26 @@
     .dash-kpi-icon svg { width: 18px; height: 18px; }
     .dash-kpi-value { font-size: 1.45rem; }
     .dash-kpi-sparkline { height: 28px; }
+
+    /* ---- Selector de fecha: que nunca se corte ---- */
+    /* Los input[type=date] tienen ancho mínimo del navegador;
+       con flex + min-width:0 se reparten el ancho y encojen
+       en vez de desbordar y ser cortados por el hero. */
+    .dash-date-pill {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 5px 8px;
+    }
+    .dash-pill-input {
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
+        font-size: 0.72rem;
+        padding: 6px 8px;
+    }
+    .dash-pill-sep { flex: 0 0 auto; }
+    .dash-pill-btn { flex: 0 0 auto; }
 }
 
