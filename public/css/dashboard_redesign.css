@@ -957,3 +957,99 @@
     .dash-kpi-top { flex-wrap: wrap; }
 }
 
+/* ============================================================
+   Móvil: RECONFIGURACIÓN COMPLETA DEL DASHBOARD
+   Garantiza que NINGUNA parte se vea cortada:
+   - grids anchos (vendedor/zona) → 1 columna
+   - charts y contenedores con min-width:0 para que encojan
+   - headers que envuelven (título + total)
+   - tablas con scroll horizontal nativo
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Contenedor raíz: nunca desbordar el viewport */
+    .dash,
+    #content-area > div.dash {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: hidden;
+    }
+
+    /* ---- HERO / resumen: permitir que todo encoje ---- */
+    .dash-hero-inner { min-width: 0; }
+
+    /* ---- Charts: que encojan en vez de cortarse ---- */
+    .dash-chart-card,
+    .dash-chart-body,
+    .dash-acum-list-wrap,
+    #dash-acum-chart,
+    #dash-vendedor-chart,
+    #dash-zona-chart,
+    #dash-bar-chart,
+    #dash-donut-chart,
+    #dash-incede-chart {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    .dash-chart-card { padding: 1rem; border-radius: 16px; }
+    .dash-chart-body,
+    #dash-vendedor-chart,
+    #dash-zona-chart {
+        min-height: 300px !important;
+        height: auto !important;
+        width: 100% !important;
+    }
+
+    /* Header del chart: título + total que envuelven, sin cortarse */
+    .dash-chart-header {
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        align-items: center;
+    }
+    .dash-chart-header h3 {
+        min-width: 0;
+        font-size: 0.98rem;
+    }
+    .dash-chart-total { flex-shrink: 0; }
+
+    /* ---- Acumulado: apilar lista y gráfico; sin min-width fijo ---- */
+    .dash-acum-list-wrap,
+    #dash-acum-chart {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+    #dash-acum-chart { width: 100% !important; }
+    .dash-acum-toolbar { flex-wrap: wrap; }
+    .dash-acum-total-wrap { margin-left: 0; width: 100%; align-items: flex-start; }
+
+    /* ---- Grids anchos → 1 columna (antes minmax 320-340px cortaba) ---- */
+    .dash-vendedor-grid,
+    .dash-zona-grid {
+        grid-template-columns: 1fr !important;
+        min-width: 0;
+    }
+    .dash-vendedor-card,
+    .dash-zona-card {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    /* ---- Carrier / Day grids: asegurar min-width:0 ---- */
+    .dash-carrier-grid,
+    .dash-day-grid { min-width: 0; }
+    .dash-carrier-card,
+    .dash-day-card { min-width: 0; max-width: 100%; }
+
+    /* ---- Tablas: scroll horizontal nativo ---- */
+    .dash-table-wrap,
+    .dash-matrix-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+
+    /* ---- Section headers: que envuelvan, título sin cortarse ---- */
+    .dash-section-header { flex-wrap: wrap; gap: 6px; }
+    .dash-section-title { min-width: 0; }
+}
+
