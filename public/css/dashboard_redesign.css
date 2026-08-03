@@ -1202,5 +1202,20 @@
     }
     .dash-pill-sep { flex: 0 0 auto; }
     .dash-pill-btn { flex: 0 0 auto; }
+
+    /* ---- Chips de período (Hoy/Semana/Mes/Trimestre/Personalizado):
+       envolver en vez de cortarse. En móvil la regla base inline-flex
+       del redesign mostraba una sola fila nowrap que el hero cortaba. ---- */
+    .dash-period-chips {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 4px;
+        width: 100%;
+    }
+    .dash-chip {
+        padding: 6px 12px;
+        font-size: 0.72rem;
+    }
 }
 
