@@ -941,9 +941,8 @@
     .dash-kpi-grid::-webkit-scrollbar { display: none; }
 
     .dash-kpi-card {
-        flex: 0 0 auto;
-        width: 82%;
-        max-width: 360px;
+        flex: 0 0 100%;
+        width: 100%;
         min-width: 0;
         scroll-snap-align: start;
     }
