@@ -396,7 +396,7 @@ const Dashboard = {
             stats.total += m; stats.totalCount++;
             if (isContado) { stats.contado += m; stats.contadoCount++; }
             else if (isCredito) { stats.credito += m; stats.creditoCount++; }
-            if (ent === 'DALSE') { stats.dalse += m; stats.dalseCount++; }
+            if (emp === 'DALSE') { stats.dalse += m; stats.dalseCount++; }
             if (emp === 'INCEDE') { stats.incede += m; stats.incedeCount++; }
 
             if (!carrierStats[ent]) carrierStats[ent] = { monto: 0, count: 0, contado: 0, credito: 0 };
@@ -435,7 +435,7 @@ const Dashboard = {
             dailyStats[dk].totalCount++;
             if (isContado) { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
             else { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
-            if (ent === 'DALSE') dailyStats[dk].dalse += m;
+            if (emp === 'DALSE') dailyStats[dk].dalse += m;
         });
 
         const sortedDays = Object.entries(dailyStats).sort((a, b) => a[0].localeCompare(b[0]));
@@ -508,10 +508,22 @@ const Dashboard = {
         }
         el.style.display = '';
         const opt = {
-            chart: { type: 'line', sparkline: { enabled: true }, animations: { enabled: false } },
+            chart: {
+                type: 'line',
+                sparkline: { enabled: true },
+                animations: { enabled: true, easing: 'easeinout', speed: 450 }
+            },
             series: [{ data: data }],
-            stroke: { curve: 'smooth', width: 2 },
+            stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
             colors: [color],
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    opacityFrom: 0.45,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
             tooltip: { enabled: false }
         };
         this.charts.sparklines[elId] = new ApexCharts(el, opt);
@@ -555,7 +567,7 @@ const Dashboard = {
             total += m;
             if (cond === 'contado') contado += m;
             else if (cond === 'credito' || cond === 'crédito') credito += m;
-            if (ent === 'DALSE') dalse += m;
+            if ((r.empresa || '').toUpperCase().trim() === 'DALSE') dalse += m;
         });
         return { total, contado, credito, dalse };
     },
@@ -584,16 +596,24 @@ const Dashboard = {
                         labels: {
                             show: true,
                             name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
-                            value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Math.round(v).toLocaleString('es-SV') },
+                            value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                             total: { show: true, label: 'Total', fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor, formatter: () => '$0' }
                         }
                     }
                 }
             },
-            stroke: { width: 2, colors: [theme === 'dark' ? '#1e293b' : '#ffffff'] },
+            stroke: { width: 4, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'lighten',
+                        value: 0.08
+                    }
+                }
+            },
             dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
             legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
-            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
+            tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
             theme: { mode: theme },
             responsive: [{ breakpoint: 768, options: { chart: { height: 320 }, legend: { position: 'bottom', fontSize: '13px' }, dataLabels: { style: { fontSize: '12px' } } } }]
         };
@@ -605,20 +625,36 @@ const Dashboard = {
             yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif', colors: mutedColor } } },
             colors: ['#7c3aed', '#3b82f6', '#ec4899'],
             plotOptions: {
-                bar: { borderRadius: 8, columnWidth: '50%', distributed: true, dataLabels: { position: 'top', maxItems: 8 } }
+                bar: {
+                    borderRadius: 12,
+                    borderRadiusApplication: 'end',
+                    columnWidth: '48%',
+                    distributed: true,
+                    dataLabels: { position: 'top', maxItems: 8 }
+                }
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: 'light',
+                    type: 'vertical',
+                    opacityFrom: 0.96,
+                    opacityTo: 0.78,
+                    stops: [0, 100]
+                }
             },
             dataLabels: {
                 enabled: true,
                 formatter: function(val) {
                     const total = window.Dashboard?.barTotal || 0;
                     const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                    return '$' + Math.round(val).toLocaleString('es-SV') + '\n' + pct + '%';
+                    return '$' + Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\n' + pct + '%';
                 },
                 style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
                 offsetY: -22,
                 dropShadow: { enabled: false }
             },
-            tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
+            tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
             grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { top: 30 } },
             theme: { mode: theme },
             responsive: [{ breakpoint: 768, options: { chart: { height: 300 }, dataLabels: { enabled: false, style: { fontSize: '12px' } } } }]
@@ -644,16 +680,24 @@ const Dashboard = {
                             labels: {
                                 show: true,
                                 name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
-                                value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Math.round(v).toLocaleString('es-SV') },
+                                value: { show: true, fontSize: '22px', fontWeight: 800, fontFamily: 'Inter, sans-serif', color: labelColor, formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                                 total: { show: true, label: 'Total', fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor, formatter: () => '$0' }
                             }
                         }
                     }
                 },
-                stroke: { width: 2, colors: [theme === 'dark' ? '#1e293b' : '#ffffff'] },
+            stroke: { width: 4, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
+            states: {
+                hover: {
+                    filter: {
+                        type: 'lighten',
+                        value: 0.08
+                    }
+                }
+            },
                 dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
                 legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
-                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
+                tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
                 theme: { mode: theme },
                 responsive: [{ breakpoint: 768, options: { chart: { height: 320 }, legend: { position: 'bottom', fontSize: '13px' }, dataLabels: { style: { fontSize: '12px' } } } }]
             };
@@ -668,18 +712,37 @@ const Dashboard = {
             const vendedorOptions = {
                 chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._vendedorChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
                 series: [{ name: 'Ventas', data: [] }],
-                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%', dataLabels: { position: 'top', maxItems: 10 } } },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 10,
+                        borderRadiusApplication: 'end',
+                        horizontal: true,
+                        barHeight: '58%',
+                        distributed: true,
+                        dataLabels: { position: 'top', maxItems: 10 }
+                    }
+                },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#8b5cf6'],
+                colors: ['#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#38bdf8'],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        type: 'horizontal',
+                        gradientToColors: ['#60a5fa'],
+                        opacityFrom: 0.96,
+                        opacityTo: 0.82,
+                        stops: [0, 100]
+                    }
+                },
                 dataLabels: {
                     enabled: true,
-                    formatter: v => v > 0 ? '$' + Math.round(v).toLocaleString('es-SV') : '',
+                    formatter: v => v > 0 ? '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
                     style: { fontSize: '12px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
                     offsetX: 6,
                     dropShadow: { enabled: false }
                 },
-                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
                 grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { right: 80, left: 10 } },
                 theme: { mode: theme },
                 responsive: [{ breakpoint: 768, options: { chart: { height: 380 }, dataLabels: { style: { fontSize: '11px' } } } }]
@@ -693,18 +756,37 @@ const Dashboard = {
             const zonaOptions = {
                 chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._zonaChartNames || []; if (names[idx]) this.showZonaDetailModal(names[idx]); } } },
                 series: [{ name: 'Ventas', data: [] }],
-                plotOptions: { bar: { borderRadius: 6, horizontal: true, barHeight: '60%', dataLabels: { position: 'top', maxItems: 10 } } },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 10,
+                        borderRadiusApplication: 'end',
+                        horizontal: true,
+                        barHeight: '58%',
+                        distributed: true,
+                        dataLabels: { position: 'top', maxItems: 10 }
+                    }
+                },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#0ea5e9'],
+                colors: ['#0f766e', '#14b8a6', '#06b6d4', '#0891b2', '#0284c7'],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        type: 'horizontal',
+                        gradientToColors: ['#67e8f9'],
+                        opacityFrom: 0.96,
+                        opacityTo: 0.82,
+                        stops: [0, 100]
+                    }
+                },
                 dataLabels: {
                     enabled: true,
-                    formatter: v => v > 0 ? '$' + Math.round(v).toLocaleString('es-SV') : '',
+                    formatter: v => v > 0 ? '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
                     style: { fontSize: '12px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
                     offsetX: 6,
                     dropShadow: { enabled: false }
                 },
-                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
                 grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { right: 80, left: 10 } },
                 theme: { mode: theme },
                 responsive: [{ breakpoint: 768, options: { chart: { height: 380 }, dataLabels: { style: { fontSize: '11px' } } } }]
@@ -736,8 +818,15 @@ const Dashboard = {
                     style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' },
                     dropShadow: { enabled: false }
                 },
-                legend: { position: 'bottom', fontSize: '13px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor } },
-                tooltip: { y: { formatter: v => '$' + Math.round(v).toLocaleString('es-SV') } },
+                legend: {
+                    position: 'bottom',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    fontFamily: 'Inter, sans-serif',
+                    labels: { colors: labelColor },
+                    itemMargin: { horizontal: 10, vertical: 6 }
+                },
+                tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
                 theme: { mode: theme },
                 responsive: [{ breakpoint: 768, options: { chart: { height: 300 }, legend: { fontSize: '11px' } } }]
             };
@@ -1315,7 +1404,7 @@ const Dashboard = {
             if (type === 'total') { match = true; title = 'Total Ventas'; color = '#7c3aed'; }
             else if (type === 'contado') { match = (cond === 'contado'); title = 'Contado'; color = '#10b981'; }
             else if (type === 'credito') { match = (cond === 'credito' || cond === 'crédito'); title = 'Crédito'; color = '#f59e0b'; }
-            else if (type === 'dalse') { match = (ent === 'DALSE'); title = 'Dalse'; color = '#06b6d4'; }
+            else if (type === 'dalse') { match = ((r.empresa || '').toUpperCase().trim() === 'DALSE'); title = 'Dalse'; color = '#06b6d4'; }
 
             if (match) filtered.push(r);
         });
@@ -1746,14 +1835,20 @@ const Dashboard = {
     },
 
     _moneyFull(v) {
-        return '$' + (Number(v) || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return '$' + (Number(v) || 0).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     },
     formatMoney(amount) {
-        return '$' + this.formatNumber(amount);
+        return this._moneyFull(amount);
     },
 
     formatNumber(num) {
-        return Math.round(num).toLocaleString('es-SV');
+        return (Number(num) || 0).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     },
 
     /* ── Cleanup ── */
