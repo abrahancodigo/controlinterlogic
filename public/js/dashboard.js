@@ -578,6 +578,53 @@ const Dashboard = {
         return t === 'dark' ? 'dark' : 'light';
     },
 
+    getChartColors() {
+        const theme = this.getChartTheme();
+        return {
+            theme,
+            labelColor: theme === 'dark' ? '#e2e8f0' : '#0f172a',
+            mutedColor: theme === 'dark' ? '#94a3b8' : '#64748b',
+            gridColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+            strokeColor: theme === 'dark' ? '#0f172a' : '#ffffff'
+        };
+    },
+
+    /* Re-aplica los colores de tema a todos los charts vivos.
+       Los colores de etiquetas/ejes/leyendas se calculan una sola
+       vez en initCharts; sin esto, al cambiar el tema quedaban
+       etiquetas oscuras sobre tarjetas oscuras (o viceversa)
+       hasta recargar la página. */
+    applyChartTheme() {
+        const { theme, labelColor, mutedColor, gridColor, strokeColor } = this.getChartColors();
+        Object.entries(this.charts).forEach(([k, c]) => {
+            if (!c) return;
+            if (k === 'sparklines') {
+                Object.values(c).forEach(sc => { if (sc) sc.updateOptions({ theme: { mode: theme } }); });
+                return;
+            }
+            const opts = { theme: { mode: theme }, grid: { borderColor: gridColor } };
+            if (k === 'donut' || k === 'incede') {
+                opts.plotOptions = { pie: { donut: { labels: {
+                    name: { color: mutedColor },
+                    value: { color: labelColor },
+                    total: { color: mutedColor }
+                } } } };
+                opts.legend = { labels: { colors: labelColor } };
+                opts.stroke = { colors: [strokeColor] };
+            } else if (k === 'acum') {
+                opts.legend = { labels: { colors: labelColor } };
+            } else if (k === 'bar') {
+                opts.xaxis = { labels: { style: { colors: labelColor } } };
+                opts.yaxis = { labels: { style: { colors: mutedColor } } };
+                opts.dataLabels = { style: { colors: [labelColor] } };
+            } else if (k === 'vendedor' || k === 'zona') {
+                opts.yaxis = { labels: { style: { colors: labelColor } } };
+                opts.dataLabels = { style: { colors: [labelColor] } };
+            }
+            c.updateOptions(opts);
+        });
+    },
+
     initCharts() {
         if (this.chartInit) return;
         const theme = this.getChartTheme();
@@ -838,15 +885,7 @@ const Dashboard = {
         this.chartInit = true;
 
         this.themeObserver = new MutationObserver(() => {
-            const t = this.getChartTheme();
-            Object.entries(this.charts).forEach(([k, c]) => {
-                if (!c) return;
-                if (k === 'sparklines') {
-                    Object.values(c).forEach(sc => { if (sc) sc.updateOptions({ theme: { mode: t } }); });
-                    return;
-                }
-                c.updateOptions({ theme: { mode: t }, grid: { borderColor: t === 'dark' ? '#334155' : '#e2e8f0' } });
-            });
+            this.applyChartTheme();
         });
         this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     },
@@ -1255,7 +1294,7 @@ const Dashboard = {
             const v = (r.vendedor || '').trim();
             return v && (v === vendedorName || (v === 'Sin vendedor' && vendedorName === 'Sin vendedor'));
         });
-        this._renderDetailModal(filtered, 'Vendedor: ' + vendedorName, '#8b5cf6');
+        this._renderDetailModal(filtered, 'Vendedor: ' + vendedorName, '#6d28d9');
     },
 
     /* ── Detail modal: Zona ── */
@@ -1264,7 +1303,7 @@ const Dashboard = {
             const z = (r.departamento || r.zona || '').trim();
             return z && (z === zonaName || (z === 'Sin departamento' && zonaName === 'Sin departamento'));
         });
-        this._renderDetailModal(filtered, 'Departamento: ' + zonaName, '#0ea5e9');
+        this._renderDetailModal(filtered, 'Departamento: ' + zonaName, '#0369a1');
     },
 
     /* ── Detail modal: Vendedor×Zona ── */
@@ -1402,9 +1441,9 @@ const Dashboard = {
 
             let match = false;
             if (type === 'total') { match = true; title = 'Total Ventas'; color = '#7c3aed'; }
-            else if (type === 'contado') { match = (cond === 'contado'); title = 'Contado'; color = '#10b981'; }
-            else if (type === 'credito') { match = (cond === 'credito' || cond === 'crédito'); title = 'Crédito'; color = '#f59e0b'; }
-            else if (type === 'dalse') { match = ((r.empresa || '').toUpperCase().trim() === 'DALSE'); title = 'Dalse'; color = '#06b6d4'; }
+            else if (type === 'contado') { match = (cond === 'contado'); title = 'Contado'; color = '#047857'; }
+            else if (type === 'credito') { match = (cond === 'credito' || cond === 'crédito'); title = 'Crédito'; color = '#b45309'; }
+            else if (type === 'dalse') { match = ((r.empresa || '').toUpperCase().trim() === 'DALSE'); title = 'Dalse'; color = '#0e7490'; }
 
             if (match) filtered.push(r);
         });
@@ -1415,14 +1454,14 @@ const Dashboard = {
     /* ── Detail Modal: Incede ── */
     showIncedeDetailModal() {
         const filtered = this.records.filter(r => (r.empresa || '').toUpperCase().trim() === 'INCEDE');
-        this._renderDetailModal(filtered, 'Incede', '#f43f5e');
+        this._renderDetailModal(filtered, 'Incede', '#be123c');
     },
 
     /* ── Detail Modal for carrier bars ── */
     showCarrierDetailModal(carrierName) {
         const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
         const title = carrierName;
-        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#3b82f6', XPRESS: '#ec4899' };
+        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#1d4ed8', XPRESS: '#be185d' };
         const color = colors[carrierName] || '#6b7280';
         this._renderDetailModal(filtered, title, color);
     },

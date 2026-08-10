@@ -1750,3 +1750,147 @@
 }
 
 
+/* ============================================================
+   Contrast & Accessibility Fixes (WCAG AA)
+   Append-only: corrige textos con bajo contraste en ambos temas
+   sin alterar layout ni estilos existentes de componentes.
+   ============================================================ */
+
+/* Tema oscuro: aclarar el accent para que los textos accent
+   (ej. "Total Acumulado") se lean sobre superficies oscuras
+   (#7c3aed sobre #1e293b ≈ 2.6:1 → #a78bfa ≈ 5.3:1) */
+[data-theme="dark"] body {
+    --dash-accent: #a78bfa;
+}
+
+/* Chips de período del hero: inactivo estaba en white @ 45%
+   (≈3.3:1 sobre el gradiente). Subirlo a nivel legible
+   manteniendo el aspecto tenue */
+[data-theme="dark"] .dash-chip {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* KPI en estado vacío vive sobre el gradiente del hero:
+   el gris oscuro original daba ≈2.2:1 sobre el azul marino */
+.dash-hero .dash-kpi-card.dash-kpi-empty .dash-kpi-value {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+/* Etiquetas pequeñas contado/crédito sobre tarjetas blancas:
+   #10b981/#f59e0b solo alcanzan ≈2.1-2.5:1. Tonos más oscuros
+   cumplen AA (≥4.5:1) */
+.dash-vendedor-bar-label-contado,
+.dash-zona-bar-label-contado,
+.dash-split-contado,
+.dash-td-contado {
+    color: #047857;
+}
+
+.dash-vendedor-bar-label-credito,
+.dash-zona-bar-label-credito,
+.dash-split-credito,
+.dash-td-credito {
+    color: #b45309;
+}
+
+/* Modo oscuro: las variantes brillantes se leen mejor
+   sobre superficies oscuras */
+[data-theme="dark"] .dash-vendedor-bar-label-contado,
+[data-theme="dark"] .dash-zona-bar-label-contado,
+[data-theme="dark"] .dash-split-contado,
+[data-theme="dark"] .dash-td-contado {
+    color: #34d399;
+}
+
+[data-theme="dark"] .dash-vendedor-bar-label-credito,
+[data-theme="dark"] .dash-zona-bar-label-credito,
+[data-theme="dark"] .dash-split-credito,
+[data-theme="dark"] .dash-td-credito {
+    color: #fbbf24;
+}
+
+/* Total general de la matriz: #7c3aed es muy oscuro en dark */
+[data-theme="dark"] .dash-matrix-grand-total {
+    color: #a78bfa;
+}
+
+/* Chip "Mayor venta" del modal de detalle: mismo tratamiento
+   saturado que los chips Total/Promedio. El verde pastel con
+   texto verde daba ≈2.4:1 (light) y ≈1.5:1 (dark). Gradiente
+   oscuro para que el texto blanco cumpla AA (≥4.5:1) en todo
+   el rango del gradiente */
+.dash-detail-chip.dash-chip-max {
+    background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dash-detail-chip.dash-chip-max .dash-chip-label,
+.dash-detail-chip.dash-chip-max .dash-chip-value {
+    color: #ffffff !important;
+}
+
+/* Chips de acumulados sin seleccionar: mantener el aspecto
+   "inactivo" pero subirlos de ≈2.5:1 a un nivel legible */
+.dash-acum-chip:not(.active) {
+    opacity: 0.68;
+}
+
+/* Premium: los widgets nativos siguen el tema (date pickers,
+   scrollbars). La date pill del hero vive sobre un gradiente
+   oscuro en AMBOS temas → forzar esquema oscuro ahí y dejar de
+   invertir el indicador de calendario (ya se pinta claro) */
+.dash-date-pill {
+    color-scheme: dark;
+}
+
+.dash-pill-input::-webkit-calendar-picker-indicator {
+    filter: none;
+}
+
+
+/* ============================================================
+   FIX: Textos del Resumen de Ventas (hero KPI) invisibles
+   La regla anterior (.dash-hero .dash-kpi-* → #fff) fue escrita
+   para el estilo "glassmorphism" (tarjeta translúcida sobre el
+   gradiente). Tras el rediseño las tarjetas KPI son SÓLIDAS
+   (var(--dash-card-bg) = blanca en claro / #1e293b en oscuro),
+   así que ese blanco forzado dejaba etiquetas/valores/metas en
+   blanco sobre blanco (invisibles) en tema claro.
+
+   Solución: re-aplicar colores de tema con contraste AA (≥4.5:1)
+   en ambos temas. Estas reglas van después (misma especificidad,
+   gana la última de la cascada) y matchean el diseño sólido.
+   ============================================================ */
+
+/* Etiqueta (p.ej. "TOTAL VENTAS") */
+.dash-hero .dash-kpi-label { color: var(--dash-muted); }
+
+/* Valor principal (p.ej. "$12,500") */
+.dash-hero .dash-kpi-value { color: var(--dash-text); }
+
+/* Meta (p.ej. "12 entregas") */
+.dash-hero .dash-kpi-meta  { color: var(--dash-muted); }
+
+/* Delta genérico: acento de tema */
+.dash-hero .dash-kpi-delta { color: var(--dash-accent); }
+
+/* Delta según estado: tonos oscuros en claro, brillantes en oscuro */
+.dash-hero .dash-kpi-delta.positive,
+.dash-hero .dash-kpi-card[data-state="positive"] .dash-kpi-delta { color: #047857; }
+.dash-hero .dash-kpi-delta.warning,
+.dash-hero .dash-kpi-card[data-state="warning"] .dash-kpi-delta { color: #b45309; }
+.dash-hero .dash-kpi-delta.negative,
+.dash-hero .dash-kpi-card[data-state="negative"] .dash-kpi-delta { color: #b91c1c; }
+
+[data-theme="dark"] .dash-hero .dash-kpi-delta { color: #a78bfa; }
+[data-theme="dark"] .dash-hero .dash-kpi-delta.positive,
+[data-theme="dark"] .dash-hero .dash-kpi-card[data-state="positive"] .dash-kpi-delta { color: #34d399; }
+[data-theme="dark"] .dash-hero .dash-kpi-delta.warning,
+[data-theme="dark"] .dash-hero .dash-kpi-card[data-state="warning"] .dash-kpi-delta { color: #fbbf24; }
+[data-theme="dark"] .dash-hero .dash-kpi-delta.negative,
+[data-theme="dark"] .dash-hero .dash-kpi-card[data-state="negative"] .dash-kpi-delta { color: #f87171; }
+
+/* Estado vacío (Dalse sin entregas): la tarjeta también es sólida
+   ahora, así que el texto blanco quedaba invisible → usar tema */
+.dash-hero .dash-kpi-card.dash-kpi-empty .dash-kpi-value { color: var(--dash-text); }
+
