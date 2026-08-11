@@ -55,6 +55,7 @@ const Entregas = {
             '<div class="stat-card"><h3>🏦 CHEQUE</h3><p id="ent-stat-cheque" style="color:#1e40af;">0</p></div>' +
             '<div class="stat-card"><h3>📱 TRANSFER.</h3><p id="ent-stat-transferencia" style="color:#6b21a8;">0</p></div>' +
             '<div class="stat-card"><h3>📝 ABONO</h3><p id="ent-stat-abono" style="color:#9a3412;">0</p></div></div>' +
+            '<div id="ent-truncated-warn" style="display:none;margin-bottom:0.75rem;padding:8px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.8rem;font-weight:600;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): las estadísticas corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver todo.</div>' +
             '<div class="card"><div class="table-container"><table class="data-table"><thead><tr>' +
             '<th>Estado</th><th>Guía</th><th>Empresa</th><th>Fecha</th><th>Doc</th><th>Cliente</th><th>Depto.</th><th>Vendedor</th><th>Cond. Pago</th><th>Venta</th><th>Bultos</th><th>Forma Pago</th><th>Fecha Entrega</th>' +
             '</tr></thead><tbody id="ent-table-body"><tr><td colspan="13" style="text-align:center;padding:2rem;">Cargando...</td></tr></tbody><tfoot id="ent-table-footer"></tfoot></table></div></div>';
@@ -85,6 +86,7 @@ const Entregas = {
             '<div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:0.65rem;color:#166534;font-weight:600;">✅ ENTREG.</div><div id="ent-stat-entregados" style="font-size:1.1rem;font-weight:800;color:#22c55e;">0</div></div>' +
             '<div style="background:#fff7ed;border-radius:8px;padding:8px;text-align:center;"><div style="font-size:0.65rem;color:#9a3412;font-weight:600;">⏳ PEND.</div><div id="ent-stat-pendientes" style="font-size:1.1rem;font-weight:800;color:#f97316;">0</div></div></div>' +
             '<div style="display:flex;gap:4px;margin-bottom:0.75rem;"><button class="btn btn-secondary" id="ent-btn-export" style="font-size:0.8rem;padding:0.4rem 0.8rem;">📥 Excel</button></div>' +
+            '<div id="ent-truncated-warn" style="display:none;margin-bottom:0.75rem;padding:8px 10px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.72rem;font-weight:600;">⚠️ El rango tiene más de 2,000 registros: se muestran solo los 2,000 más recientes.</div>' +
             '<div id="ent-data-list" class="m-data-list"><div style="text-align:center;padding:40px;color:#8e8e93;">Cargando...</div></div>';
         this.bindEvents();
         await this.loadData();
@@ -119,6 +121,7 @@ const Entregas = {
             this.unsubscribe = db.collection("interlogic").where("fecha", ">=", startTs).where("fecha", "<=", endTs).orderBy("fecha", "desc").limit(2000)
                 .onSnapshot(function(snap){
                     self.records = snap.docs.map(function(doc){ return { id: doc.id, ...doc.data() }; });
+                    self._truncated = snap.size >= 2000; // rango largo recortado por el limit de la consulta
                     self.loading = false;
                     self.applyFilters();
                 }, function(err){ console.error("Entregas error:", err); showToast("Error: " + err.message, "error"); self.loading = false; });
@@ -165,6 +168,8 @@ const Entregas = {
         var s = function(id, v){ var e = document.getElementById(id); if(e) e.textContent = v; };
         s("ent-stat-total", total); s("ent-stat-entregados", ent); s("ent-stat-pendientes", total - ent);
         s("ent-stat-efectivo", ef); s("ent-stat-cheque", ch); s("ent-stat-transferencia", tr); s("ent-stat-abono", ab);
+        var warn = document.getElementById("ent-truncated-warn");
+        if (warn) warn.style.display = this._truncated ? "block" : "none";
     },
     renderTable() {
         if (window.innerWidth <= 768) return this.renderMobileCards();

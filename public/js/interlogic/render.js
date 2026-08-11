@@ -727,6 +727,7 @@ const InterlogicRender = {
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
+            ${this._truncated ? '<tr><td colspan="20" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. Reduce el rango o exporta por partes para ver todo.</div></td></tr>' : ''}
             <tr>
                 <td colspan="20" style="padding: 0.5rem 0;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">

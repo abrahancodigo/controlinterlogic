@@ -1,3 +1,7 @@
+// Tope máximo de documentos descargados por consulta (consistente con MAX_RECORDS de Interlogic).
+// Evita descargas/costos explosivos al elegir rangos de fechas largos (meses atrás → hoy).
+const DASHBOARD_MAX_RECORDS = 2000;
+
 const Dashboard = {
     records: [],
     prevRecords: [],
@@ -143,6 +147,10 @@ const Dashboard = {
                 </div>
             </div>
         </div>
+    </div>
+
+    <div id="dash-truncated-warn" style="display:none;margin:0 0 16px;padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.85rem;font-weight:600;">
+        ⚠️ El rango seleccionado tiene más de 2,000 registros: los totales mostrados corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver datos completos.
     </div>
 
     <div class="dash-charts-row">
@@ -347,8 +355,12 @@ const Dashboard = {
             .where('fecha', '>=', this.fechaInicio)
             .where('fecha', '<=', this.fechaFin)
             .orderBy('fecha', 'desc')
+            .limit(DASHBOARD_MAX_RECORDS)
             .onSnapshot(snapshot => {
                 this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
+                const warnEl = document.getElementById('dash-truncated-warn');
+                if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
                 this.computeAndRender();
                 this.fetchPrevPeriod();
             }, err => {
@@ -362,6 +374,8 @@ const Dashboard = {
         firebase.firestore().collection('interlogic')
             .where('fecha', '>=', prev.inicio)
             .where('fecha', '<=', prev.fin)
+            .orderBy('fecha', 'desc')
+            .limit(DASHBOARD_MAX_RECORDS)
             .get()
             .then(snapshot => {
                 this.prevRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
