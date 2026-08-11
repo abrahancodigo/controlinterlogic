@@ -408,6 +408,16 @@ const InterlogicRender = {
 
         if (!this.eventDelegationSetup) {
             contentArea.addEventListener('click', (e) => {
+                const pageBtn = e.target.closest('.page-btn');
+                if (pageBtn) {
+                    const p = parseInt(pageBtn.dataset.page, 10);
+                    if (!isNaN(p) && p >= 1) {
+                        this.currentPage = p;
+                        this._renderTableNow();
+                    }
+                    return;
+                }
+
                 const editBtn = e.target.closest('.btn-edit-record');
                 if (editBtn && !editBtn.disabled) {
                     const id = editBtn.getAttribute('data-id');
@@ -470,6 +480,7 @@ const InterlogicRender = {
             <div class="m-data-list" id="m-data-list">
                 <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando registros...</div>
             </div>
+            <div id="m-pagination" style="display:none;justify-content:center;align-items:center;gap:8px;padding:12px 0;flex-wrap:wrap;"></div>
         `;
 
         await this.loadRecords();
@@ -495,10 +506,18 @@ const InterlogicRender = {
         var canEdit = window.permissions?.canEdit;
         var canDelete = window.permissions?.canDelete;
 
+        var totalRows = this.filteredRecords.length;
+        var pageSize = this.pageSize || 100;
+        var totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+        if (this.currentPage > totalPages) this.currentPage = totalPages;
+        if (this.currentPage < 1) this.currentPage = 1;
+        var startIdx = (this.currentPage - 1) * pageSize;
+        var pageRecords = this.filteredRecords.slice(startIdx, startIdx + pageSize);
+
         if (this.filteredRecords.length === 0) {
             list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No se encontraron resultados.</div></div>';
         } else {
-            list.innerHTML = this.filteredRecords.map(function(r) {
+            list.innerHTML = pageRecords.map(function(r) {
                 var empresaBadge = r.doc === 'NC' ? 'nc' : (r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : ''));
                 var idJs = r.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" onclick="Interlogic.showMobileDetail(\'' + idJs + '\')">';
@@ -544,6 +563,39 @@ const InterlogicRender = {
         setText('ms-envio', formatCurrency(totalEnvio));
         setText('ms-pct', formatNumber(totalPct, 2) + '%');
         setText('ms-count', this.filteredRecords.length);
+
+        this._renderMobilePagination(totalRows, totalPages);
+    },
+
+    _renderMobilePagination(totalRows, totalPages) {
+        var pagEl = document.getElementById('m-pagination');
+        if (!pagEl) return;
+        if (totalRows === 0) {
+            pagEl.style.display = 'none';
+            pagEl.innerHTML = '';
+            return;
+        }
+        pagEl.style.display = 'flex';
+        var prevPage = Math.max(1, this.currentPage - 1);
+        var nextPage = Math.min(totalPages, this.currentPage + 1);
+        var btnCls = 'style="cursor:pointer;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
+        var btnDis = 'style="cursor:not-allowed;opacity:0.4;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
+        var warnHtml = this._truncated
+            ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#b45309;padding:6px 10px;background:#fff7ed;border-radius:8px;">⚠ Solo se muestran los ' + this.records.length.toLocaleString() + ' registros más recientes del rango.</div>'
+            : '';
+        pagEl.innerHTML = warnHtml +
+            '<button type="button" class="m-page-btn" data-page="' + prevPage + '" ' + (this.currentPage <= 1 ? 'disabled' : '') + ' ' + (this.currentPage <= 1 ? btnDis : btnCls) + '>‹ Ant</button>' +
+            '<span style="font-size:0.82rem;color:#555;padding:0 4px;">' + this.currentPage + ' / ' + totalPages + '</span>' +
+            '<button type="button" class="m-page-btn" data-page="' + nextPage + '" ' + (this.currentPage >= totalPages ? 'disabled' : '') + ' ' + (this.currentPage >= totalPages ? btnDis : btnCls) + '>Sig ›</button>';
+        if (!this._mobilePaginationBound) {
+            this._mobilePaginationBound = true;
+            pagEl.addEventListener('click', (function(e) {
+                var btn = e.target.closest('.m-page-btn');
+                if (!btn) return;
+                var p = parseInt(btn.dataset.page, 10);
+                if (!isNaN(p) && p >= 1) { this.currentPage = p; this.renderMobileCards(); }
+            }).bind(this));
+        }
     },
 
     renderTable() {
@@ -583,7 +635,15 @@ const InterlogicRender = {
         const canCreate = window.permissions?.canCreate;
         const canDelete = window.permissions?.canDelete;
 
-        tableBody.innerHTML = this.filteredRecords.map(record => `
+        const totalRows = this.filteredRecords.length;
+        const pageSize = this.pageSize || 100;
+        const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+        if (this.currentPage > totalPages) this.currentPage = totalPages;
+        if (this.currentPage < 1) this.currentPage = 1;
+        const startIdx = (this.currentPage - 1) * pageSize;
+        const pageRecords = this.filteredRecords.slice(startIdx, startIdx + pageSize);
+
+        tableBody.innerHTML = pageRecords.map(record => `
             <tr style="${record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : ''}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"><strong>${sanitizeHTML(record.guia || '')}</strong></td>
@@ -643,7 +703,20 @@ const InterlogicRender = {
             document.getElementById('il-data-table').appendChild(tfoot);
         }
 
+        const prevPage = Math.max(1, this.currentPage - 1);
+        const nextPage = Math.min(totalPages, this.currentPage + 1);
+        const firstShown = totalRows === 0 ? 0 : (startIdx + 1);
+        const lastShown = totalRows === 0 ? 0 : Math.min(startIdx + pageSize, totalRows);
+
+        const pageBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+        const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+
+        const truncNotice = this._truncated
+            ? '<tr><td colspan="20" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. Acorta el rango de fechas para ver los demás.</td></tr>\n'
+            : '';
+
         tfoot.innerHTML = `
+            ${truncNotice}
             <tr style="font-weight: 700; background: var(--gray-50);">
                 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 <td style="text-align: right;">TOTALES</td>
@@ -653,6 +726,20 @@ const InterlogicRender = {
                 <td>${formatCurrency(totals.envio)}</td>
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td colspan="20" style="padding: 0.5rem 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${firstShown}–${lastShown}</strong> de <strong>${totalRows}</strong> registros</span>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <button type="button" class="page-btn" data-page="1" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">«</button>
+                            <button type="button" class="page-btn" data-page="${prevPage}" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">‹</button>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0 0.25rem;">Página <strong>${this.currentPage}</strong> / ${totalPages}</span>
+                            <button type="button" class="page-btn" data-page="${nextPage}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">›</button>
+                            <button type="button" class="page-btn" data-page="${totalPages}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">»</button>
+                        </div>
+                    </div>
+                </td>
             </tr>
         `;
 

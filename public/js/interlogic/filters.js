@@ -181,6 +181,7 @@ const InterlogicFilters = {
     },
 
     applyFilters() {
+        this.currentPage = 1;
         this.filteredRecords = this.records.filter(record => {
             for (let field in this.filters) {
                 const activeValues = this.filters[field];

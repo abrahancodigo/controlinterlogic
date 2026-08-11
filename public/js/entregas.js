@@ -115,7 +115,8 @@ const Entregas = {
         var endTs = firebase.firestore.Timestamp.fromDate(new Date(ep[0], ep[1]-1, ep[2], 23, 59, 59));
         var self = this;
         try {
-            this.unsubscribe = db.collection("interlogic").where("fecha", ">=", startTs).where("fecha", "<=", endTs).orderBy("fecha", "desc").limit(5000)
+            // Tope de descarga: reduce costo/red (cada doc = 1 lectura Firestore)
+            this.unsubscribe = db.collection("interlogic").where("fecha", ">=", startTs).where("fecha", "<=", endTs).orderBy("fecha", "desc").limit(2000)
                 .onSnapshot(function(snap){
                     self.records = snap.docs.map(function(doc){ return { id: doc.id, ...doc.data() }; });
                     self.loading = false;

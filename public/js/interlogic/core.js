@@ -44,6 +44,8 @@ const InterlogicCore = {
         field: '',
         direction: ''
     },
+    currentPage: 1,
+    pageSize: 100,
     unsubscribe: null,
     columnDefs: [
         { key: 'guia', label: 'Guía' },

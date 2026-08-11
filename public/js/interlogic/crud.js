@@ -2,6 +2,10 @@
 // Interlogic - CRUD Module (Create, Read, Update, Delete)
 // ===================================
 
+// Tope máximo de documentos descargados por consulta.
+// Reduce costo (cada doc = 1 lectura Firestore), red y render.
+const MAX_RECORDS = 2000;
+
 const InterlogicCRUD = {
     async loadRecords(useDateRange = false) {
         if (this._loadingRecords) return;
@@ -25,7 +29,7 @@ const InterlogicCRUD = {
                 .where('fecha', '>=', startTs)
                 .where('fecha', '<=', endTs)
                 .orderBy('fecha', 'desc')
-                .limit(5000);
+                .limit(MAX_RECORDS);
         } else {
             const ninetyDaysAgo = new Date();
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -35,7 +39,7 @@ const InterlogicCRUD = {
             query = db.collection('interlogic')
                 .where('createdAt', '>=', startTs)
                 .orderBy('createdAt', 'desc')
-                .limit(5000);
+                .limit(MAX_RECORDS);
         }
 
         try {
@@ -44,6 +48,7 @@ const InterlogicCRUD = {
                     id: doc.id,
                     ...doc.data()
                 }));
+                this._truncated = snapshot.size >= MAX_RECORDS;
 
                 this.applyFilters();
 
