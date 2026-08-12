@@ -20,7 +20,7 @@ const InterlogicExcel = {
             var row = {};
             visibleCols.forEach(function(c) {
                 if (c.key === 'fecha') row[c.label] = r.fecha ? formatDate(r.fecha, false) : '';
-                else if (c.key === 'venta' || c.key === 'costoEnvio') row[c.label] = Number(r[c.key] || 0);
+                else if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') row[c.label] = self.signedAmount(r, c.key);
                 else if (c.key === 'costoPorcentaje') row[c.label] = Number(r.costoPorcentaje || 0);
                 else row[c.label] = r[c.key] || '';
             });
@@ -60,7 +60,7 @@ const InterlogicExcel = {
         const rows = this.filteredRecords.map(r =>
             visibleCols.map(c => {
                 if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
-                if (c.key === 'venta' || c.key === 'costoEnvio') return Number(r[c.key] || 0);
+                if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') return this.signedAmount(r, c.key);
                 if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
                 return r[c.key] || '';
             })

@@ -395,7 +395,7 @@ const Dashboard = {
         const matriz = {};
 
         records.forEach(r => {
-            const m = parseFloat(r.venta) || 0;
+            const m = signedAmount(r, 'venta');
             const cond = (r.condicionPago || '').toLowerCase().trim();
             const isContado = cond === 'contado';
             const isCredito = cond === 'credito' || cond === 'crédito';
@@ -575,7 +575,7 @@ const Dashboard = {
     computeTotals(records) {
         let total = 0, contado = 0, credito = 0, dalse = 0;
         records.forEach(r => {
-            const m = parseFloat(r.venta) || 0;
+            const m = signedAmount(r, 'venta');
             const cond = (r.condicionPago || '').toLowerCase().trim();
             const ent = (r.entrega || '').toUpperCase().trim();
             total += m;
@@ -1503,9 +1503,9 @@ const Dashboard = {
             return fb - fa;
         });
 
-        const total = filtered.reduce((sum, r) => sum + (parseFloat(r.venta) || 0), 0);
+        const total = filtered.reduce((sum, r) => sum + signedAmount(r, 'venta'), 0);
         const avg = filtered.length > 0 ? total / filtered.length : 0;
-        const maxVenta = filtered.reduce((mx, r) => Math.max(mx, parseFloat(r.venta) || 0), 0);
+        const maxVenta = filtered.reduce((mx, r) => Math.max(mx, Math.abs(signedAmount(r, 'venta')) || 0), 0);
 
         const existingBd = document.querySelector('.dash-detail-backdrop');
         if (existingBd) existingBd.remove();
@@ -1657,7 +1657,7 @@ const Dashboard = {
                     <td><span class="dash-badge-empresa">${esc(r.empresa || '—')}</span></td>
                     <td>${formatDt(r.fecha)}</td>
                     <td>${esc(r.cliente || '—')}</td>
-                    <td class="dash-modal-amount">${this.formatMoney(parseFloat(r.venta) || 0)}</td>
+                    <td class="dash-modal-amount">${this.formatMoney(signedAmount(r, 'venta'))}</td>
                     <td><span class="dash-badge-cond ${badgeCls}">${condLabel}</span></td>
                     <td><span class="dash-badge-ent">${esc(r.entrega || '—')}</span></td>
                 </tr>
@@ -1768,7 +1768,7 @@ const Dashboard = {
             'Doc #': r.docNum || '',
             'Vendedor': r.vendedor || '',
             'Condición': r.condicionPago || '',
-            'Venta': parseFloat(r.venta) || 0,
+            'Venta': signedAmount(r, 'venta'),
             'Bultos': parseInt(r.bultos) || 0,
             'Cobrador': r.cobrador || '',
             'Costo Envío': parseFloat(r.costoEnvio) || 0,
@@ -1888,7 +1888,12 @@ const Dashboard = {
     },
 
     _moneyFull(v) {
-        return '$' + (Number(v) || 0).toLocaleString('en-US', {
+        const n = Number(v) || 0;
+        if (n < 0) return '-$' + Math.abs(n).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        return '$' + n.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });

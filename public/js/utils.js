@@ -343,3 +343,81 @@ function printElement(elementId) {
         printWindow.close();
     }, 250);
 }
+
+/**
+ * Formato de moneda con signo explícito para negativos (Notas de Crédito)
+ * Ejemplo: formatCurrencySigned(-150) → "-$150.00"
+ */
+function formatCurrencySigned(num) {
+    const n = Number(num);
+    if (isNaN(n)) return '$0.00';
+    if (n < 0) return '-' + formatCurrency(Math.abs(n));
+    return formatCurrency(n);
+}
+
+/**
+ * Valor con signo: las Notas de Crédito (doc === 'NC') cuentan NEGATIVO
+ * para que los totales del sistema entero las descuenten en vez de sumarlas.
+ * @param {Object} record - registro de interlogic
+ * @param {string} field - nombre del campo (venta, costoEnvio, bultos, etc.)
+ * @returns {number} el valor con signo (negativo si es NC)
+ */
+function signedAmount(record, field) {
+    if (!record) return 0;
+    const v = Number(record[field]) || 0;
+    return record.doc === 'NC' ? -Math.abs(v) : v;
+}
+
+/**
+ * Descarga TODOS los documentos de una consulta en bloques (paginación con
+ * cursores startAfter). Para rangos largos (meses / año completo) que superan
+ * el tope de descarga normal. Cada documento cuenta como 1 lectura Firestore.
+ * @param {firebase.firestore.Query} baseQuery - consulta con where/orderBy (sin limit)
+ * @param {Object} options - { chunkSize, maxRecords, onProgress(totalLeidos, puedeHaberMas) }
+ * @returns {Promise<Array>} todos los documentos como { id, ...data }
+ */
+async function fetchAllChunked(baseQuery, options = {}) {
+    const chunkSize = options.chunkSize || 2000;
+    let all = [];
+    let cursor = null;
+    for (;;) {
+        let q = baseQuery.limit(chunkSize);
+        if (cursor) q = q.startAfter(cursor);
+        const snap = await q.get();
+        const batch = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        all = all.concat(batch);
+        if (options.onProgress) options.onProgress(all.length, snap.size === chunkSize);
+        if (snap.size < chunkSize) break;
+        cursor = snap.docs[snap.docs.length - 1];
+        if (options.maxRecords && all.length >= options.maxRecords) break;
+    }
+    return all;
+}
+
+/**
+ * Overlay de progreso para cargas de rango completo.
+ */
+function showFullLoadOverlay(visible, text) {
+    let el = document.getElementById('full-load-overlay');
+    if (visible) {
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'full-load-overlay';
+            el.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.55);backdrop-filter:blur(2px);';
+            el.innerHTML = '<div style="background:var(--card-bg,#fff);color:var(--text-primary,#0f172a);border-radius:14px;padding:1.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:0.75rem;box-shadow:0 20px 50px rgba(0,0,0,0.3);min-width:270px;">' +
+                '<div style="width:34px;height:34px;border:3px solid rgba(37,99,235,0.25);border-top-color:#2563eb;border-radius:50%;animation:fl-spin 0.8s linear infinite;"></div>' +
+                '<div id="full-load-text" style="font-size:0.9rem;font-weight:600;text-align:center;">Descargando…</div>' +
+                '<div style="font-size:0.72rem;color:#64748b;text-align:center;">Esto descarga todos los registros del rango<br>(1 lectura de Firestore por registro)</div>' +
+                '</div>';
+            const styleTag = document.createElement('style');
+            styleTag.textContent = '@keyframes fl-spin { to { transform: rotate(360deg); } }';
+            document.head.appendChild(styleTag);
+            document.body.appendChild(el);
+        }
+        el.style.display = 'flex';
+        const t = document.getElementById('full-load-text');
+        if (t && text) t.textContent = text;
+    } else if (el) {
+        el.style.display = 'none';
+    }
+}

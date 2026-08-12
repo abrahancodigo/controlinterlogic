@@ -526,7 +526,7 @@ const InterlogicRender = {
                 else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + sanitizeHTML(r.empresa || '') + '</span>';
                 html += '</div><div class="m-card-rows">';
                 html += '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money">' + formatCurrency(r.venta || 0) + '</span></div>';
+                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money" style="' + (r.doc === 'NC' ? 'color:#ef4444;font-weight:700;' : '') + '">' + formatCurrency(r.venta || 0) + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
                 html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.toggleCellField(\'' + idJs + '\', \'entrega\')" style="cursor: pointer;">';
@@ -551,16 +551,15 @@ const InterlogicRender = {
             }).join('');
         }
 
-        var nonNc = this.filteredRecords.filter(function(r) { return r.doc !== 'NC'; });
-        var totalVenta = nonNc.reduce(function(s, r) { return s + (parseFloat(r.venta) || 0); }, 0);
-        var totalBultos = nonNc.reduce(function(s, r) { return s + (parseFloat(r.bultos) || 0); }, 0);
-        var totalEnvio = nonNc.reduce(function(s, r) { return s + (parseFloat(r.costoEnvio) || 0); }, 0);
+        var totalVenta = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'venta'); }, 0);
+        var totalBultos = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'bultos'); }, 0);
+        var totalEnvio = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'costoEnvio'); }, 0);
         var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
 
         var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
-        setText('ms-venta', formatCurrency(totalVenta));
+        setText('ms-venta', formatCurrencySigned(totalVenta));
         setText('ms-bultos', formatNumber(totalBultos));
-        setText('ms-envio', formatCurrency(totalEnvio));
+        setText('ms-envio', formatCurrencySigned(totalEnvio));
         setText('ms-pct', formatNumber(totalPct, 2) + '%');
         setText('ms-count', this.filteredRecords.length);
 
@@ -581,8 +580,8 @@ const InterlogicRender = {
         var btnCls = 'style="cursor:pointer;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
         var btnDis = 'style="cursor:not-allowed;opacity:0.4;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
         var warnHtml = this._truncated
-            ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#b45309;padding:6px 10px;background:#fff7ed;border-radius:8px;">⚠ Solo se muestran los ' + this.records.length.toLocaleString() + ' registros más recientes del rango.</div>'
-            : '';
+            ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#b45309;padding:6px 10px;background:#fff7ed;border-radius:8px;">⚠ Solo se muestran los ' + this.records.length.toLocaleString() + ' registros más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">⬇ Cargar todo</button></div>'
+            : (this._fullMode ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#1e40af;padding:6px 10px;background:#eff6ff;border-radius:8px;">📊 Rango completo (' + this.records.length.toLocaleString() + ' registros). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">↻ Tiempo real</button></div>' : '');
         pagEl.innerHTML = warnHtml +
             '<button type="button" class="m-page-btn" data-page="' + prevPage + '" ' + (this.currentPage <= 1 ? 'disabled' : '') + ' ' + (this.currentPage <= 1 ? btnDis : btnCls) + '>‹ Ant</button>' +
             '<span style="font-size:0.82rem;color:#555;padding:0 4px;">' + this.currentPage + ' / ' + totalPages + '</span>' +
@@ -656,7 +655,7 @@ const InterlogicRender = {
                 <td data-label="Municipio">${sanitizeHTML(record.municipio || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>
-                <td data-label="Venta">${formatCurrency(record.venta || 0)}</td>
+                <td data-label="Venta" style="${record.doc === 'NC' ? 'color: #ef4444; font-weight: 700;' : ''}">${formatCurrency(record.venta || 0)}</td>
                 <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
                 <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
@@ -686,11 +685,11 @@ const InterlogicRender = {
             </tr>
         `).join('');
 
-        const totals = this.filteredRecords.filter(r => r.doc !== 'NC').reduce((acc, r) => {
-            acc.venta += Number(r.venta || 0);
-            acc.bultos += Number(r.bultos || 0);
+        const totals = this.filteredRecords.reduce((acc, r) => {
+            acc.venta += this.signedAmount(r, 'venta');
+            acc.bultos += this.signedAmount(r, 'bultos');
             acc.cajas += Number(r.cobrador || 0);
-            acc.envio += Number(r.costoEnvio || 0);
+            acc.envio += this.signedAmount(r, 'costoEnvio');
             return acc;
         }, { venta: 0, bultos: 0, cajas: 0, envio: 0 });
 
@@ -712,22 +711,22 @@ const InterlogicRender = {
         const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
 
         const truncNotice = this._truncated
-            ? '<tr><td colspan="20" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. Acorta el rango de fechas para ver los demás.</td></tr>\n'
-            : '';
+            ? '<tr><td colspan="20" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
+            : (this._fullMode ? '<tr><td colspan="20" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
 
         tfoot.innerHTML = `
             ${truncNotice}
             <tr style="font-weight: 700; background: var(--gray-50);">
                 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 <td style="text-align: right;">TOTALES</td>
-                <td>${formatCurrency(totals.venta)}</td>
+                <td>${formatCurrencySigned(totals.venta)}</td>
                 <td>${formatNumber(totals.bultos)}</td>
                 <td>${totals.cajas}</td>
-                <td>${formatCurrency(totals.envio)}</td>
+                <td>${formatCurrencySigned(totals.envio)}</td>
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
-            ${this._truncated ? '<tr><td colspan="20" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. Reduce el rango o exporta por partes para ver todo.</div></td></tr>' : ''}
+            ${this._truncated ? '<tr><td colspan="20" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
                 <td colspan="20" style="padding: 0.5rem 0;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
@@ -758,9 +757,9 @@ const InterlogicRender = {
     updateStats() {
         const targetRecords = this.filteredRecords;
         const { totalVenta, totalBultos, totalEnvio } = targetRecords.reduce((acc, r) => {
-            acc.totalVenta += Number(r.venta) || 0;
-            acc.totalBultos += Number(r.bultos) || 0;
-            acc.totalEnvio += Number(r.costoEnvio) || 0;
+            acc.totalVenta += this.signedAmount(r, 'venta');
+            acc.totalBultos += this.signedAmount(r, 'bultos');
+            acc.totalEnvio += this.signedAmount(r, 'costoEnvio');
             return acc;
         }, { totalVenta: 0, totalBultos: 0, totalEnvio: 0 });
 
@@ -771,9 +770,9 @@ const InterlogicRender = {
         const elEnvio = document.getElementById('stat-total-envio');
         const elPct = document.getElementById('stat-total-porcentaje');
         
-        if (elVenta) elVenta.textContent = formatCurrency(totalVenta);
+        if (elVenta) elVenta.textContent = formatCurrencySigned(totalVenta);
         if (elBultos) elBultos.textContent = formatNumber(totalBultos);
-        if (elEnvio) elEnvio.textContent = formatCurrency(totalEnvio);
+        if (elEnvio) elEnvio.textContent = formatCurrencySigned(totalEnvio);
         if (elPct) elPct.textContent = `${formatNumber(porcentaje, 2)}% `;
     }
 };

@@ -86,7 +86,7 @@ const CobranzaCore = {
     },
 
     getCreditRecords() {
-        return this.records.map(r => {
+        return this.records.filter(r => r.doc !== 'NC').map(r => {
             const estadoCobro = r.estadoCobro || (r.cobrado === true ? 'pagado' : 'pendiente');
             const montoCobrado = Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0));
             const planPagos = r.planPagos || [];

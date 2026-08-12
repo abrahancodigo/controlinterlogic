@@ -74,6 +74,18 @@ const InterlogicCore = {
         try { return JSON.parse(localStorage.getItem('il_hidden_cols') || '[]'); } catch (e) { return []; }
     })(),
 
+    // true cuando el rango se cargó completo con loadFullRange() (sin tiempo real)
+    _fullMode: false,
+
+    /**
+     * Valor con signo: las Notas de Crédito (doc === 'NC') cuentan NEGATIVO
+     * para que los totales las descuenten en vez de sumarlas.
+     * Delega en la función global signedAmount() de utils.js.
+     */
+    signedAmount(record, field) {
+        return signedAmount(record, field);
+    },
+
     _clientSearchCache: null,
 
     _invalidateClientCache() {

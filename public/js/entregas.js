@@ -194,12 +194,11 @@ const Entregas = {
             if (r.fechaEntrega) { var d = r.fechaEntrega.toDate ? r.fechaEntrega.toDate() : new Date(r.fechaEntrega); fe = formatDateShort(d); }
             return "<tr>" + "<td>" + estH + "</td><td>" + sanitizeHTML(r.guia||"") + "</td><td>" + sanitizeHTML(r.empresa||"") + "</td><td>" + (r.fecha ? formatDateShort(r.fecha) : "") + "</td><td>" + sanitizeHTML((r.doc||"") + (r.docNum ? " #"+r.docNum : "")) + "</td><td>" + sanitizeHTML(r.cliente||"") + "</td><td>" + sanitizeHTML(r.departamento||r.zona||"") + "</td><td>" + sanitizeHTML(r.vendedor||"") + "</td><td>" + sanitizeHTML(r.condicionPago||"") + '</td><td style="text-align:right;font-weight:600;">' + formatCurrency(r.venta||0) + '</td><td style="text-align:center;">' + formatNumber(r.bultos||0) + "</td><td>" + fpH + '</td><td style="font-size:0.8rem;">' + fe + "</td></tr>";
         }).join("");
-        var nonNc = records.filter(function(r){ return r.doc !== "NC"; });
-        var tv = nonNc.reduce(function(s,r){ return s + (parseFloat(r.venta)||0); }, 0);
-        var tb = nonNc.reduce(function(s,r){ return s + (parseFloat(r.bultos)||0); }, 0);
+        var tv = records.reduce(function(s,r){ return s + signedAmount(r, 'venta'); }, 0);
+        var tb = records.reduce(function(s,r){ return s + signedAmount(r, 'bultos'); }, 0);
         var tfoot = document.getElementById("ent-table-footer");
         if (!tfoot) { tfoot = document.createElement("tfoot"); tfoot.id = "ent-table-footer"; var t = document.getElementById("ent-table-body"); if (t && t.parentElement) t.parentElement.appendChild(tfoot); }
-        tfoot.innerHTML = '<tr style="font-weight:700;background:var(--gray-50);"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>TOTALES</td><td style="text-align:right;">' + formatCurrency(tv) + '</td><td style="text-align:center;">' + formatNumber(tb) + "</td><td></td><td></td></tr>";
+        tfoot.innerHTML = '<tr style="font-weight:700;background:var(--gray-50);"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>TOTALES</td><td style="text-align:right;">' + formatCurrencySigned(tv) + '</td><td style="text-align:center;">' + formatNumber(tb) + "</td><td></td><td></td></tr>";
     },
 
     renderMobileCards() {
@@ -229,7 +228,7 @@ const Entregas = {
             var ent = r.entregado === true ? "Entregado" : "Pendiente";
             var f = r.fecha ? formatDateShort(r.fecha) : "";
             var fe = ""; if (r.fechaEntrega) { var d = r.fechaEntrega.toDate ? r.fechaEntrega.toDate() : new Date(r.fechaEntrega); fe = formatDateShort(d); }
-            return [ent, r.guia||"", r.empresa||"", f, r.doc||"", r.docNum||"", r.cliente||"", r.departamento||r.zona||"", r.municipio||"", r.vendedor||"", r.condicionPago||"", Number(r.venta||0), Number(r.bultos||0), r.formaPago||"", fe];
+            return [ent, r.guia||"", r.empresa||"", f, r.doc||"", r.docNum||"", r.cliente||"", r.departamento||r.zona||"", r.municipio||"", r.vendedor||"", r.condicionPago||"", signedAmount(r, 'venta'), signedAmount(r, 'bultos'), r.formaPago||"", fe];
         });
         var ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
         var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Estado Entregas");

@@ -49,6 +49,7 @@ const InterlogicCRUD = {
                     ...doc.data()
                 }));
                 this._truncated = snapshot.size >= MAX_RECORDS;
+                this._fullMode = false;
 
                 this.applyFilters();
 
@@ -67,8 +68,57 @@ const InterlogicCRUD = {
         this._loadingRecords = false;
     },
 
+    async loadFullRange() {
+        if (this._loadingRecords) return;
+        this._loadingRecords = true;
+
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+
+        const startDate = this.filters.startDate || getLocalDateString();
+        let endDate = this.filters.endDate || getLocalDateString();
+        const sParts = startDate.split('-').map(Number);
+        const eParts = endDate.split('-').map(Number);
+        const startTs = firebase.firestore.Timestamp.fromDate(new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0));
+        const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1] - 1, eParts[2], 23, 59, 59));
+
+        const db = firebase.firestore();
+        const baseQuery = db.collection('interlogic')
+            .where('fecha', '>=', startTs)
+            .where('fecha', '<=', endTs)
+            .orderBy('fecha', 'desc');
+
+        showFullLoadOverlay(true, 'Descargando registros del rango…');
+
+        try {
+            const all = await fetchAllChunked(baseQuery, {
+                chunkSize: 2000,
+                onProgress: (total, maybeMore) => {
+                    showFullLoadOverlay(true, `Descargados ${total.toLocaleString()} registros…`);
+                }
+            });
+
+            this.records = all;
+            this._truncated = false;
+            this._fullMode = true;
+
+            if (this.loading) this.loading = false;
+            this.applyFilters();
+            showToast('✓ Rango completo cargado (' + all.length.toLocaleString() + ' registros). Modo tiempo real desactivado.', 'success');
+        } catch (err) {
+            console.error('Error en loadFullRange:', err);
+            showToast('Error al cargar el rango completo: ' + err.message, 'error');
+        } finally {
+            showFullLoadOverlay(false);
+            this._loadingRecords = false;
+        }
+    },
+
     async reloadListener(useDateRange = false) {
         this._loadingRecords = false;
+        this._fullMode = false;
         await this.loadRecords(useDateRange);
     },
 
