@@ -97,6 +97,7 @@ const InterlogicRender = {
             </div>
 
             <div class="card">
+                <div id="il-pagination-top" style="margin-bottom: 0.6rem;"></div>
                 <div class="table-container">
                     <table class="data-table" id="il-data-table">
                         <thead>
@@ -408,6 +409,14 @@ const InterlogicRender = {
 
         if (!this.eventDelegationSetup) {
             contentArea.addEventListener('click', (e) => {
+                const pageBtnAll = e.target.closest('.page-btn-all');
+                if (pageBtnAll) {
+                    this.showAll = pageBtnAll.dataset.mode === 'all';
+                    if (this.showAll) this.currentPage = 1;
+                    this._renderTableNow();
+                    return;
+                }
+
                 const pageBtn = e.target.closest('.page-btn');
                 if (pageBtn) {
                     const p = parseInt(pageBtn.dataset.page, 10);
@@ -606,6 +615,50 @@ const InterlogicRender = {
         });
     },
 
+    /**
+     * Barra de paginación reutilizable (botones « ‹ › » + "Mostrando X–Y de Z").
+     * Se renderiza tanto arriba como abajo de la tabla para no tener que bajar
+     * hasta el final para cambiar de página.
+     */
+    _paginationBarHTML() {
+        const totalRows = this.filteredRecords.length;
+        const pageSize = this.pageSize || 100;
+        const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+        const startIdx = (this.currentPage - 1) * pageSize;
+        const firstShown = totalRows === 0 ? 0 : (startIdx + 1);
+        const lastShown = totalRows === 0 ? 0 : Math.min(startIdx + pageSize, totalRows);
+        const prevPage = Math.max(1, this.currentPage - 1);
+        const nextPage = Math.min(totalPages, this.currentPage + 1);
+        const pageBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+        const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+        const allBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#2563eb;color:#fff;';
+
+        if (this.showAll) {
+            return `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${totalRows}</strong> de <strong>${totalRows}</strong> registros (sin paginación)</span>
+                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        <button type="button" class="page-btn-all" data-mode="page" style="${allBtnStyle}">↩ Ver paginado</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${firstShown}–${lastShown}</strong> de <strong>${totalRows}</strong> registros</span>
+                <div style="display: flex; align-items: center; gap: 0.25rem;">
+                    <button type="button" class="page-btn" data-page="1" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">«</button>
+                    <button type="button" class="page-btn" data-page="${prevPage}" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">‹</button>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0 0.25rem;">Página <strong>${this.currentPage}</strong> / ${totalPages}</span>
+                    <button type="button" class="page-btn" data-page="${nextPage}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">›</button>
+                    <button type="button" class="page-btn" data-page="${totalPages}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">»</button>
+                    <button type="button" class="page-btn-all" data-mode="all" style="${allBtnStyle}">📄 Ver todo</button>
+                </div>
+            </div>
+        `;
+    },
+
     _renderTableNow() {
         const tableBody = document.getElementById('interlogic-table-body');
         if (!tableBody) return;
@@ -627,6 +680,8 @@ const InterlogicRender = {
             `;
             const tfoot = document.getElementById('interlogic-table-footer');
             if (tfoot) tfoot.innerHTML = '';
+            const topPag = document.getElementById('il-pagination-top');
+            if (topPag) topPag.innerHTML = '';
             return;
         }
 
@@ -640,7 +695,7 @@ const InterlogicRender = {
         if (this.currentPage > totalPages) this.currentPage = totalPages;
         if (this.currentPage < 1) this.currentPage = 1;
         const startIdx = (this.currentPage - 1) * pageSize;
-        const pageRecords = this.filteredRecords.slice(startIdx, startIdx + pageSize);
+        const pageRecords = this.showAll ? this.filteredRecords : this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         tableBody.innerHTML = pageRecords.map(record => `
             <tr style="${record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : ''}">
@@ -702,13 +757,8 @@ const InterlogicRender = {
             document.getElementById('il-data-table').appendChild(tfoot);
         }
 
-        const prevPage = Math.max(1, this.currentPage - 1);
-        const nextPage = Math.min(totalPages, this.currentPage + 1);
-        const firstShown = totalRows === 0 ? 0 : (startIdx + 1);
-        const lastShown = totalRows === 0 ? 0 : Math.min(startIdx + pageSize, totalRows);
-
-        const pageBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
-        const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+        const topPagEl = document.getElementById('il-pagination-top');
+        if (topPagEl) topPagEl.innerHTML = this._paginationBarHTML();
 
         const truncNotice = this._truncated
             ? '<tr><td colspan="20" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
@@ -729,16 +779,7 @@ const InterlogicRender = {
             ${this._truncated ? '<tr><td colspan="20" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
                 <td colspan="20" style="padding: 0.5rem 0;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${firstShown}–${lastShown}</strong> de <strong>${totalRows}</strong> registros</span>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <button type="button" class="page-btn" data-page="1" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">«</button>
-                            <button type="button" class="page-btn" data-page="${prevPage}" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">‹</button>
-                            <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0 0.25rem;">Página <strong>${this.currentPage}</strong> / ${totalPages}</span>
-                            <button type="button" class="page-btn" data-page="${nextPage}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">›</button>
-                            <button type="button" class="page-btn" data-page="${totalPages}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">»</button>
-                        </div>
-                    </div>
+                    ${this._paginationBarHTML()}
                 </td>
             </tr>
         `;
