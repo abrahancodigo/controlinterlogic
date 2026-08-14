@@ -44,8 +44,12 @@ const InterlogicExcel = {
             return;
         }
 
-        const dateStrStart = this.filters.startDate ? formatDate(this.filters.startDate, false) : '(Inicio)';
-        const dateStrEnd = this.filters.endDate ? formatDate(this.filters.endDate, false) : '(Fin)';
+        const parseLocalDateStr = (str) => {
+            const p = String(str).split('-');
+            return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        };
+        const dateStrStart = this.filters.startDate ? formatDate(parseLocalDateStr(this.filters.startDate), false) : '(Inicio)';
+        const dateStrEnd = this.filters.endDate ? formatDate(parseLocalDateStr(this.filters.endDate), false) : '(Fin)';
 
         const visibleCols = this.columnDefs.filter(c =>
             c.key !== 'acciones' && !this.hiddenColumns.includes(c.key)
