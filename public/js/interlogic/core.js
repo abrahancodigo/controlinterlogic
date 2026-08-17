@@ -71,7 +71,11 @@ const InterlogicCore = {
         { key: 'acciones', label: 'Acciones' }
     ],
     hiddenColumns: (() => {
-        try { return JSON.parse(localStorage.getItem('il_hidden_cols') || '[]'); } catch (e) { return []; }
+        try {
+            const saved = localStorage.getItem('il_hidden_cols');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return ['guia', 'fecha', 'municipio', 'bultos', 'cobrador', 'costoEnvio', 'costoPorcentaje', 'observations', 'formaPago'];
     })(),
 
     // true cuando el rango se cargó completo con loadFullRange() (sin tiempo real)
