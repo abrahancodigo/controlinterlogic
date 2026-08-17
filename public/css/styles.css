@@ -7610,6 +7610,7 @@ tbody tr:hover {
 .dash-kpi-icon-contado { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35); }
 .dash-kpi-icon-credito { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35); }
 .dash-kpi-icon-dalse { background: linear-gradient(135deg, #06b6d4, #22d3ee); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35); }
+.dash-kpi-icon-incede { background: linear-gradient(135deg, #e11d48, #f43f5e); box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35); }
 
 .dash-kpi-body {
     flex: 1;
@@ -8376,6 +8377,7 @@ tbody tr:hover {
 .dash-carrier-avatar-dalse { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
 .dash-carrier-avatar-interlogistic { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
 .dash-carrier-avatar-xpress { background: linear-gradient(135deg, #ec4899, #f472b6); }
+.dash-carrier-avatar-incede { background: linear-gradient(135deg, #e11d48, #f43f5e); }
 .dash-carrier-avatar-default { background: linear-gradient(135deg, #6b7280, #9ca3af); }
 
 .dash-carrier-body { flex: 1; }
@@ -8817,7 +8819,7 @@ tbody tr:hover {
     white-space: nowrap;
 }
 
-.dash-detail-table .dash-modal-amount { font-weight: 700; color: #10b981; text-align: right; }
+.dash-detail-table .dash-modal-amount { font-weight: 700; color: var(--text-primary); text-align: right; }
 
 .dash-detail-modal-footer {
     display: flex;
@@ -8877,10 +8879,10 @@ tbody tr:hover {
 .dash-chip-value { font-size: 1rem; font-weight: 800; color: var(--text-primary); }
 .dash-chip-total .dash-chip-value { color: #7c3aed; }
 .dash-chip-avg .dash-chip-value { color: #3b82f6; }
-.dash-chip-max .dash-chip-value { color: #10b981; }
+.dash-chip-max .dash-chip-value { color: var(--text-primary); }
 [data-theme="dark"] .dash-chip-total .dash-chip-value { color: #a78bfa; }
 [data-theme="dark"] .dash-chip-avg .dash-chip-value { color: #93c5fd; }
-[data-theme="dark"] .dash-chip-max .dash-chip-value { color: #6ee7b7; }
+[data-theme="dark"] .dash-chip-max .dash-chip-value { color: var(--text-primary); }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Enhanced modal: search bar Ã¢â€â‚¬Ã¢â€â‚¬ */
 .dash-detail-search {

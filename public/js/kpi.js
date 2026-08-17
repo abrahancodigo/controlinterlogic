@@ -55,25 +55,12 @@ const KpiEvaluation = {
                 </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-card">
-                    <small>EVALUACIONES</small>
-                    <p id="kpi-stat-total">0</p>
-                </div>
-                <div class="stat-card">
-                    <small>PROMEDIO GENERAL</small>
-                    <p id="kpi-stat-avg">0.00</p>
-                </div>
-                <div class="stat-card">
-                    <small>MEJOR ASPECTO</small>
-                    <p id="kpi-stat-best" style="font-size: 0.9rem;">-</p>
-                </div>
-                <div class="stat-card">
-                    <small>ASPECTO A MEJORAR</small>
-                    <p id="kpi-stat-worst" style="font-size: 0.9rem;">-</p>
-                </div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'EVALUACIONES', id: 'kpi-stat-total', tag: 'small' },
+                { label: 'PROMEDIO GENERAL', id: 'kpi-stat-avg', tag: 'small' },
+                { label: 'MEJOR ASPECTO', id: 'kpi-stat-best', tag: 'small', style: 'font-size: 0.9rem;' },
+                { label: 'ASPECTO A MEJORAR', id: 'kpi-stat-worst', tag: 'small', style: 'font-size: 0.9rem;' }
+            ], { containerStyle: 'margin-bottom: 1.5rem;' })}
 
             <div class="card">
                 <div class="table-container" style="overflow-x: auto;">

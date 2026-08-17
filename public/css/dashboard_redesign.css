@@ -1558,14 +1558,21 @@
 }
 .dash-kpi-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 18px 32px -12px rgba(15,23,42,0.30);
+    box-shadow: 0 18px 32px -12px color-mix(in srgb, var(--kpi-accent, #7c3aed) 45%, rgba(15,23,42,0.30));
     border-color: color-mix(in srgb, var(--kpi-accent, #7c3aed) 40%, var(--dash-border));
 }
+/* Neutralizar la barra azul heredada (::after del refresh corporativo)
+   para que se vea la barra de acento de color de cada tarjeta (::before) */
+.dash-kpi-card::after {
+    background: transparent;
+}
 /* color de acento por tarjeta */
+.dash-kpi-card:nth-child(5) { animation-delay: 0.16s; }
 .dash-kpi-icon-total   { --kpi-accent: #7c3aed; }
 .dash-kpi-icon-contado { --kpi-accent: #10b981; }
 .dash-kpi-icon-credito { --kpi-accent: #f59e0b; }
 .dash-kpi-icon-dalse   { --kpi-accent: #06b6d4; }
+.dash-kpi-icon-incede  { --kpi-accent: #e11d48; }
 
 /* ---- Head: icono-badge + delta ---- */
 .dash-kpi-head {
@@ -1589,6 +1596,7 @@
 .dash-kpi-icon-contado { background: linear-gradient(135deg, #10b981, #34d399); }
 .dash-kpi-icon-credito { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 .dash-kpi-icon-dalse   { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
+.dash-kpi-icon-incede  { background: linear-gradient(135deg, #e11d48, #f43f5e); }
 
 /* ---- Body ---- */
 .dash-kpi-body {
@@ -1826,7 +1834,7 @@
 
 .dash-detail-chip.dash-chip-max .dash-chip-label,
 .dash-detail-chip.dash-chip-max .dash-chip-value {
-    color: #ffffff !important;
+    color: var(--text-primary) !important;
 }
 
 /* Chips de acumulados sin seleccionar: mantener el aspecto
@@ -1893,4 +1901,17 @@
 /* Estado vacío (Dalse sin entregas): la tarjeta también es sólida
    ahora, así que el texto blanco quedaba invisible → usar tema */
 .dash-hero .dash-kpi-card.dash-kpi-empty .dash-kpi-value { color: var(--dash-text); }
+
+/* Tooltip personalizado de la gráfica Ventas por Despachador */
+.dash-bar-tip { padding: 4px 2px; min-width: 150px; }
+.dash-bar-tip-head { display: flex; align-items: center; gap: 7px; }
+.dash-bar-tip-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18); }
+.dash-bar-tip-name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; }
+.dash-bar-tip-val { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-top: 2px; }
+.dash-bar-tip-track { height: 5px; border-radius: 999px; background: rgba(148, 163, 184, 0.22); margin-top: 8px; overflow: hidden; }
+.dash-bar-tip-track span { display: block; height: 100%; border-radius: 999px; transition: width 0.2s ease; }
+.dash-bar-tip-pct { font-size: 0.75rem; font-weight: 700; color: #64748b; margin-top: 6px; }
+[data-theme="dark"] .dash-bar-tip-val { color: #f1f5f9; }
+[data-theme="dark"] .dash-bar-tip-name { color: #94a3b8; }
+[data-theme="dark"] .dash-bar-tip-pct { color: #94a3b8; }
 

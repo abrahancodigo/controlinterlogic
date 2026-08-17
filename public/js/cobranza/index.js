@@ -69,10 +69,10 @@ const Cobranza = {
         records.sort((a, b) => b.pendiente - a.pendiente);
 
         container.innerHTML = `
-            <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total Pendiente</h3><p style="color:#f97316;">${formatCurrency(records.reduce((s,r)=>s+r.pendiente,0))}</p></div>
-                <div class="stat-card"><h3>Registros</h3><p>${records.length}</p></div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total Pendiente', id: 'cob-estado-pendiente', style: 'color:#f97316;' },
+                { label: 'Registros', id: 'cob-estado-registros' }
+            ], { containerStyle: 'margin-bottom:1rem;' })}
             <div class="card">
                 <div class="card-body">
                     <table style="width:100%;font-size:0.85rem;">
@@ -95,6 +95,13 @@ const Cobranza = {
                 </div>
             </div>
         `;
+
+        // Actualizar stats después de renderizar
+        const totalPendiente = records.reduce((s, r) => s + r.pendiente, 0);
+        const elPendiente = document.getElementById('cob-estado-pendiente');
+        if (elPendiente) elPendiente.textContent = formatCurrency(totalPendiente);
+        const elRegistros = document.getElementById('cob-estado-registros');
+        if (elRegistros) elRegistros.textContent = records.length;
     },
 
     renderAging() {
@@ -104,12 +111,14 @@ const Cobranza = {
         const buckets = { 'corriente': [], '1-30': [], '31-60': [], '61-90': [], '90+': [] };
         records.forEach(r => { if (buckets[r.agingBucket]) buckets[r.agingBucket].push(r); });
 
+        const agingStats = Object.entries(buckets).map(([k, v]) => ({
+            label: k === 'corriente' ? 'Corriente' : k,
+            id: `cob-aging-${k}`,
+            tag: 'h3'
+        }));
+
         container.innerHTML = `
-            <div class="stats-grid" style="margin-bottom:1rem;">
-                ${Object.entries(buckets).map(([k, v]) => `
-                    <div class="stat-card"><h3>${k==='corriente'?'Corriente':k}</h3><p>${v.length} · ${formatCurrency(v.reduce((s,r)=>s+r.pendiente,0))}</p></div>
-                `).join('')}
-            </div>
+            ${SharedComponents.renderStatsGrid(agingStats, { containerStyle: 'margin-bottom:1rem;' })}
             ${Object.entries(buckets).map(([k, v]) => v.length > 0 ? `
                 <div class="card" style="margin-bottom:1rem;">
                     <div class="card-header"><h2>${k==='corriente'?'✅ Corriente':k==='1-30'?'🟡 1-30 días':k==='31-60'?'🟠 31-60 días':k==='61-90'?'🔴 61-90 días':'⛔ 90+ días'} (${v.length})</h2></div>
@@ -122,6 +131,12 @@ const Cobranza = {
                 </div>
             ` : '').join('')}
         `;
+
+        // Actualizar stats después de renderizar
+        Object.entries(buckets).forEach(([k, v]) => {
+            const el = document.getElementById(`cob-aging-${k}`);
+            if (el) el.textContent = `${v.length} · ${formatCurrency(v.reduce((s, r) => s + r.pendiente, 0))}`;
+        });
     },
 
     async renderMobile() {

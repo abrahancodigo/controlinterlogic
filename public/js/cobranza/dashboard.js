@@ -33,14 +33,14 @@ const CobranzaDashboard = {
         const alertas = this.getAlertas();
 
         container.innerHTML = `
-            <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total CxC</h3><p style="color:#f97316;">${formatCurrency(totalCxC)}</p></div>
-                <div class="stat-card"><h3>Cartera Vencida</h3><p style="color:#ef4444;">${carteraVencida.toFixed(1)}%</p></div>
-                <div class="stat-card"><h3>Cobrado este Mes</h3><p style="color:#22c55e;">${formatCurrency(cobradoMes)}</p></div>
-                <div class="stat-card"><h3>DSO (días cobro)</h3><p style="color:${dso>30?'#ef4444':'#22c55e'};">${dso} días</p></div>
-                <div class="stat-card"><h3>CEI (efectividad)</h3><p style="color:${cei>=80?'#22c55e':cei>=50?'#f97316':'#ef4444'};">${cei}%</p></div>
-                <div class="stat-card"><h3>Pendientes</h3><p>${pendientes.length} registros</p></div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total CxC', id: 'cob-dash-total-cxc', style: 'color:#f97316;' },
+                { label: 'Cartera Vencida', id: 'cob-dash-cartera-vencida', style: 'color:#ef4444;' },
+                { label: 'Cobrado este Mes', id: 'cob-dash-cobrado-mes', style: 'color:#22c55e;' },
+                { label: 'DSO (días cobro)', id: 'cob-dash-dso', style: `color:${dso > 30 ? '#ef4444' : '#22c55e'};` },
+                { label: 'CEI (efectividad)', id: 'cob-dash-cei', style: `color:${cei >= 80 ? '#22c55e' : cei >= 50 ? '#f97316' : '#ef4444'};` },
+                { label: 'Pendientes', id: 'cob-dash-pendientes' }
+            ], { containerStyle: 'margin-bottom:1rem;' })}
 
             ${alertas.filter(a => a.tipo === 'critico').length > 0 ? `
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 15px;margin-bottom:1rem;display:flex;align-items:center;gap:8px;">
@@ -106,6 +106,20 @@ const CobranzaDashboard = {
                 </div>
             </div>
         `;
+
+        // Actualizar stats después de renderizar
+        const elTotalCxC = document.getElementById('cob-dash-total-cxc');
+        if (elTotalCxC) elTotalCxC.textContent = formatCurrency(totalCxC);
+        const elCarteraVencida = document.getElementById('cob-dash-cartera-vencida');
+        if (elCarteraVencida) elCarteraVencida.textContent = carteraVencida.toFixed(1) + '%';
+        const elCobradoMes = document.getElementById('cob-dash-cobrado-mes');
+        if (elCobradoMes) elCobradoMes.textContent = formatCurrency(cobradoMes);
+        const elDSO = document.getElementById('cob-dash-dso');
+        if (elDSO) elDSO.textContent = dso + ' días';
+        const elCEI = document.getElementById('cob-dash-cei');
+        if (elCEI) elCEI.textContent = cei + '%';
+        const elPendientes = document.getElementById('cob-dash-pendientes');
+        if (elPendientes) elPendientes.textContent = pendientes.length + ' registros';
     }
 };
 

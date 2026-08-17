@@ -145,6 +145,20 @@ const Dashboard = {
                         <div class="dash-kpi-sparkline" id="dash-dalse-spark"></div>
                     </div>
                 </div>
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-head">
+                        <div class="dash-kpi-icon dash-kpi-icon-incede">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        </div>
+                        <div class="dash-kpi-delta" id="dash-incede-delta"></div>
+                    </div>
+                    <div class="dash-kpi-body">
+                        <div class="dash-kpi-label">Incede</div>
+                        <div class="dash-kpi-value" id="dash-incede-monto">$0</div>
+                        <div class="dash-kpi-meta" id="dash-incede-count">0 entregas</div>
+                        <div class="dash-kpi-sparkline" id="dash-incede-spark"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -163,11 +177,10 @@ const Dashboard = {
             <div class="dash-chart-body" id="dash-incede-chart"></div>
         </div>
     </div>
-    <div class="dash-charts-row">
-        <div class="dash-chart-card dash-chart-full">
-            <div class="dash-chart-header"><h3>Ventas por Despachador</h3><span class="dash-chart-total" id="dash-bar-chart-total"></span></div>
-            <div class="dash-chart-body" id="dash-bar-chart"></div>
-        </div>
+    <div class="dash-charts-row">            <div class="dash-chart-card dash-chart-full" id="dash-bar-chart-card">
+                <div class="dash-chart-header"><h3>Ventas por Despachador</h3><span class="dash-chart-total" id="dash-bar-chart-total"></span></div>
+                <div class="dash-chart-body" id="dash-bar-chart"></div>
+            </div>
     </div>
 
     <div class="dash-section">
@@ -336,12 +349,13 @@ const Dashboard = {
         });
 
         /* ── KPI card click → detail modal ── */
-        const kpiTypes = ['total', 'contado', 'credito', 'dalse'];
+        const kpiTypes = ['total', 'contado', 'credito', 'dalse', 'incede'];
         document.querySelectorAll('.dash-kpi-card').forEach((card, index) => {
-            if (index < 4) {
+            if (index < 5) {
                 card.style.cursor = 'pointer';
                 card.addEventListener('click', () => {
-                    this.showDetailModal(kpiTypes[index]);
+                    if (kpiTypes[index] === 'incede') this.showIncedeDetailModal();
+                    else this.showDetailModal(kpiTypes[index]);
                 });
             }
         });
@@ -443,13 +457,14 @@ const Dashboard = {
 
             if (!dailyStats[dk]) dailyStats[dk] = {
                 label: dl, total: 0, totalCount: 0,
-                contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0
+                contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, incede: 0
             };
             dailyStats[dk].total += m;
             dailyStats[dk].totalCount++;
             if (isContado) { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
             else { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
             if (emp === 'DALSE') dailyStats[dk].dalse += m;
+            if (emp === 'INCEDE') dailyStats[dk].incede += m;
         });
 
         const sortedDays = Object.entries(dailyStats).sort((a, b) => a[0].localeCompare(b[0]));
@@ -458,12 +473,15 @@ const Dashboard = {
             total: sortedDays.map(([, d]) => d.total),
             contado: sortedDays.map(([, d]) => d.contado),
             credito: sortedDays.map(([, d]) => d.credito),
-            dalse: sortedDays.map(([, d]) => d.dalse)
+            dalse: sortedDays.map(([, d]) => d.dalse),
+            incede: sortedDays.map(([, d]) => d.incede)
         };
 
         const chartDays = sortedDays.map(([, d]) => d.label);
 
-        const carrierNames = ['DALSE', 'INTERLOGISTIC', 'XPRESS'];
+        const carrierNames = Object.entries(carrierStats)
+            .sort((a, b) => b[1].monto - a[1].monto)
+            .map(([name]) => name);
         const carrierBarData = carrierNames.map(name =>
             Math.round((carrierStats[name] && carrierStats[name].monto) || 0)
         );
@@ -492,22 +510,30 @@ const Dashboard = {
         anim(e('dash-contado-monto'), this.formatMoney(s.contado));
         anim(e('dash-credito-monto'), this.formatMoney(s.credito));
         anim(e('dash-dalse-monto'), this.formatMoney(s.dalse));
+        anim(e('dash-incede-monto'), this.formatMoney(s.incede));
 
         if (e('dash-total-count')) e('dash-total-count').textContent = `${s.totalCount} entrega${s.totalCount !== 1 ? 's' : ''}`;
         if (e('dash-contado-count')) e('dash-contado-count').textContent = `${s.contadoCount} entrega${s.contadoCount !== 1 ? 's' : ''}`;
         if (e('dash-credito-count')) e('dash-credito-count').textContent = `${s.creditoCount} entrega${s.creditoCount !== 1 ? 's' : ''}`;
         if (e('dash-dalse-count')) e('dash-dalse-count').textContent = s.dalseCount === 0 ? 'Sin entregas' : `${s.dalseCount} entrega${s.dalseCount !== 1 ? 's' : ''}`;
+        if (e('dash-incede-count')) e('dash-incede-count').textContent = s.incedeCount === 0 ? 'Sin entregas' : `${s.incedeCount} entrega${s.incedeCount !== 1 ? 's' : ''}`;
 
         const dalseCard = document.querySelector('.dash-kpi-icon-dalse')?.closest('.dash-kpi-card');
         if (dalseCard) {
             if (s.dalseCount === 0) dalseCard.classList.add('dash-kpi-empty');
             else dalseCard.classList.remove('dash-kpi-empty');
         }
+        const incedeCard = document.querySelector('.dash-kpi-icon-incede')?.closest('.dash-kpi-card');
+        if (incedeCard) {
+            if (s.incedeCount === 0) incedeCard.classList.add('dash-kpi-empty');
+            else incedeCard.classList.remove('dash-kpi-empty');
+        }
 
         this.renderSparkline('dash-total-spark', spark.total, '#a78bfa');
         this.renderSparkline('dash-contado-spark', spark.contado, '#34d399');
         this.renderSparkline('dash-credito-spark', spark.credito, '#fbbf24');
         this.renderSparkline('dash-dalse-spark', spark.dalse, '#22d3ee');
+        this.renderSparkline('dash-incede-spark', spark.incede, '#f43f5e');
     },
 
     renderSparkline(elId, data, color) {
@@ -553,7 +579,8 @@ const Dashboard = {
             total: 'dash-total-delta',
             contado: 'dash-contado-delta',
             credito: 'dash-credito-delta',
-            dalse: 'dash-dalse-delta'
+            dalse: 'dash-dalse-delta',
+            incede: 'dash-incede-delta'
         };
 
         Object.entries(deltaEls).forEach(([key, id]) => {
@@ -573,7 +600,7 @@ const Dashboard = {
     },
 
     computeTotals(records) {
-        let total = 0, contado = 0, credito = 0, dalse = 0;
+        let total = 0, contado = 0, credito = 0, dalse = 0, incede = 0;
         records.forEach(r => {
             const m = signedAmount(r, 'venta');
             const cond = (r.condicionPago || '').toLowerCase().trim();
@@ -582,8 +609,9 @@ const Dashboard = {
             if (cond === 'contado') contado += m;
             else if (cond === 'credito' || cond === 'crédito') credito += m;
             if ((r.empresa || '').toUpperCase().trim() === 'DALSE') dalse += m;
+            if ((r.empresa || '').toUpperCase().trim() === 'INCEDE') incede += m;
         });
-        return { total, contado, credito, dalse };
+        return { total, contado, credito, dalse, incede };
     },
 
     /* ── ApexCharts init & update ── */
@@ -680,18 +708,23 @@ const Dashboard = {
         };
 
         const barOptions = {
-            chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = ['DALSE', 'INTERLOGISTIC', 'XPRESS']; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
+            chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, height: 448, animations: { enabled: true, easing: 'easeout', speed: 750, animateGradually: { enabled: true, delay: 70 } }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._barChartNames || []; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
             series: [{ name: 'Ventas', data: [] }],
-            xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
+            xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } }, crosshairs: { show: false } },
             yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif', colors: mutedColor } } },
-            colors: ['#7c3aed', '#3b82f6', '#ec4899'],
+            colors: ['#7c3aed', '#2563eb', '#db2777'],
             plotOptions: {
                 bar: {
-                    borderRadius: 12,
+                    borderRadius: 14,
                     borderRadiusApplication: 'end',
-                    columnWidth: '48%',
+                    columnWidth: '55%',
                     distributed: true,
-                    dataLabels: { position: 'top', maxItems: 8 }
+                    dataLabels: { position: 'top', maxItems: 8 },
+                    colors: {
+                        backgroundBarColors: [theme === 'dark' ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.10)'],
+                        backgroundBarOpacity: 1,
+                        backgroundBarRadius: 14
+                    }
                 }
             },
             fill: {
@@ -699,7 +732,8 @@ const Dashboard = {
                 gradient: {
                     shade: 'light',
                     type: 'vertical',
-                    opacityFrom: 0.96,
+                    gradientToColors: ['#c4b5fd', '#93c5fd', '#f9a8d4'],
+                    opacityFrom: 0.98,
                     opacityTo: 0.78,
                     stops: [0, 100]
                 }
@@ -711,14 +745,33 @@ const Dashboard = {
                     const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
                     return '$' + Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\n' + pct + '%';
                 },
-                style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
+                style: { fontSize: '13px', fontWeight: 800, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
                 offsetY: -22,
                 dropShadow: { enabled: false }
             },
-            tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
-            grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 4, padding: { top: 30 } },
+            tooltip: {
+                custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+                    const val = series[seriesIndex][dataPointIndex];
+                    const name = (w.globals.categories || [])[dataPointIndex] || '';
+                    const total = window.Dashboard?.barTotal || 0;
+                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0';
+                    const color = (w.globals.colors || [])[dataPointIndex] || '#7c3aed';
+                    return '<div class="dash-bar-tip">' +
+                        '<div class="dash-bar-tip-head"><span class="dash-bar-tip-dot" style="background:' + color + '"></span><div class="dash-bar-tip-name">' + name + '</div></div>' +
+                        '<div class="dash-bar-tip-val">$' + Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div>' +
+                        '<div class="dash-bar-tip-track"><span style="width:' + pct + '%;background:' + color + '"></span></div>' +
+                        '<div class="dash-bar-tip-pct">' + pct + '% del total</div>' +
+                        '</div>';
+                }
+            },
+            grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 5, padding: { top: 40, left: 8, right: 8, bottom: 0 } },
+            dropShadow: { enabled: true, top: 4, left: 0, blur: 8, color: '#000000', opacity: 0.12 },
+            states: {
+                hover: { filter: { type: 'lighten', value: 0.06 } },
+                active: { filter: { type: 'lighten', value: 0.04 } }
+            },
             theme: { mode: theme },
-            responsive: [{ breakpoint: 768, options: { chart: { height: 300 }, dataLabels: { enabled: false, style: { fontSize: '12px' } } } }]
+            responsive: [{ breakpoint: 768, options: { dataLabels: { enabled: false, style: { fontSize: '12px' } } } }]
         };
 
         const donutEl = document.getElementById('dash-donut-chart');
@@ -931,12 +984,31 @@ const Dashboard = {
         }
 
         if (this.charts.bar) {
-            const barMax = Math.max(...data.bar.data, 0) * 1.35;
+            const rawMax = Math.max(...data.bar.data, 0);
+            const target = rawMax * 1.15;
+            const pow = Math.pow(10, Math.floor(Math.log10(target > 0 ? target : 1)));
+            const step = [1, 2, 2.5, 5, 10].map(m => m * pow).find(c => c >= target) || pow * 10;
+            const barMax = step;
             const total = data.bar.data.reduce((a, b) => a + b, 0);
             window.Dashboard.barTotal = total;
+            window.Dashboard._barChartNames = data.bar.categories;
+            const carrierGradients = {
+                DALSE: ['#7c3aed', '#c4b5fd'],
+                INTERLOGISTIC: ['#2563eb', '#93c5fd'],
+                XPRESS: ['#db2777', '#f9a8d4'],
+                INCEDE: ['#e11d48', '#fda4af']
+            };
+            const palette = [['#7c3aed', '#c4b5fd'], ['#2563eb', '#93c5fd'], ['#db2777', '#f9a8d4'], ['#e11d48', '#fda4af'], ['#0891b2', '#67e8f9'], ['#059669', '#6ee7b7'], ['#d97706', '#fcd34d']];
+            const barPairs = data.bar.categories.map((n, i) => carrierGradients[n] || palette[i % palette.length]);
+            const barColors = barPairs.map(p => p[0]);
+            const barGradientTo = barPairs.map(p => p[1]);
+            const barHeight = Math.max(448, data.bar.categories.length * 145);
             this.charts.bar.updateOptions({
+                chart: { height: barHeight },
+                colors: barColors,
+                fill: { type: 'gradient', gradient: { gradientToColors: barGradientTo } },
                 xaxis: { categories: data.bar.categories },
-                yaxis: { min: 0, max: barMax || 10, forceNiceScale: false },
+                yaxis: { min: 0, max: barMax || 10, tickAmount: 5, forceNiceScale: false },
                 series: [{ data: data.bar.data }]
             });
             this._setChartTotal('dash-bar-chart-total', total);
@@ -1347,7 +1419,8 @@ const Dashboard = {
         const cfg = {
             'DALSE': { cls: 'dash-carrier-avatar-dalse' },
             'INTERLOGISTIC': { cls: 'dash-carrier-avatar-interlogistic' },
-            'XPRESS': { cls: 'dash-carrier-avatar-xpress' }
+            'XPRESS': { cls: 'dash-carrier-avatar-xpress' },
+            'INCEDE': { cls: 'dash-carrier-avatar-incede' }
         };
 
         container.innerHTML = carriers.map(([name, d]) => {
@@ -1475,7 +1548,7 @@ const Dashboard = {
     showCarrierDetailModal(carrierName) {
         const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
         const title = carrierName;
-        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#1d4ed8', XPRESS: '#be185d' };
+        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#1d4ed8', XPRESS: '#be185d', INCEDE: '#be123c' };
         const color = colors[carrierName] || '#6b7280';
         this._renderDetailModal(filtered, title, color);
     },

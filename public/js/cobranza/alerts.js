@@ -12,11 +12,11 @@ const CobranzaAlerts = {
         alertas.forEach(a => { if (grupos[a.tipo]) grupos[a.tipo].items.push(a); });
 
         container.innerHTML = `
-            <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total Alertas</h3><p>${alertas.length}</p></div>
-                <div class="stat-card"><h3>Críticas</h3><p style="color:#ef4444;">${grupos.critico.items.length}</p></div>
-                <div class="stat-card"><h3>Por Vencer</h3><p style="color:#3b82f6;">${grupos.info.items.length}</p></div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total Alertas', id: 'cob-alertas-total' },
+                { label: 'Críticas', id: 'cob-alertas-criticas', style: 'color:#ef4444;' },
+                { label: 'Por Vencer', id: 'cob-alertas-por-vencer', style: 'color:#3b82f6;' }
+            ], { containerStyle: 'margin-bottom:1rem;' })}
             ${Object.values(grupos).filter(g => g.items.length > 0).map(g => `
                 <div class="card" style="margin-bottom:1rem;">
                     <div class="card-header"><h2>${g.titulo} (${g.items.length})</h2></div>
@@ -29,6 +29,14 @@ const CobranzaAlerts = {
             `).join('')}
             ${alertas.length===0 ? '<div style="text-align:center;padding:3rem;color:#22c55e;"><span style="font-size:2rem;">✅</span><h2>Todas las cuentas al día</h2><p>No hay alertas de cobranza en este momento.</p></div>' : ''}
         `;
+
+        // Actualizar stats después de renderizar
+        const elTotal = document.getElementById('cob-alertas-total');
+        if (elTotal) elTotal.textContent = alertas.length;
+        const elCriticas = document.getElementById('cob-alertas-criticas');
+        if (elCriticas) elCriticas.textContent = grupos.critico.items.length;
+        const elPorVencer = document.getElementById('cob-alertas-por-vencer');
+        if (elPorVencer) elPorVencer.textContent = grupos.info.items.length;
     },
 
     renderProyeccion() {
@@ -46,11 +54,11 @@ const CobranzaAlerts = {
         });
 
         container.innerHTML = `
-            <div class="stats-grid" style="margin-bottom:1rem;">
-                <div class="stat-card"><h3>Total Proyectado</h3><p style="color:#f97316;">${formatCurrency(records.reduce((s,r)=>s+r.pendiente,0))}</p></div>
-                <div class="stat-card"><h3>Próx. 30 días</h3><p style="color:#eab308;">${formatCurrency(records.filter(r=>r.agingDays>=0&&r.agingDays<=30).reduce((s,r)=>s+r.pendiente,0))}</p></div>
-                <div class="stat-card"><h3>Registros</h3><p>${records.length}</p></div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total Proyectado', id: 'cob-proy-total', style: 'color:#f97316;' },
+                { label: 'Próx. 30 días', id: 'cob-proy-30d', style: 'color:#eab308;' },
+                { label: 'Registros', id: 'cob-proy-registros' }
+            ], { containerStyle: 'margin-bottom:1rem;' })}
             ${Object.entries(byMonth).map(([month, data]) => `
                 <div class="card" style="margin-bottom:1rem;">
                     <div class="card-header"><h2>📆 ${month.charAt(0).toUpperCase()+month.slice(1)} — ${formatCurrency(data.total)}</h2></div>
@@ -74,6 +82,16 @@ const CobranzaAlerts = {
                 </div>
             `).join('')}
         `;
+
+        // Actualizar stats después de renderizar
+        const totalProyectado = records.reduce((s, r) => s + r.pendiente, 0);
+        const prox30d = records.filter(r => r.agingDays >= 0 && r.agingDays <= 30).reduce((s, r) => s + r.pendiente, 0);
+        const elTotalProy = document.getElementById('cob-proy-total');
+        if (elTotalProy) elTotalProy.textContent = formatCurrency(totalProyectado);
+        const el30d = document.getElementById('cob-proy-30d');
+        if (el30d) el30d.textContent = formatCurrency(prox30d);
+        const elRegistros = document.getElementById('cob-proy-registros');
+        if (elRegistros) elRegistros.textContent = records.length;
     }
 };
 

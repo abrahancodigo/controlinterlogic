@@ -71,30 +71,19 @@ const InterlogicRender = {
                 </div>
             </div>
 
-            <div class="stats-grid" id="interlogic-stats">
-                <div class="stat-card">
-                    <h3>Total Venta</h3>
-                    <p id="stat-total-venta">$0.00</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Bultos</h3>
-                    <p id="stat-total-bultos">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Costo Envío</h3>
-                    <p id="stat-total-envio">$0.00</p>
-                </div>
-                <div class="stat-card">
-                    <h3>% Costo</h3>
-                    <p id="stat-total-porcentaje">0.00%</p>
-                </div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total Venta', id: 'stat-total-venta' },
+                { label: 'Total Bultos', id: 'stat-total-bultos' },
+                { label: 'Costo Envío', id: 'stat-total-envio' },
+                { label: '% Costo', id: 'stat-total-porcentaje' }
+            ], { containerId: 'interlogic-stats' })}
 
-            <div style="margin-bottom: 0.5rem;">
-                <input type="text" id="global-search" placeholder="🔍 Buscar en todas las columnas..." 
-                       value="${this.filters.search || ''}"
-                       style="width: 100%; padding: 0.6rem 1rem; font-size: 0.95rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-family); transition: all 0.25s; background: white;">
-            </div>
+            ${SharedComponents.renderSearchBar({
+                id: 'global-search',
+                placeholder: '🔍 Buscar en todas las columnas...',
+                value: this.filters.search || '',
+                containerStyle: 'margin-bottom: 0.5rem;'
+            })}
 
             <div class="card">
                 <div id="il-pagination-top" style="margin-bottom: 0.6rem;"></div>

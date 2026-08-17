@@ -47,14 +47,15 @@ const Entregas = {
             '<svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--gray-400);pointer-events:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
             '<input type="text" id="ent-search-input" placeholder="Buscar en tabla…" value="' + sanitizeHTML(s.search || '') + '" style="width:100%;padding:0.6rem 0.6rem 0.6rem 2.4rem;font-size:0.95rem;border:2px solid var(--border-color);border-radius:var(--radius-md);font-family:var(--font-family);transition:all 0.25s;background:var(--card-bg);color:var(--text-primary);">' +
             '</div></div>' +
-            '<div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1.5rem;" id="ent-stats">' +
-            '<div class="stat-card"><h3>TOTAL</h3><p id="ent-stat-total">0</p></div>' +
-            '<div class="stat-card"><h3>✅ ENTREGADOS</h3><p id="ent-stat-entregados" style="color:#22c55e;">0</p></div>' +
-            '<div class="stat-card"><h3>⏳ PENDIENTES</h3><p id="ent-stat-pendientes" style="color:#f97316;">0</p></div>' +
-            '<div class="stat-card"><h3>💵 EFECTIVO</h3><p id="ent-stat-efectivo" style="color:#166534;">0</p></div>' +
-            '<div class="stat-card"><h3>🏦 CHEQUE</h3><p id="ent-stat-cheque" style="color:#1e40af;">0</p></div>' +
-            '<div class="stat-card"><h3>📱 TRANSFER.</h3><p id="ent-stat-transferencia" style="color:#6b21a8;">0</p></div>' +
-            '<div class="stat-card"><h3>📝 ABONO</h3><p id="ent-stat-abono" style="color:#9a3412;">0</p></div></div>' +
+            SharedComponents.renderStatsGrid([
+                { label: 'TOTAL', id: 'ent-stat-total', tag: 'h3' },
+                { label: '✅ ENTREGADOS', id: 'ent-stat-entregados', tag: 'h3', style: 'color:#22c55e;' },
+                { label: '⏳ PENDIENTES', id: 'ent-stat-pendientes', tag: 'h3', style: 'color:#f97316;' },
+                { label: '💵 EFECTIVO', id: 'ent-stat-efectivo', tag: 'h3', style: 'color:#166534;' },
+                { label: '🏦 CHEQUE', id: 'ent-stat-cheque', tag: 'h3', style: 'color:#1e40af;' },
+                { label: '📱 TRANSFER.', id: 'ent-stat-transferencia', tag: 'h3', style: 'color:#6b21a8;' },
+                { label: '📝 ABONO', id: 'ent-stat-abono', tag: 'h3', style: 'color:#9a3412;' }
+            ], { containerId: 'ent-stats', containerStyle: 'grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1.5rem;' }) +
             '<div id="ent-truncated-warn" style="display:none;margin-bottom:0.75rem;padding:8px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.8rem;font-weight:600;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): las estadísticas corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver todo.</div>' +
             '<div class="card"><div class="table-container"><table class="data-table"><thead><tr>' +
             '<th>Estado</th><th>Guía</th><th>Empresa</th><th>Fecha</th><th>Doc</th><th>Cliente</th><th>Depto.</th><th>Vendedor</th><th>Cond. Pago</th><th>Venta</th><th>Bultos</th><th>Forma Pago</th><th>Fecha Entrega</th>' +

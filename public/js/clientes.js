@@ -29,27 +29,19 @@ const Clientes = {
                 <p>Directorio de clientes registrados</p>
             </div>
 
-            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
-                <div class="stat-card">
-                    <h3>Total Clientes</h3>
-                    <p id="stat-total-clientes">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Con Teléfono</h3>
-                    <p id="stat-con-telefono">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Con Dirección</h3>
-                    <p id="stat-con-direccion">0</p>
-                </div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Total Clientes', id: 'stat-total-clientes' },
+                { label: 'Con Teléfono', id: 'stat-con-telefono' },
+                { label: 'Con Dirección', id: 'stat-con-direccion' }
+            ], { containerStyle: 'grid-template-columns: repeat(3, 1fr);' })}
 
             <div class="card">
                 <div class="module-header">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
-                        <input type="text" id="clientes-search" placeholder="🔍 Buscar cliente por nombre, dirección, teléfono..."
-                               style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); font-size: 0.9rem; min-width: 200px;">
-                    </div>
+                    ${SharedComponents.renderSearchBar({
+                        id: 'clientes-search',
+                        placeholder: '🔍 Buscar cliente por nombre, dirección, teléfono...',
+                        fullWidth: false
+                    })}
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button class="btn btn-primary" onclick="Clientes.showForm()">➕ Nuevo Cliente</button>
                         <button class="btn btn-secondary" onclick="Clientes.showImportExcel()">📤 Importar Excel</button>

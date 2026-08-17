@@ -1117,23 +1117,24 @@ const Deliveries = {
 
         list.innerHTML = this.deliveries.map(d => {
             const folio = d.folio || d.id.substring(0,8).toUpperCase();
-            return `
-            <div class="m-data-card" onclick="Deliveries.showMobileView('${d.id}')">
-                <div class="m-card-header">
-                    <span class="m-card-title">#${sanitizeHTML(folio)}</span>
-                    <span class="m-card-badge primary">${sanitizeHTML(d.tipoMueble || 'Mueble')}</span>
-                </div>
-                <div class="m-card-rows">
-                    <div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">${sanitizeHTML(d.cliente || '-')}</span></div>
-                    <div class="m-card-row"><span class="m-card-label">Tienda</span><span class="m-card-value">${sanitizeHTML(d.tienda || '-')}</span></div>
-                    <div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${d.fecha ? formatDate(d.fecha) : '-'}</span></div>
-                </div>
-                <div class="m-card-actions" onclick="event.stopPropagation()">
-                    <button class="m-card-action" onclick="Deliveries.showMobileView('${d.id}')" title="Ver">👁️</button>
-                    ${canEdit ? `<button class="m-card-action" onclick="Deliveries.showMobileForm('${d.id}')" title="Editar">✏️</button>` : ''}
-                    ${canDelete ? `<button class="m-card-action delete" onclick="Deliveries.deleteDelivery('${d.id}')" title="Eliminar">🗑️</button>` : ''}
-                </div>
-            </div>`;
+            const actions = [
+                { icon: '👁️', onclick: `onclick="Deliveries.showMobileView('${d.id}')""`, title: 'Ver' }
+            ];
+            if (canEdit) actions.push({ icon: '✏️', onclick: `onclick="Deliveries.showMobileForm('${d.id}')"`, title: 'Editar' });
+            if (canDelete) actions.push({ icon: '🗑️', onclick: `onclick="Deliveries.deleteDelivery('${d.id}')"`, title: 'Eliminar', class: 'delete' });
+
+            return SharedComponents.renderMobileCard({
+                title: `#${sanitizeHTML(folio)}`,
+                badge: sanitizeHTML(d.tipoMueble || 'Mueble'),
+                badgeType: 'primary',
+                onclick: `Deliveries.showMobileView('${d.id}')`,
+                rows: [
+                    { label: 'Cliente', value: sanitizeHTML(d.cliente || '-') },
+                    { label: 'Tienda', value: sanitizeHTML(d.tienda || '-') },
+                    { label: 'Fecha', value: d.fecha ? formatDate(d.fecha) : '-' }
+                ],
+                actions: actions
+            });
         }).join('');
     },
 

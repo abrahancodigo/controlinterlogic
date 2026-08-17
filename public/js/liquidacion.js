@@ -37,11 +37,11 @@ const Liquidacion = {
                 </div>
             </div>
 
-            <div class="stats-grid" style="margin-bottom:1rem;" id="liq-stats">
-                <div class="stat-card"><h3>Rutas Hoy</h3><p id="liq-stat-rutas">0</p></div>
-                <div class="stat-card"><h3>Pendientes Liquidar</h3><p id="liq-stat-pendientes" style="color:#f97316;">0</p></div>
-                <div class="stat-card"><h3>Total Liquidado Hoy</h3><p id="liq-stat-liquidado" style="color:#22c55e;">$0.00</p></div>
-            </div>
+            ${SharedComponents.renderStatsGrid([
+                { label: 'Rutas Hoy', id: 'liq-stat-rutas' },
+                { label: 'Pendientes Liquidar', id: 'liq-stat-pendientes', style: 'color:#f97316;' },
+                { label: 'Total Liquidado Hoy', id: 'liq-stat-liquidado', style: 'color:#22c55e;' }
+            ], { containerId: 'liq-stats', containerStyle: 'margin-bottom:1rem;' })}
 
             <div class="card" style="margin-bottom:1rem;">
                 <div class="card-body">
@@ -738,12 +738,30 @@ const Liquidacion = {
             ${pendientes.length > 0 ? '<div style="font-weight:700;font-size:0.75rem;color:#f97316;margin-bottom:8px;">PENDIENTES DE LIQUIDAR</div>' : ''}
             ${pendientes.map(r => {
                 const fecha = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
-                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.correlativo || r.id.substring(0,6)}</span><span class="m-card-badge warning">Pendiente</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
+                return SharedComponents.renderMobileCard({
+                    title: `Ruta #${r.correlativo || r.id.substring(0,6)}`,
+                    badge: 'Pendiente',
+                    badgeType: 'warning',
+                    onclick: `Liquidacion.loadMobileLiquidacion('${r.id}')`,
+                    rows: [
+                        { label: 'Repartidor', value: sanitizeHTML(r.repartidorNombre||'-') },
+                        { label: 'Fecha', value: fecha }
+                    ]
+                });
             }).join('')}
             ${liquidados.length > 0 ? '<div style="font-weight:700;font-size:0.75rem;color:#22c55e;margin:12px 0 8px;">LIQUIDADAS</div>' : ''}
             ${liquidados.slice(0,10).map(r => {
                 const fecha = r.fecha && r.fecha.toDate ? r.fecha.toDate().toLocaleDateString('es-ES') : '';
-                return `<div class="m-data-card" onclick="Liquidacion.loadMobileLiquidacion('${r.id}')"><div class="m-card-header"><span class="m-card-title">Ruta #${r.correlativo || r.id.substring(0,6)}</span><span class="m-card-badge success">✓</span></div><div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Repartidor</span><span class="m-card-value">${sanitizeHTML(r.repartidorNombre||'-')}</span></div><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">${fecha}</span></div></div></div>`;
+                return SharedComponents.renderMobileCard({
+                    title: `Ruta #${r.correlativo || r.id.substring(0,6)}`,
+                    badge: '✓',
+                    badgeType: 'success',
+                    onclick: `Liquidacion.loadMobileLiquidacion('${r.id}')`,
+                    rows: [
+                        { label: 'Repartidor', value: sanitizeHTML(r.repartidorNombre||'-') },
+                        { label: 'Fecha', value: fecha }
+                    ]
+                });
             }).join('')}
         `;
     },
