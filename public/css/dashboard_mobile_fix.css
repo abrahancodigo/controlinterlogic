@@ -1,0 +1,667 @@
+/* ============================================================
+   DASHBOARD MOBILE FIX v15 — Mobile-First Premium
+   Carga AL FINAL de la cascade. Solo afecta ≤768px.
+   Filosofía: nada genérico, todo intencional, cero cortes.
+   ============================================================ */
+
+/* ---- 0. Tokens unificados en móvil ---- */
+@media (max-width: 768px) {
+  :root {
+    --dash-bg: #f2f2f7;
+    --dash-card-bg: #ffffff;
+    --dash-text: #1c1c1e;
+    --dash-muted: #6c6c78;
+    --dash-border: #e5e5ea;
+  }
+  [data-theme="dark"] {
+    --dash-bg: #0f172a;
+    --dash-card-bg: #1e293b;
+    --dash-text: #f1f5f9;
+    --dash-muted: #94a3b8;
+    --dash-border: #334155;
+  }
+  html {
+    /* respeta notch sin bloquear scroll */
+    padding-top: env(safe-area-inset-top, 0);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+  }
+  body {
+    background: var(--dash-bg) !important;
+    background-attachment: scroll !important;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+    height: auto;
+    overflow-y: auto;
+    /* quita el lag del transition global en móvil */
+    transition: none !important;
+  }
+  body *, body *::before, body *::after {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.12s ease !important;
+  }
+  /* Evita scroll-jump/atasco cuando Firestore re-renderiza a mitad de scroll */
+  #content-area { overflow-anchor: none; }
+}
+
+/* ============================================================
+   1. HERO COMPACTO — de 200px a 110px en móvil
+   Antes: título + chips + date-pill en 3 filas = empujaba KPI fuera del fold
+   Ahora: header minimal + chips en 2 filas + date-pill apilado
+   ============================================================ */
+@media (max-width: 768px) {
+  .dash {
+    padding: 12px 14px calc(88px + env(safe-area-inset-bottom, 0)) !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
+  }
+  .dash-hero {
+    border-radius: 20px !important;
+    margin-bottom: 16px !important;
+    background:
+      radial-gradient(110% 140% at 0% 0%, rgba(255,255,255,0.18), transparent 46%),
+      linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0ea5e9 100%) !important;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.18), inset 0 1px 0 rgba(255,255,255,0.16) !important;
+  }
+  .dash-hero-inner {
+    padding: 18px 16px 16px !important;
+    min-width: 0;
+  }
+  .dash-hero-top {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .dash-hero-greeting {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.14em !important;
+    opacity: 0.9 !important;
+  }
+  .dash-hero-title {
+    font-size: 1.45rem !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.18);
+  }
+  .dash-hero-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  /* Chips: 2 filas inteligentes */
+  .dash-period-chips {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 6px !important;
+    background: rgba(255,255,255,0.12) !important;
+    padding: 6px !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(12px);
+  }
+  .dash-chip {
+    flex: 1 1 auto !important;
+    min-width: calc(33% - 6px) !important;
+    padding: 8px 10px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    text-align: center;
+    border-radius: 999px !important;
+  }
+  .dash-chip[data-period="custom"] {
+    flex: 1 1 100% !important;
+  }
+  /* Date pill: apilado vertical, nunca cortado */
+  .dash-date-pill {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr auto;
+    gap: 6px !important;
+    align-items: center !important;
+    background: rgba(255,255,255,0.12) !important;
+    padding: 8px !important;
+    border-radius: 16px !important;
+  }
+  .dash-date-pill svg { display: none; }
+  .dash-pill-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    background: rgba(255,255,255,0.18) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: #fff !important;
+    font-size: 0.78rem !important;
+    padding: 8px 8px !important;
+    text-align: center;
+  }
+  .dash-pill-sep {
+    color: rgba(255,255,255,0.85);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .dash-pill-btn {
+    width: 36px !important;
+    height: 36px !important;
+    background: #fff !important;
+    color: #1e3a8a !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .dash-export-btn { display: none !important; } /* en móvil el export va en menú */
+}
+
+/* chips aún más compactos en 360px */
+@media (max-width: 380px) {
+  .dash-chip { min-width: calc(50% - 6px) !important; font-size: 0.7rem !important; padding: 7px 8px !important; }
+  .dash-date-pill { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dash-pill-sep, .dash-pill-btn { grid-column: span 2; justify-self: center; }
+  .dash-pill-sep { transform: rotate(90deg); }
+}
+
+/* ============================================================
+   2. KPI GRID — de carrusel 100% a GRID 2x2 premium
+   Cada tarjeta cabe completa, sin scroll horizontal.
+   En <380px pasa a 1 columna compacta.
+   ============================================================ */
+@media (max-width: 768px) {
+  .dash-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    overflow: visible !important;
+    scroll-snap-type: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .dash-kpi-card {
+    flex: none !important;
+    width: auto !important;
+    min-width: 0 !important;
+    scroll-snap-align: none !important;
+    padding: 14px 14px 12px !important;
+    border-radius: 16px !important;
+    gap: 10px !important;
+    min-height: 132px !important;
+    background: var(--dash-card-bg) !important;
+    border: 1px solid var(--dash-border) !important;
+    box-shadow: 0 6px 20px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .dash-kpi-card::before { height: 3px !important; opacity: 1 !important; }
+  .dash-kpi-head { gap: 8px !important; }
+  .dash-kpi-icon {
+    width: 40px !important; height: 40px !important;
+    border-radius: 12px !important;
+    flex-shrink: 0;
+  }
+  .dash-kpi-icon svg { width: 18px !important; height: 18px !important; }
+  .dash-kpi-label {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.08em !important;
+    color: var(--dash-muted) !important;
+  }
+  .dash-kpi-value {
+    font-size: 1.22rem !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.03em !important;
+    color: var(--dash-text) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  /* Ajuste tipográfico para montos largos: si no cabe, reduce 1 paso */
+  .dash-kpi-value[data-long="true"] { font-size: 1.05rem !important; }
+  .dash-kpi-meta {
+    font-size: 0.68rem !important;
+    color: var(--dash-muted) !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dash-kpi-delta {
+    font-size: 0.62rem !important;
+    padding: 4px 7px !important;
+    border-radius: 999px !important;
+  }
+  .dash-kpi-sparkline {
+    height: 22px !important;
+    margin-top: 0 !important;
+    opacity: 0.95;
+  }
+  [data-theme="dark"] .dash-kpi-card {
+    background: linear-gradient(180deg, rgba(30,41,59,0.98), rgba(15,23,42,0.98)) !important;
+    border-color: rgba(148,163,184,0.14) !important;
+  }
+}
+/* <380px: 1col pero compacta, no gigante */
+@media (max-width: 380px) {
+  .dash-kpi-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .dash-kpi-card { min-height: 108px !important; padding: 12px !important; flex-direction: row !important; align-items: center; gap: 12px !important; }
+  .dash-kpi-card .dash-kpi-body { gap: 2px !important; }
+  .dash-kpi-sparkline { display: none !important; }
+  .dash-kpi-value { font-size: 1.25rem !important; }
+}
+/* 381-768: si el contenido es denso, permite 2 col pero con scroll suave vertical */
+@media (min-width: 381px) and (max-width: 768px) {
+  .dash-kpi-card:nth-child(3), .dash-kpi-card:nth-child(4) { animation-delay: 0.06s; }
+}
+
+/* ============================================================
+   3. CHARTS — de 380/320px a 260px, fluidos, sin cortes
+   ============================================================ */
+@media (max-width: 768px) {
+  .dash-charts-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-bottom: 14px;
+  }
+  .dash-chart-card {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .dash-chart-header {
+    padding: 14px 16px 10px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .dash-chart-header h3 {
+    font-size: 0.92rem !important;
+    min-width: 0;
+  }
+  .dash-chart-total {
+    font-size: 0.72rem !important;
+    padding: 6px 10px !important;
+    flex-shrink: 0;
+  }
+  .dash-chart-body {
+    padding: 8px 8px 12px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 260px !important;
+    height: 260px !important;
+  }
+  /* Apex wrappers deben encoger */
+  .dash-chart-body > div,
+  .dash-chart-body .apexcharts-canvas,
+  #dash-donut-chart, #dash-incede-chart, #dash-bar-chart,
+  #dash-vendedor-chart, #dash-zona-chart, #dash-acum-chart {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  /* En móvil, barra horizontal necesita menos padding derecho */
+  .apexcharts-canvas { margin: 0 auto !important; }
+  /* Acumulado: stack vertical en móvil */
+  .dash-chart-body[style*="display:flex"] {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .dash-acum-list-wrap, #dash-acum-chart {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex: none !important;
+    width: 100% !important;
+  }
+  #dash-acum-chart { height: 260px !important; min-height: 260px !important; }
+  .dash-acum-toolbar { flex-wrap: wrap !important; gap: 6px !important; }
+  .dash-acum-total-wrap { width: 100% !important; margin-left: 0 !important; align-items: flex-start !important; }
+  .dash-acum-list { max-height: 140px !important; gap: 6px !important; }
+}
+
+/* ============================================================
+   4. SECCIONES: grids 1 col, headers que envuelven, sin cortes
+   ============================================================ */
+@media (max-width: 768px) {
+  .dash-section { margin-bottom: 16px !important; }
+  .dash-section-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+    align-items: center;
+  }
+  .dash-section-header svg:first-of-type { flex-shrink: 0; }
+  .dash-section-title {
+    font-size: 0.9rem !important;
+    min-width: 0;
+    flex: 1;
+  }
+  .dash-section-title::after { display: none; }
+  .dash-section-badge {
+    font-size: 0.7rem !important;
+    padding: 4px 9px !important;
+    border-radius: 999px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid rgba(59,130,246,0.12) !important;
+  }
+  .dash-vendedor-grid, .dash-zona-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+  .dash-vendedor-card, .dash-zona-card,
+  .dash-carrier-card, .dash-day-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    border-radius: 14px !important;
+  }
+  .dash-carrier-grid, .dash-day-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  /* Matriz: scroll con hint */
+  .dash-matrix-wrap, .dash-table-wrap, .dash-table-card-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124,58,237,0.35) transparent;
+    position: relative;
+    border-radius: 14px;
+    background: var(--dash-card-bg);
+    border: 1px solid var(--dash-border);
+    /* gestos diagonales: el dedo siempre puede seguir bajando la página */
+    touch-action: pan-x pan-y !important;
+  }
+  /* Scroll hint: sombra degradada a la derecha */
+  .dash-matrix-wrap::after, .dash-table-wrap::after {
+    content: '';
+    position: sticky;
+    right: 0; top: 0; bottom: 0;
+    width: 24px;
+    margin-left: -24px;
+    background: linear-gradient(90deg, transparent, rgba(15,23,42,0.06));
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .dash-matrix-wrap.is-scrollable::after,
+  .dash-table-wrap.is-scrollable::after { opacity: 1; }
+  .dash-matrix-wrap::-webkit-scrollbar, .dash-table-wrap::-webkit-scrollbar { height: 6px; }
+  .dash-matrix-wrap::-webkit-scrollbar-thumb, .dash-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(124,58,237,0.35); border-radius: 999px;
+  }
+  .dash-matrix-table, .dash-table { min-width: 560px !important; }
+  .dash-detail-table { min-width: 520px !important; }
+}
+
+/* ============================================================
+   5. POLISH NATIVO — safe-area, bottom-nav, tap, overscroll
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Header: altura real + safe-area, sin doble padding */
+  .mobile-header {
+    height: calc(52px + env(safe-area-inset-top, 0)) !important;
+    padding-top: env(safe-area-inset-top, 0) !important;
+    padding-left: max(14px, env(safe-area-inset-left, 0)) !important;
+    padding-right: max(14px, env(safe-area-inset-right, 0)) !important;
+    background: rgba(255,255,255,0.92) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border-bottom: 0.5px solid var(--dash-border) !important;
+    box-shadow: 0 1px 8px rgba(15,23,42,0.04) !important;
+  }
+  [data-theme="dark"] .mobile-header {
+    background: rgba(30,41,59,0.92) !important;
+    border-bottom-color: #334155 !important;
+  }
+  .main-content {
+    padding-top: calc(60px + env(safe-area-inset-top, 0)) !important;
+    padding-left: max(14px, env(safe-area-inset-left, 0)) !important;
+    padding-right: max(14px, env(safe-area-inset-right, 0)) !important;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0) + 16px) !important;
+    background: transparent !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: calc(100dvh - 60px) !important;
+  }
+  #content-area {
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+  }
+  .bottom-nav {
+    height: calc(58px + env(safe-area-inset-bottom, 0)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0) !important;
+    padding-left: env(safe-area-inset-left, 0) !important;
+    padding-right: env(safe-area-inset-right, 0) !important;
+    background: rgba(255,255,255,0.96) !important;
+    backdrop-filter: blur(18px) saturate(180%) !important;
+    border-top: 0.5px solid var(--dash-border) !important;
+    box-shadow: 0 -4px 20px rgba(15,23,42,0.06) !important;
+  }
+  [data-theme="dark"] .bottom-nav {
+    background: rgba(30,41,59,0.96) !important;
+    border-top-color: #334155 !important;
+  }
+  .bn-item {
+    min-width: 58px !important; min-height: 46px !important;
+    padding: 6px 4px !important; gap: 3px !important;
+    border-radius: 12px !important;
+  }
+  .bn-item.active {
+    background: rgba(124,58,237,0.10) !important;
+    color: #7c3aed !important;
+  }
+  [data-theme="dark"] .bn-item.active {
+    background: rgba(167,139,250,0.14) !important; color: #a5b4fc !important;
+  }
+  .bn-label { font-size: 0.62rem !important; font-weight: 600 !important; }
+  /* More menu + sheets: safe-area bottom */
+  .more-menu, .m-bottom-sheet {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)) !important;
+  }
+  /* Botones: 44px mínimo, sin zoom iOS */
+  .btn, .dash-chip, .dash-pill-btn, .dash-acum-btn {
+    min-height: 36px; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  input, select, textarea { font-size: 16px !important; }
+  /* Charts: que no capturen el scroll vertical */
+  .dash-chart-body, .dash-chart-body > div, .apexcharts-canvas,
+  #dash-donut-chart, #dash-incede-chart, #dash-bar-chart,
+  #dash-vendedor-chart, #dash-zona-chart, #dash-acum-chart {
+    touch-action: pan-y !important;
+  }
+  .apexcharts-canvas { touch-action: pan-y !important; }
+  /* Sheets: contain solo cuando están abiertos, body sigue scrolleando */
+  .dash-detail-modal-body, .more-menu-list, .m-bottom-sheet {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dash-acum-list {
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Main sigue siendo el scroller nativo */
+  .main-content, #content-area, .dash {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+  }
+  /* Toast no tapado por bottom-nav */
+  .toast-container {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0) + 8px) !important;
+    left: 14px !important; right: 14px !important;
+  }
+  /* Modal sheet en móvil: 100dvh, sin resize handle */
+  .dash-detail-modal {
+    resize: none !important;
+  }
+  .dash-detail-modal-header {
+    padding: 14px 16px !important;
+    padding-top: calc(14px + env(safe-area-inset-top, 0)/2) !important;
+  }
+  .dash-detail-modal-body { padding-bottom: env(safe-area-inset-bottom, 0) !important; }
+  .dash-detail-modal-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)) !important;
+  }
+  /* Sections toggle más grande para dedo */
+  .dash-section-toggle {
+    width: 32px !important; height: 32px !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* ---- Extra: hint visual de scroll horizontal ---- */
+@media (max-width: 768px) {
+  .dash-table-card-wrap.is-scrollable,
+  .dash-matrix-wrap.is-scrollable { box-shadow: inset -12px 0 12px -12px rgba(15,23,42,0.08); }
+  /* Cards que antes eran tablas: si el JS detecta móvil muy estrecho, oculta tabla y muestra cards */
+  .dash-matrix-cards { display: none; }
+}
+@media (max-width: 480px) {
+  .dash-matrix-table { display: none !important; }
+  .dash-matrix-cards { display: flex !important; flex-direction: column; gap: 10px; padding: 12px; }
+  .dash-matrix-card {
+    background: var(--dash-card-bg); border: 1px solid var(--dash-border);
+    border-radius: 14px; padding: 12px 14px; display: grid; gap: 6px;
+  }
+  .dash-matrix-card-head { display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:0.9rem; color:var(--dash-text); }
+  .dash-matrix-card-row { display:flex; justify-content:space-between; font-size:0.78rem; }
+  .dash-matrix-card-row span:first-child { color:var(--dash-muted); font-weight:600; text-transform:uppercase; font-size:0.68rem; letter-spacing:0.04em; }
+  .dash-matrix-card-row span:last-child { font-weight:700; color:var(--dash-text); }
+}
+
+/* ---- Animaciones suaves, respetando reduced-motion ---- */
+@media (prefers-reduced-motion: no-preference) and (max-width: 768px) {
+  .dash-kpi-card { animation: dashCardInMobile 0.42s cubic-bezier(0.16,1,0.3,1) both; }
+  .dash-kpi-card:nth-child(1){animation-delay:0s} .dash-kpi-card:nth-child(2){animation-delay:0.04s}
+  .dash-kpi-card:nth-child(3){animation-delay:0.08s} .dash-kpi-card:nth-child(4){animation-delay:0.12s}
+  @keyframes dashCardInMobile { from{opacity:0; transform:translateY(10px) scale(0.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero-bg, .dash-kpi-card { animation: none !important; }
+}
+
+/* ---- Fix: evita que el hero glass tape inputs date en iOS ---- */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    .dash-pill-input { -webkit-appearance: none; appearance: none; }
+  }
+}
+
+/* ============================================================
+   6. PILL FLOTANTE — total siempre visible, tap = volver arriba
+   Aparece cuando los KPIs salen del viewport (IntersectionObserver)
+   v18: movida ARRIBA (bajo el header). Antes estaba abajo-centro y
+   aparecía bajo el dedo a mitad del gesto → robaba el scroll.
+   ============================================================ */
+@media (max-width: 768px) {
+  .dash-float-pill {
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top, 0));
+    left: 50%;
+    transform: translate(-50%, -140%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 8px 10px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.88);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+    z-index: 1099; /* bajo el header (1100), sobre el contenido */
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.3, 1), opacity 0.28s ease;
+    max-width: calc(100vw - 24px);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dash-float-pill.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .dash-float-pill:active { transform: translate(-50%, -2px) scale(0.96); }
+  .dash-float-pill-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(124,58,237,0.4);
+  }
+  .dash-float-pill-icon svg { /* flecha arriba = tap te lleva al inicio */ }
+  .dash-float-pill-total {
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .dash-float-pill-count {
+    font-size: 0.64rem;
+    font-weight: 600;
+    opacity: 0.75;
+    white-space: nowrap;
+    padding-left: 8px;
+    border-left: 1px solid rgba(255,255,255,0.18);
+  }
+}
+
+/* ============================================================
+   7. HERO con saludo dinámico + KPI tap feedback premium
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Saludo: badge glass sutil arriba del título */
+  .dash-hero-greeting {
+    display: inline-flex !important;
+    align-self: flex-start;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(255,255,255,0.14) !important;
+    border: 1px solid rgba(255,255,255,0.16);
+    font-size: 0.64rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em !important;
+  }
+  /* Tap feedback en KPI cards: hundido + glow del acento */
+  .dash-kpi-card {
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+  }
+  .dash-kpi-card:active {
+    transform: scale(0.97) !important;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--kpi-accent, #7c3aed) 30%, transparent) !important;
+  }
+  /* Indicador de "tappable": chevron sutil en la esquina */
+  .dash-kpi-card::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    bottom: 10px;
+    width: 6px; height: 6px;
+    border-top: 2px solid var(--dash-muted);
+    border-right: 2px solid var(--dash-muted);
+    transform: rotate(45deg);
+    opacity: 0.35;
+  }
+  /* Secciones colapsadas: header más compacto y tappable en toda su área */
+  .dash-section.has-toggle .dash-section-header {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .dash-section.has-toggle .dash-section-header:active {
+    background: rgba(124,58,237,0.05) !important;
+    border-radius: 12px;
+  }
+  /* Charts un poco más bajos aún: 240px deja ver más contenido por pantalla */
+  .dash-chart-body { height: 250px !important; min-height: 250px !important; }
+  #dash-acum-chart { height: 250px !important; min-height: 250px !important; }
+}
+

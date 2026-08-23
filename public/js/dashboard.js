@@ -54,6 +54,9 @@ const Dashboard = {
         const dateInicio = formatDateForInput(this.fechaInicio);
         const dateFin = formatDateForInput(this.fechaFin);
         const todayLabel = this.formatDateFull(new Date());
+        // Saludo dinámico según hora — toque humano tipo app nativa
+        const hr = new Date().getHours();
+        const greeting = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
 
         area.innerHTML = `
 <div class="dash">
@@ -62,7 +65,7 @@ const Dashboard = {
         <div class="dash-hero-inner">
             <div class="dash-hero-top">
                 <div class="dash-hero-text">
-                    <div class="dash-hero-greeting">Resumen de Ventas</div>
+                    <div class="dash-hero-greeting">${greeting} · Resumen de Ventas</div>
                     <h1 class="dash-hero-title">${todayLabel}</h1>
                 </div>
                 <div class="dash-hero-actions">
@@ -296,6 +299,15 @@ const Dashboard = {
         </div>
         <div class="dash-day-grid" id="dash-day-cards"></div>
     </div>
+
+    <!-- Pill flotante: total siempre a la vista, tap = volver arriba -->
+    <button class="dash-float-pill" id="dash-float-pill" aria-label="Volver arriba">
+        <span class="dash-float-pill-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </span>
+        <span class="dash-float-pill-total" id="dash-float-pill-total">$0.00</span>
+        <span class="dash-float-pill-count" id="dash-float-pill-count">0 ent.</span>
+    </button>
 </div>`;
 
         this.setupEvents();
@@ -359,6 +371,34 @@ const Dashboard = {
                 });
             }
         });
+
+        /* ── Mobile UX: secciones colapsadas por defecto (dashboard escaneable) ── */
+        if (window.innerWidth <= 768) {
+            ['dash-vendedor-content', 'dash-zona-content', 'dash-matriz-content'].forEach(id => {
+                const content = document.getElementById(id);
+                const btn = document.querySelector(`.dash-section-toggle[data-section="${id}"]`);
+                if (content && btn && !content.classList.contains('dash-section-collapsed')) {
+                    content.classList.add('dash-section-collapsed');
+                    btn.classList.add('collapsed');
+                }
+            });
+        }
+
+        /* ── Pill flotante: aparece al pasar los KPIs, tap = scroll to top ── */
+        const floatPill = document.getElementById('dash-float-pill');
+        if (floatPill) {
+            floatPill.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+            if ('IntersectionObserver' in window) {
+                const kpiGrid = document.querySelector('.dash-kpi-grid');
+                if (kpiGrid) {
+                    if (this._pillIO) this._pillIO.disconnect();
+                    this._pillIO = new IntersectionObserver(entries => {
+                        entries.forEach(en => floatPill.classList.toggle('show', !en.isIntersecting));
+                    }, { rootMargin: '-80px 0px 0px 0px', threshold: 0 });
+                    this._pillIO.observe(kpiGrid);
+                }
+            }
+        }
     },
 
     /* ── Firestore subscriptions ── */
@@ -499,18 +539,54 @@ const Dashboard = {
         this.updateMatriz(matriz, vendedorStats, zonaStats);
         this.updateDailyTable(dailyStats);
         this.updateDayCards(dailyStats);
+        // Pill flotante: total siempre visible al scrollear
+        const pillTotal = document.getElementById('dash-float-pill-total');
+        const pillCount = document.getElementById('dash-float-pill-count');
+        if (pillTotal) pillTotal.textContent = this.formatMoney(stats.total);
+        if (pillCount) pillCount.textContent = `${stats.totalCount} ent.`;
+        // Mobile polish: ajusta tipografía larga y marca scrollables
+        this._fitKpiValues();
     },
 
     /* ── Update KPI cards ── */
+    _prefersReducedMotion() {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    },
+
+    /* Count-up animado: de valor previo a nuevo, easeOutCubic, solo móvil */
+    _animateMoney(el, target) {
+        if (!el) return;
+        const from = parseFloat(el.dataset.raw || '0');
+        el.dataset.raw = String(target);
+        const pop = () => { el.classList.add('dash-value-pop'); setTimeout(() => el.classList.remove('dash-value-pop'), 400); };
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile && !this._prefersReducedMotion() && Math.abs(target - from) > 0.5) {
+            const dur = 550;
+            const t0 = performance.now();
+            const ease = t => 1 - Math.pow(1 - t, 3);
+            const step = now => {
+                const p = Math.min(1, (now - t0) / dur);
+                el.textContent = this.formatMoney(from + (target - from) * ease(p));
+                if (p < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+            pop();
+        } else {
+            el.textContent = this.formatMoney(target);
+            pop();
+        }
+    },
+
     updateKpiCards(s, spark) {
         const e = id => document.getElementById(id);
-        const anim = (el, val) => { if (el) { el.textContent = val; el.classList.add('dash-value-pop'); setTimeout(() => el.classList.remove('dash-value-pop'), 400); } };
 
-        anim(e('dash-total-monto'), this.formatMoney(s.total));
-        anim(e('dash-contado-monto'), this.formatMoney(s.contado));
-        anim(e('dash-credito-monto'), this.formatMoney(s.credito));
-        anim(e('dash-dalse-monto'), this.formatMoney(s.dalse));
-        anim(e('dash-incede-monto'), this.formatMoney(s.incede));
+        this._animateMoney(e('dash-total-monto'), s.total);
+        this._animateMoney(e('dash-contado-monto'), s.contado);
+        this._animateMoney(e('dash-credito-monto'), s.credito);
+        this._animateMoney(e('dash-dalse-monto'), s.dalse);
+        this._animateMoney(e('dash-incede-monto'), s.incede);
+        // Ajuste mobile: si el monto es muy largo, la CSS lo reduce vía [data-long]
+        if (window.innerWidth <= 768) requestAnimationFrame(() => this._fitKpiValues());
 
         if (e('dash-total-count')) e('dash-total-count').textContent = `${s.totalCount} entrega${s.totalCount !== 1 ? 's' : ''}`;
         if (e('dash-contado-count')) e('dash-contado-count').textContent = `${s.contadoCount} entrega${s.contadoCount !== 1 ? 's' : ''}`;
@@ -951,6 +1027,35 @@ const Dashboard = {
 
         this.chartInit = true;
 
+        // — Mobile resize handling: ResizeObserver + orientationchange
+        const _isMobile = () => window.innerWidth <= 768;
+        const _debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+        const _handleChartResize = _debounce(() => {
+            const isM = _isMobile();
+            Object.entries(this.charts).forEach(([k, c]) => {
+                if (!c || k === 'sparklines') return;
+                try {
+                    // Force ApexCharts to recalc width; height handled by CSS (260 mobile / 380 desktop)
+                    c.updateOptions({}, false, false);
+                    if (typeof c.resize === 'function') c.resize();
+                } catch(e) {}
+            });
+            // Sparklines also need reflow on mobile rotate
+            if (isM && this.charts.sparklines) {
+                Object.values(this.charts.sparklines).forEach(sc => { try{ if(sc && typeof sc.resize==='function') sc.resize(); }catch(e){} });
+            }
+        }, 120);
+        if (window.ResizeObserver) {
+            const roTarget = document.querySelector('.dash') || document.getElementById('content-area');
+            if (roTarget) {
+                this._dashRO = new ResizeObserver(_handleChartResize);
+                this._dashRO.observe(roTarget);
+            }
+        }
+        window.addEventListener('orientationchange', _handleChartResize, { passive: true });
+        window.addEventListener('resize', _handleChartResize, { passive: true });
+        this._handleChartResize = _handleChartResize;
+
         this.themeObserver = new MutationObserver(() => {
             this.applyChartTheme();
         });
@@ -1361,6 +1466,44 @@ const Dashboard = {
         tbody.querySelectorAll('.dash-matrix-cell-active').forEach(cell => {
             cell.addEventListener('click', () => this.showVendedorZonaDetailModal(cell.dataset.vendedor, cell.dataset.zona));
         });
+
+        // — Mobile fallback: genera cards para <480px (la tabla se oculta via CSS y se muestra .dash-matrix-cards)
+        const wrap = document.querySelector('.dash-matrix-wrap');
+        let cardsWrap = document.querySelector('.dash-matrix-cards');
+        if (!cardsWrap && wrap) {
+            cardsWrap = document.createElement('div');
+            cardsWrap.className = 'dash-matrix-cards';
+            wrap.parentNode.insertBefore(cardsWrap, wrap.nextSibling);
+        }
+        if (cardsWrap) {
+            // Solo los top 6 combos con monto para no saturar móvil
+            const combos = [];
+            topVendedores.forEach(v => topZonas.forEach(z => {
+                const cell = matriz[v]?.[z];
+                if (cell && cell.monto > 0) combos.push({ v, z, d: cell });
+            }));
+            combos.sort((a,b) => b.d.monto - a.d.monto);
+            const topCombos = combos.slice(0, 8);
+            if (topCombos.length === 0) {
+                cardsWrap.innerHTML = '<div class="dash-empty" style="padding:1.2rem;text-align:center;opacity:0.6;">Sin combinaciones en este rango</div>';
+            } else {
+                cardsWrap.innerHTML = topCombos.map(({v,z,d}) => `
+                    <div class="dash-matrix-card" data-vendedor="${this._escapeAttr(v)}" data-zona="${this._escapeAttr(z)}">
+                        <div class="dash-matrix-card-head"><span>${this._escapeHtml(v.length>18?v.substring(0,17)+'…':v)}</span><span style="font-weight:700;color:#7c3aed;">${this.formatMoney(d.monto)}</span></div>
+                        <div class="dash-matrix-card-row"><span>Depto.</span><span>${this._escapeHtml(z)}</span></div>
+                        <div class="dash-matrix-card-row"><span>Contado</span><span>${this.formatMoney(d.contado)}</span></div>
+                        <div class="dash-matrix-card-row"><span>Crédito</span><span>${this.formatMoney(d.credito)}</span></div>
+                        <div class="dash-matrix-card-row"><span>Entregas</span><span>${d.count}</span></div>
+                    </div>
+                `).join('');
+                cardsWrap.querySelectorAll('.dash-matrix-card').forEach(c => {
+                    c.addEventListener('click', () => this.showVendedorZonaDetailModal(c.dataset.vendedor, c.dataset.zona));
+                    c.style.cursor = 'pointer';
+                });
+            }
+        }
+        // Marca contenedores scrollables para hint visual
+        requestAnimationFrame(() => this._fitKpiValues());
     },
 
     /* ── Escape helpers ── */
@@ -1982,10 +2125,33 @@ const Dashboard = {
         });
     },
 
+    /* ── Helpers: ajustar tipografía de KPI si el monto es largo ── */
+    _fitKpiValues() {
+        if (window.innerWidth > 768) return;
+        document.querySelectorAll('.dash-kpi-value').forEach(el => {
+            const len = (el.textContent || '').length;
+            el.setAttribute('data-long', len > 11 ? 'true' : 'false');
+        });
+        // Scroll hint: marca contenedores que realmente pueden hacer scroll
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.dash-matrix-wrap, .dash-table-wrap, .dash-table-card-wrap').forEach(w => {
+                const canScroll = w.scrollWidth > w.clientWidth + 4;
+                w.classList.toggle('is-scrollable', canScroll);
+            });
+        });
+    },
+
     /* ── Cleanup ── */
     destroy() {
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         if (this.themeObserver) { this.themeObserver.disconnect(); this.themeObserver = null; }
+        if (this._dashRO) { try{ this._dashRO.disconnect(); }catch(e){} this._dashRO = null; }
+        if (this._pillIO) { try{ this._pillIO.disconnect(); }catch(e){} this._pillIO = null; }
+        if (this._handleChartResize) {
+            window.removeEventListener('orientationchange', this._handleChartResize);
+            window.removeEventListener('resize', this._handleChartResize);
+            this._handleChartResize = null;
+        }
         Object.values(this.charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
         if (this.charts.sparklines) {
             Object.values(this.charts.sparklines).forEach(c => { if (c) c.destroy(); });
