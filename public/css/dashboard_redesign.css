@@ -2032,6 +2032,9 @@
 [data-theme="dark"] .dash-stat-credito { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25); }
 
 /* ═══ Matriz móvil: cards premium (<480px) ═══ */
+/* Base: ocultas siempre; solo se muestran en <480px via media query */
+.dash-matrix-cards { display: none; }
+
 @media (max-width: 480px) {
     .dash-matrix-cards {
         display: flex !important;
