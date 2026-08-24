@@ -136,22 +136,7 @@ const Auth = {
             }
 
             const userRegistryRef = firebase.firestore().collection('user_registry').doc(username);
-            let userRegistryDoc = await userRegistryRef.get();
-
-            const registrySnapshot = await firebase.firestore().collection('user_registry').limit(1).get();
-            if (registrySnapshot.empty && username === 'admin') {
-                const adminHash = await hashPassword('admin123');
-                await userRegistryRef.set({
-                    username: 'admin',
-                    passwordHash: adminHash,
-                    displayName: 'Admin Principal',
-                    role: 'admin',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    active: true,
-                    internalEmail: 'admin@dalse.local'
-                });
-                userRegistryDoc = await userRegistryRef.get();
-            }
+            const userRegistryDoc = await userRegistryRef.get();
 
             if (!userRegistryDoc.exists) {
                 authShowError(errorEl, 'Usuario o contraseña incorrectos');

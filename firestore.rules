@@ -79,6 +79,12 @@ service cloud.firestore {
     }
     
     // User Registry - for username-based authentication
+    // ATENCION: read publico es requisito del flujo de login (auth.js consulta
+    // user_registry ANTES de autenticarse). Cambiar a isAuthenticated() ROMPE
+    // el login de todos los usuarios. Mitigacion actual: no hay contrasenas
+    // debiles conocidas ni bootstrap automatico; los hashes expuestos son de
+    // contrasenas fuertes. Cierre real requiere migrar la validacion a
+    // Cloud Function o Firebase Auth directo.
     match /user_registry/{username} {
       allow read: if true; // Allow unauthenticated read for login
       allow write: if isAdmin();

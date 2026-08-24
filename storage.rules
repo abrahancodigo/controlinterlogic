@@ -26,10 +26,12 @@ service firebase.storage {
 
 
     // Reglas para asistencia
+    // Solo imagenes (con null permitido por HEIC/iOS, mismo criterio que problemas)
     match /asistencia/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if (isAdmin() || isEditor())
-                   && request.resource.size < 10 * 1024 * 1024;
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
 
     // Reglas para problemas
@@ -48,10 +50,12 @@ service firebase.storage {
     }
 
     // Reglas para fotos de vehículos
+    // Solo imagenes (con null permitido por HEIC/iOS, mismo criterio que problemas)
     match /vehiculos/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated()
-                   && request.resource.size < 10 * 1024 * 1024;
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
   }
 }
