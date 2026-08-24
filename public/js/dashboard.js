@@ -1602,13 +1602,37 @@ const Dashboard = {
         if (days.length <= 1) { section.style.display = 'none'; return; }
         section.style.display = '';
 
-        tbody.innerHTML = days.map(([, d]) => `<tr>
+        const maxTotal = Math.max(...days.map(([, d]) => d.total), 1);
+        const sum = days.reduce((acc, [, d]) => ({
+            contado: acc.contado + d.contado,
+            credito: acc.credito + d.credito,
+            total: acc.total + d.total,
+            count: acc.count + d.totalCount
+        }), { contado: 0, credito: 0, total: 0, count: 0 });
+
+        tbody.innerHTML = days.map(([, d]) => `<tr class="dash-daily-row">
             <td class="dash-td-day">${d.label}</td>
-            <td class="dash-td-contado">$${this.formatNumber(d.contado)}</td>
-            <td class="dash-td-credito">$${this.formatNumber(d.credito)}</td>
-            <td class="dash-td-total">$${this.formatNumber(d.total)}</td>
+            <td class="dash-td-contado"><span class="dash-mini-dot dash-dot-contado"></span>$${this.formatNumber(d.contado)}</td>
+            <td class="dash-td-credito"><span class="dash-mini-dot dash-dot-credito"></span>$${this.formatNumber(d.credito)}</td>
+            <td class="dash-td-total"><div class="dash-td-total-cell"><span class="dash-td-total-bar"><span style="width:${Math.round((d.total / maxTotal) * 100)}%"></span></span><span class="dash-td-total-amount">$${this.formatNumber(d.total)}</span></div></td>
             <td class="dash-td-count">${d.totalCount}</td>
         </tr>`).join('');
+
+        const table = tbody.closest('table');
+        let foot = table ? table.querySelector('tfoot') : null;
+        if (!foot && table) {
+            foot = document.createElement('tfoot');
+            table.appendChild(foot);
+        }
+        if (foot) {
+            foot.innerHTML = `<tr class="dash-daily-foot">
+                <td>Total</td>
+                <td>$${this.formatNumber(sum.contado)}</td>
+                <td>$${this.formatNumber(sum.credito)}</td>
+                <td>$${this.formatNumber(sum.total)}</td>
+                <td>${sum.count}</td>
+            </tr>`;
+        }
     },
 
     /* ── Day cards ── */
@@ -1634,25 +1658,24 @@ const Dashboard = {
                     </div>
                     <div class="dash-day-info">
                         <div class="dash-day-label">${d.label}</div>
-                        <div class="dash-day-total">${this.formatMoney(d.total)} · ${d.totalCount} entregas</div>
+                        <div class="dash-day-total">${d.totalCount} entregas</div>
                     </div>
+                    <div class="dash-day-total-main">${this.formatMoney(d.total)}</div>
                 </div>
                 <div class="dash-day-bar">
                     <div class="dash-day-bar-contado" style="width:${ctPct}%"></div>
                     <div class="dash-day-bar-credito" style="width:${crPct}%"></div>
                 </div>
-                <div class="dash-day-legend">
-                    <div class="dash-legend-item">
-                        <span class="dash-legend-dot dash-legend-dot-contado"></span>
-                        <span>Contado</span>
-                        <span class="dash-legend-amount">$${this.formatNumber(d.contado)}</span>
-                        <span class="dash-legend-count">${d.contadoCount}</span>
+                <div class="dash-day-stats">
+                    <div class="dash-day-stat dash-stat-contado">
+                        <span class="dash-day-stat-label"><span class="dash-legend-dot dash-legend-dot-contado"></span>Contado</span>
+                        <span class="dash-day-stat-amount">${this.formatMoney(d.contado)}</span>
+                        <span class="dash-day-stat-count">${d.contadoCount} entregas · ${Math.round(ctPct)}%</span>
                     </div>
-                    <div class="dash-legend-item">
-                        <span class="dash-legend-dot dash-legend-dot-credito"></span>
-                        <span>Credito</span>
-                        <span class="dash-legend-amount">$${this.formatNumber(d.credito)}</span>
-                        <span class="dash-legend-count">${d.creditoCount}</span>
+                    <div class="dash-day-stat dash-stat-credito">
+                        <span class="dash-day-stat-label"><span class="dash-legend-dot dash-legend-dot-credito"></span>Crédito</span>
+                        <span class="dash-day-stat-amount">${this.formatMoney(d.credito)}</span>
+                        <span class="dash-day-stat-count">${d.creditoCount} entregas · ${Math.round(crPct)}%</span>
                     </div>
                 </div>
             </div>`;

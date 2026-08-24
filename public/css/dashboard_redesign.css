@@ -1915,3 +1915,119 @@
 [data-theme="dark"] .dash-bar-tip-name { color: #94a3b8; }
 [data-theme="dark"] .dash-bar-tip-pct { color: #94a3b8; }
 
+/* ═══ Desglose por Día + Detalle por Día — rediseño legible ═══ */
+
+.dash-daily-row td { padding: 0.65rem 0.9rem; transition: background 0.15s ease; }
+.dash-daily-row:hover { background: rgba(124, 58, 237, 0.04); }
+
+.dash-mini-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: 1px;
+}
+.dash-dot-contado { background: #10b981; }
+.dash-dot-credito { background: #f59e0b; }
+
+.dash-td-total-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
+}
+.dash-td-total-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    overflow: hidden;
+}
+.dash-td-total-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dash-td-total-amount {
+    font-weight: 800;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.dash-daily-foot td {
+    font-weight: 800;
+    border-top: 2px solid var(--border-color);
+    color: var(--text-primary);
+    background: rgba(124, 58, 237, 0.05);
+}
+
+.dash-day-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 14px;
+}
+
+.dash-day-total-main {
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.dash-day-bar {
+    height: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.dash-day-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.dash-day-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+.dash-stat-contado {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+}
+.dash-stat-credito {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+}
+.dash-day-stat-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+.dash-day-stat-amount {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.dash-day-stat-count {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .dash-daily-row:hover { background: rgba(167, 139, 250, 0.07); }
+[data-theme="dark"] .dash-td-total-bar { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .dash-daily-foot td { background: rgba(167, 139, 250, 0.08); }
+[data-theme="dark"] .dash-stat-contado { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); }
+[data-theme="dark"] .dash-stat-credito { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25); }
+
