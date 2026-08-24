@@ -1489,11 +1489,24 @@ const Dashboard = {
             } else {
                 cardsWrap.innerHTML = topCombos.map(({v,z,d}) => `
                     <div class="dash-matrix-card" data-vendedor="${this._escapeAttr(v)}" data-zona="${this._escapeAttr(z)}">
-                        <div class="dash-matrix-card-head"><span>${this._escapeHtml(v.length>18?v.substring(0,17)+'…':v)}</span><span style="font-weight:700;color:#7c3aed;">${this.formatMoney(d.monto)}</span></div>
-                        <div class="dash-matrix-card-row"><span>Depto.</span><span>${this._escapeHtml(z)}</span></div>
-                        <div class="dash-matrix-card-row"><span>Contado</span><span>${this.formatMoney(d.contado)}</span></div>
-                        <div class="dash-matrix-card-row"><span>Crédito</span><span>${this.formatMoney(d.credito)}</span></div>
-                        <div class="dash-matrix-card-row"><span>Entregas</span><span>${d.count}</span></div>
+                        <div class="dash-matrix-card-head">
+                            <span class="dash-matrix-card-vendedor">${this._escapeHtml(v.length>18?v.substring(0,17)+'…':v)}</span>
+                            <span class="dash-matrix-card-total">${this.formatMoney(d.monto)}</span>
+                        </div>
+                        <div class="dash-matrix-card-depto">${this._escapeHtml(z)}</div>
+                        <div class="dash-matrix-card-chips">
+                            <div class="dash-matrix-chip dash-chip-contado">
+                                <span class="dash-matrix-chip-dot"></span>
+                                <span class="dash-matrix-chip-label">Contado</span>
+                                <span class="dash-matrix-chip-value">${this.formatMoney(d.contado)}</span>
+                            </div>
+                            <div class="dash-matrix-chip dash-chip-credito">
+                                <span class="dash-matrix-chip-dot"></span>
+                                <span class="dash-matrix-chip-label">Crédito</span>
+                                <span class="dash-matrix-chip-value">${this.formatMoney(d.credito)}</span>
+                            </div>
+                        </div>
+                        <div class="dash-matrix-card-count">${d.count} entrega${d.count !== 1 ? 's' : ''}</div>
                     </div>
                 `).join('');
                 cardsWrap.querySelectorAll('.dash-matrix-card').forEach(c => {

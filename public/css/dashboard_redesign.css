@@ -2031,3 +2031,129 @@
 [data-theme="dark"] .dash-stat-contado { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); }
 [data-theme="dark"] .dash-stat-credito { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25); }
 
+/* ═══ Matriz móvil: cards premium (<480px) ═══ */
+@media (max-width: 480px) {
+    .dash-matrix-cards {
+        display: flex !important;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 4px;
+    }
+    .dash-matrix-card {
+        background: var(--dash-card-bg) !important;
+        border: 1px solid var(--dash-border) !important;
+        border-radius: 16px !important;
+        padding: 14px 16px !important;
+        display: grid !important;
+        gap: 10px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    }
+    .dash-matrix-card:active {
+        transform: scale(0.98) !important;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08) !important;
+    }
+    .dash-matrix-card-head {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: baseline !important;
+        gap: 12px !important;
+    }
+    .dash-matrix-card-vendedor {
+        font-weight: 800 !important;
+        font-size: 0.95rem !important;
+        color: var(--dash-text) !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+    }
+    .dash-matrix-card-total {
+        font-weight: 800 !important;
+        font-size: 1.1rem !important;
+        color: #7c3aed !important;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .dash-matrix-card-depto {
+        font-weight: 700 !important;
+        font-size: 0.85rem !important;
+        color: var(--dash-text) !important;
+        padding-top: 2px !important;
+        border-top: 1px solid var(--dash-border) !important;
+        padding-bottom: 4px !important;
+    }
+    .dash-matrix-card-chips {
+        display: flex !important;
+        gap: 8px !important;
+    }
+    .dash-matrix-chip {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 4px !important;
+        padding: 10px 8px !important;
+        border-radius: 12px !important;
+        background: var(--dash-bg-secondary, #f8fafc) !important;
+        border: 1px solid var(--dash-border) !important;
+    }
+    .dash-chip-contado {
+        background: rgba(16, 185, 129, 0.08) !important;
+        border-color: rgba(16, 185, 129, 0.18) !important;
+    }
+    .dash-chip-credito {
+        background: rgba(245, 158, 11, 0.08) !important;
+        border-color: rgba(245, 158, 11, 0.18) !important;
+    }
+    .dash-matrix-chip-dot {
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+    }
+    .dash-chip-contado .dash-matrix-chip-dot { background: #10b981 !important; }
+    .dash-chip-credito .dash-matrix-chip-dot { background: #f59e0b !important; }
+    .dash-matrix-chip-label {
+        font-size: 0.62rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        color: var(--dash-muted) !important;
+    }
+    .dash-matrix-chip-value {
+        font-weight: 800 !important;
+        font-size: 0.85rem !important;
+        color: var(--dash-text) !important;
+    }
+    .dash-matrix-card-count {
+        font-size: 0.7rem !important;
+        color: var(--dash-muted) !important;
+        text-align: center !important;
+        padding-top: 4px !important;
+        border-top: 1px solid var(--dash-border) !important;
+    }
+
+    [data-theme="dark"] .dash-matrix-card {
+        background: var(--dash-card-bg) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    }
+    [data-theme="dark"] .dash-matrix-chip {
+        background: rgba(255, 255, 255, 0.04) !important;
+    }
+    [data-theme="dark"] .dash-chip-contado {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border-color: rgba(16, 185, 129, 0.25) !important;
+    }
+    [data-theme="dark"] .dash-chip-credito {
+        background: rgba(245, 158, 11, 0.12) !important;
+        border-color: rgba(245, 158, 11, 0.25) !important;
+    }
+    [data-theme="dark"] .dash-matrix-card-depto {
+        border-color: var(--dash-border) !important;
+    }
+    [data-theme="dark"] .dash-matrix-card-count {
+        border-color: var(--dash-border) !important;
+    }
+}
+
