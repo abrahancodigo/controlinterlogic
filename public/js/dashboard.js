@@ -1274,7 +1274,20 @@ const Dashboard = {
 
     /* ── Acumulado por Vendedor (pie chart interactivo) ── */
     _acumInit: false,
-    _acumColors: ['#ef4444','#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1','#14b8a6','#eab308','#dc2626','#0ea5e9','#10b981','#d946ef','#f43f5e','#8b5cf6','#65a30d','#0891b2','#db2777','#9333ea','#ea580c','#2563eb'],
+    _acumHslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const k = function(n) { return (n + h / 30) % 12; };
+        const a = s * Math.min(l, 1 - l);
+        const f = function(n) { return l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); };
+        const r = Math.round(f(0) * 255), g = Math.round(f(8) * 255), b = Math.round(f(4) * 255);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    },
+    _getAcumColor(i) {
+        const hue = (i * 137.508) % 360;
+        const sat = 72 + (i % 3) * 7;
+        const light = 52 + (i % 4) * 3;
+        return this._acumHslToHex(hue, sat, light);
+    },
 
     updateAcumuladoVendedor(vendedorStats) {
         const list = document.getElementById('dash-acum-list');
@@ -1292,7 +1305,7 @@ const Dashboard = {
 
         const renderChips = () => {
             list.innerHTML = vendedores.map(([name, d], i) => {
-                const color = this._acumColors[i % this._acumColors.length];
+                const color = this._getAcumColor(i);
                 const active = this.acumSelectedVendors.has(name);
                 return `<div class="dash-acum-chip${active ? ' active' : ''}" data-name="${this._escapeAttr(name)}" style="--chip-color:${color};">
                     <span class="dash-acum-chip-check"></span>
@@ -1359,7 +1372,9 @@ const Dashboard = {
             const series = selected.map(([, d]) => Math.round(d.monto));
             const labels = selected.map(([name]) => name.length > 16 ? name.substring(0, 15) + '\u2026' : name);
             window.Dashboard._acumChartNames = selected.map(([name]) => name);
-            const colors = selected.map((_, i) => this._acumColors[i % this._acumColors.length]);
+            const colorMap = {};
+            vendedores.forEach(function(entry, idx) { colorMap[entry[0]] = this._getAcumColor(idx); }, this);
+            const colors = selected.map(function(entry) { return colorMap[entry[0]]; });
 
             if (series.length === 0) {
                 this.charts.acum.updateSeries([1]);

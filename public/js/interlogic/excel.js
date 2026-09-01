@@ -108,15 +108,32 @@ const InterlogicExcel = {
     },
 
     showImportExcel() {
+        const importColumns = [
+            { key: 'guia', label: 'Guía', aliases: ['guia'] },
+            { key: 'empresa', label: 'Empresa', aliases: ['empresa'] },
+            { key: 'fecha', label: 'Fecha', aliases: ['fecha'] },
+            { key: 'doc', label: 'Doc', aliases: ['doc', 'documento'] },
+            { key: 'docNum', label: 'Doc #', aliases: ['doc #', 'doc#', 'numero documento', 'numero doc'] },
+            { key: 'cliente', label: 'Cliente', aliases: ['cliente'] },
+            { key: 'telefono', label: 'Teléfono', aliases: ['telefono'] },
+            { key: 'departamento', label: 'Departamento', aliases: ['departamento'] },
+            { key: 'municipio', label: 'Municipio', aliases: ['municipio'] },
+            { key: 'vendedor', label: 'Vendedor', aliases: ['vendedor'] },
+            { key: 'condicionPago', label: 'Condición', aliases: ['condicion', 'condicion pago'] },
+            { key: 'venta', label: 'Venta', aliases: ['venta', 'total venta'] },
+            { key: 'cobrador', label: 'Cajas', aliases: ['cajas'] },
+            { key: 'total', label: 'Total', aliases: ['total'] },
+            { key: 'bultos', label: 'Bultos', aliases: ['bultos'] }
+        ];
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
 
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 700px;">
                 <h2 style="margin-bottom: 1.5rem;">📤 Importar desde Excel</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Selecciona un archivo Excel (.xlsx) con las columnas en este orden:</p>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">El archivo puede tener estas columnas en cualquier orden si incluye encabezados. Sin encabezados, usa este orden:</p>
                 <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.75rem; font-size: 0.85rem; overflow-x: auto;">
-                    <code>Guía | Empresa | Fecha | Doc | Doc # | Cliente | Teléfono | Departamento | Municipio | Vendedor | Condición | Venta | Cajas | Total | Bultos</code>
+                    <code>${importColumns.map(column => column.label).join(' | ')}</code>
                 </div>
                 <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Columnas de la tabla como <strong>Observaciones</strong>, <strong>Entrega</strong>, <strong>Cobra</strong>, <strong>Encargado</strong>, <strong>Envío</strong> y <strong>% Costo</strong> no se importan desde el Excel (se calculan solas o se llenan a mano después de importar).</p>
                 <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--gray-200);">
@@ -161,28 +178,46 @@ const InterlogicExcel = {
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                    const startRow = (rows[0] && typeof rows[0][0] === 'string' && isNaN(rows[0][0])) ? 1 : 0;
+                    const normalizeHeader = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9#]/g, ' ').replace(/\s+/g, ' ').trim();
+                    let headerMap = null;
+                    let startRow = 0;
+
+                    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                        const row = rows[i] || [];
+                        const matches = importColumns.reduce((map, column) => {
+                            const index = row.findIndex(cell => column.aliases.includes(normalizeHeader(cell)));
+                            if (index >= 0) map[column.key] = index;
+                            return map;
+                        }, {});
+                        if (Object.keys(matches).length >= 3) {
+                            headerMap = matches;
+                            startRow = i + 1;
+                            break;
+                        }
+                    }
 
                     parsedData = [];
                     for (let i = startRow; i < rows.length; i++) {
                         const r = rows[i];
-                        if (!r || r.length === 0 || (!r[0] && !r[5])) continue;
+                        if (!r || r.length === 0) continue;
+                        const cell = (key, fallbackIndex) => headerMap ? r[headerMap[key]] : r[fallbackIndex];
+                        if (!cell('guia', 0) && !cell('cliente', 5)) continue;
                         parsedData.push({
-                            guia: String(r[0] || ''),
-                            empresa: String(r[1] || ''),
-                            fecha: r[2] || null,
-                            doc: String(r[3] || ''),
-                            docNum: String(r[4] || ''),
-                            cliente: String(r[5] || ''),
-                            telefono: String(r[6] || ''),
-                            departamento: String(r[7] || ''),
-                            municipio: String(r[8] || ''),
-                            vendedor: String(r[9] || ''),
-                            condicionPago: String(r[10] || ''),
-                            venta: parseExcelNumber(r[11]),
-                            cobrador: String(r[12] || ''),
-                            total: parseExcelNumber(r[13]),
-                            bultos: parseExcelNumber(r[14])
+                            guia: String(cell('guia', 0) || ''),
+                            empresa: String(cell('empresa', 1) || ''),
+                            fecha: cell('fecha', 2) || null,
+                            doc: String(cell('doc', 3) || ''),
+                            docNum: String(cell('docNum', 4) || ''),
+                            cliente: String(cell('cliente', 5) || ''),
+                            telefono: String(cell('telefono', 6) || ''),
+                            departamento: String(cell('departamento', 7) || ''),
+                            municipio: String(cell('municipio', 8) || ''),
+                            vendedor: String(cell('vendedor', 9) || ''),
+                            condicionPago: String(cell('condicionPago', 10) || ''),
+                            venta: parseExcelNumber(cell('venta', 11)),
+                            cobrador: String(cell('cobrador', 12) || ''),
+                            total: parseExcelNumber(cell('total', 13)),
+                            bultos: parseExcelNumber(cell('bultos', 14))
                         });
                     }
 

@@ -280,21 +280,17 @@ const InterlogicCRUD = {
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
                                 <div class="form-group">
                                     <label>Entrega</label>
-                                    <select id="il-entrega">
-                                        <option value="" ${!val('entrega') ? 'selected' : ''}>Seleccionar...</option>
-                                        <option value="DALSE" ${val('entrega') === 'DALSE' ? 'selected' : ''}>DALSE</option>
-                                        <option value="INTERLOGISTIC" ${val('entrega') === 'INTERLOGISTIC' ? 'selected' : ''}>INTERLOGISTIC</option>
-                                        <option value="XPRESS" ${val('entrega') === 'XPRESS' ? 'selected' : ''}>XPRESS</option>
-                                    </select>
+                                    <input type="text" id="il-entrega" list="entregas-list" placeholder="Quién entrega..." value="${sanitizeHTML(val('entrega')).replace(/"/g, '&quot;')}">
+                                    <datalist id="entregas-list">
+                                        ${Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues('entrega')))).map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('')}
+                                    </datalist>
                                 </div>
                                 <div class="form-group">
                                     <label>Cobra</label>
-                                    <select id="il-cobra">
-                                        <option value="" ${!val('cobra') ? 'selected' : ''}>Seleccionar...</option>
-                                        <option value="DALSE" ${val('cobra') === 'DALSE' ? 'selected' : ''}>DALSE</option>
-                                        <option value="INTERLOGISTIC" ${val('cobra') === 'INTERLOGISTIC' ? 'selected' : ''}>INTERLOGISTIC</option>
-                                        <option value="XPRESS" ${val('cobra') === 'XPRESS' ? 'selected' : ''}>XPRESS</option>
-                                    </select>
+                                    <input type="text" id="il-cobra" list="cobras-list" placeholder="Quién cobra..." value="${sanitizeHTML(val('cobra')).replace(/"/g, '&quot;')}">
+                                    <datalist id="cobras-list">
+                                        ${Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues('cobra')))).map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('')}
+                                    </datalist>
                                 </div>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
@@ -685,8 +681,8 @@ const InterlogicCRUD = {
                     costoEnvio: costoEnvio,
                     costoPorcentaje: costoPorcentaje,
                     observations: document.getElementById('il-observations').value.trim() || '',
-                    entrega: document.getElementById('il-entrega').value || '',
-                    cobra: document.getElementById('il-cobra').value || '',
+                    entrega: document.getElementById('il-entrega').value.trim() || '',
+                    cobra: document.getElementById('il-cobra').value.trim() || '',
                     encargado: document.getElementById('il-encargado').value.trim() || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
@@ -875,35 +871,87 @@ const InterlogicCRUD = {
         this.showForm(null, record);
     },
 
-    async toggleCellField(id, field) {
+    editCellField(id, field, anchorEl) {
         if (!window.permissions?.canEdit) {
             showToast('No tienes permisos para editar', 'error');
             return;
         }
 
         const record = this.records.find(r => r.id === id);
-        if (!record) return;
+        if (!record || !anchorEl) return;
 
-        const current = record[field] || '';
-        const next = current === '' ? 'DALSE' :
-                     current === 'DALSE' ? 'INTERLOGISTIC' :
-                     current === 'INTERLOGISTIC' ? 'XPRESS' : '';
+        const existing = document.getElementById('il-cell-editor');
+        if (existing) existing.remove();
 
-        record[field] = next;
-        this.applyFilters();
+        const labels = { entrega: '🚚 Entrega', cobra: '💰 Cobra', encargado: '👤 Encargado' };
+        const values = Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field))));
 
-        try {
-            await firebase.firestore().collection('interlogic').doc(id).update({
-                [field]: next,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            const label = field === 'entrega' ? '🏢' : '💰';
-            showToast(`${label} ${field === 'entrega' ? 'Entrega' : 'Cobra'}: ${next || 'vacío'}`, 'success');
-        } catch (error) {
-            record[field] = current;
-            this.applyFilters();
-            showToast('Error al actualizar: ' + error.message, 'error');
-        }
+        const editor = document.createElement('div');
+        editor.id = 'il-cell-editor';
+        editor.className = 'il-cell-editor';
+        editor.innerHTML = `
+            <input type="text" class="il-cell-editor-input" list="il-cell-suggestions" placeholder="${labels[field]}..." value="${sanitizeHTML(record[field] || '').replace(/"/g, '&quot;')}">
+            <datalist id="il-cell-suggestions">
+                ${values.map(function(v) { return '<option value="' + sanitizeHTML(v) + '">'; }).join('')}
+            </datalist>
+            <div class="il-cell-editor-actions">
+                <button type="button" class="il-cell-editor-btn il-cell-editor-save">✓ Guardar</button>
+                <button type="button" class="il-cell-editor-btn il-cell-editor-cancel">✕</button>
+            </div>
+            <div class="il-cell-editor-hint">Enter guarda · Esc cancela</div>
+        `;
+        document.body.appendChild(editor);
+
+        const rect = anchorEl.getBoundingClientRect();
+        const edRect = editor.getBoundingClientRect();
+        let left = Math.max(8, Math.min(rect.left, window.innerWidth - edRect.width - 8));
+        let top = rect.bottom + 6;
+        if (top + edRect.height > window.innerHeight - 8) top = Math.max(8, rect.top - edRect.height - 6);
+        editor.style.left = left + 'px';
+        editor.style.top = top + 'px';
+
+        const input = editor.querySelector('.il-cell-editor-input');
+        const self = this;
+        let closed = false;
+        const close = () => {
+            if (closed) return;
+            closed = true;
+            document.removeEventListener('mousedown', onOutside, true);
+            window.removeEventListener('scroll', close, true);
+            editor.remove();
+        };
+        const onOutside = (e) => {
+            if (!editor.contains(e.target)) close();
+        };
+        const save = async () => {
+            const next = input.value.trim();
+            const current = record[field] || '';
+            close();
+            if (next === current) return;
+            try {
+                await firebase.firestore().collection('interlogic').doc(id).update({
+                    [field]: next,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                record[field] = next;
+                self.applyFilters();
+                showToast(`${labels[field]}: ${next || 'vacío'}`, 'success');
+            } catch (error) {
+                showToast('Error al actualizar: ' + error.message, 'error');
+            }
+        };
+
+        editor.querySelector('.il-cell-editor-save').onclick = save;
+        editor.querySelector('.il-cell-editor-cancel').onclick = close;
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') close();
+        });
+        document.addEventListener('mousedown', onOutside, true);
+        window.addEventListener('scroll', close, true);
+
+        input.focus();
+        input.select();
     },
 
     updateBulkDeleteButton() {
@@ -930,6 +978,9 @@ const InterlogicCRUD = {
                 <button class="btn btn-primary" id="btn-assign-cobra-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
                     💰 Asignar Cobra (${this.selectedRecords.size})
                 </button>
+                <button class="btn btn-primary" id="btn-assign-encargado-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
+                    👤 Asignar Encargado (${this.selectedRecords.size})
+                </button>
                 <button class="btn btn-teal" id="btn-mark-entregada-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center; background: #0d9488; color: #fff; border: none;">
                     ✅ Entregada (${this.selectedRecords.size})
                 </button>
@@ -942,6 +993,7 @@ const InterlogicCRUD = {
             document.getElementById('btn-create-route-selected').onclick = () => this.createRouteFromSelection();
             document.getElementById('btn-assign-entrega-selected').onclick = () => this.batchAssignField('entrega');
             document.getElementById('btn-assign-cobra-selected').onclick = () => this.batchAssignField('cobra');
+            document.getElementById('btn-assign-encargado-selected').onclick = () => this.batchAssignField('encargado');
             document.getElementById('btn-mark-entregada-selected').onclick = () => this.batchMarkEntregada();
         } else {
             container.style.display = 'none';
@@ -983,26 +1035,36 @@ const InterlogicCRUD = {
         const count = this.selectedRecords.size;
         if (count === 0) return;
 
-        const label = field === 'entrega' ? '🚚 Entrega' : '💰 Cobra';
+        const labels = { entrega: '🚚 Entrega', cobra: '💰 Cobra', encargado: '👤 Encargado' };
+        const label = labels[field];
+        const values = Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field))));
+        const valuesHtml = values.map(function(v) { return '<option value="' + sanitizeHTML(v) + '">'; }).join('');
 
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 380px;">
+            <div class="modal-content" style="max-width: 420px;">
                 <h2 style="margin-bottom: 0.5rem; text-align: center;">${label}</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 1.2rem; text-align: center;">
                     Asignar a <strong>${count} registro(s)</strong> seleccionado(s)
                 </p>
-                <div style="display: flex; gap: 0.8rem; margin-bottom: 0.5rem;">
-                    <button id="ba-dalse" class="btn btn-primary" style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
+                <div style="display: flex; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    <button id="ba-dalse" class="btn btn-primary" style="flex: 1 1 90px; min-width: 0; padding: 0.85rem 0.6rem; font-size: 0.95rem; font-weight: 700; white-space: normal; word-break: break-word; line-height: 1.15;">
                         🏢 DALSE
                     </button>
-                    <button id="ba-interlogistic" class="btn btn-accent" style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
+                    <button id="ba-interlogistic" class="btn btn-accent" style="flex: 1 1 110px; min-width: 0; padding: 0.85rem 0.6rem; font-size: 0.95rem; font-weight: 700; white-space: normal; word-break: break-word; line-height: 1.15;">
                         🚛 INTERLOGISTIC
                     </button>
-                    <button id="ba-xpress" class="btn btn-accent" style="flex: 1; padding: 1rem; font-size: 1.1rem; font-weight: 700;">
+                    <button id="ba-xpress" class="btn btn-accent" style="flex: 1 1 90px; min-width: 0; padding: 0.85rem 0.6rem; font-size: 0.95rem; font-weight: 700; white-space: normal; word-break: break-word; line-height: 1.15;">
                         📦 XPRESS
                     </button>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" id="ba-custom" list="ba-custom-list" placeholder="O escribe un nombre..." style="flex: 1; padding: 0.7rem 0.9rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); font-size: 0.95rem; background: var(--bg-primary); color: var(--text-primary);">
+                    <datalist id="ba-custom-list">
+                        ${valuesHtml}
+                    </datalist>
+                    <button id="ba-custom-btn" class="btn btn-accent">Asignar</button>
                 </div>
                 <button id="ba-clear" class="btn btn-secondary" style="width: 100%; margin-bottom: 0.5rem;">
                     🧹 Limpiar (vacío)
@@ -1014,7 +1076,7 @@ const InterlogicCRUD = {
 
         const self = this;
         const doAssign = async (value) => {
-            const btns = ['ba-dalse', 'ba-interlogistic', 'ba-xpress', 'ba-clear'].map(id => document.getElementById(id));
+            const btns = ['ba-dalse', 'ba-interlogistic', 'ba-xpress', 'ba-clear', 'ba-custom-btn'].map(id => document.getElementById(id));
             btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.6'; } });
 
             const ids = [...self.selectedRecords];
@@ -1045,6 +1107,10 @@ const InterlogicCRUD = {
         document.getElementById('ba-dalse').onclick = () => doAssign('DALSE');
         document.getElementById('ba-interlogistic').onclick = () => doAssign('INTERLOGISTIC');
         document.getElementById('ba-xpress').onclick = () => doAssign('XPRESS');
+        document.getElementById('ba-custom-btn').onclick = () => doAssign(document.getElementById('ba-custom').value.trim());
+        document.getElementById('ba-custom').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); doAssign(e.target.value.trim()); }
+        });
         document.getElementById('ba-clear').onclick = () => doAssign('');
         document.getElementById('ba-cancel').onclick = () => modal.remove();
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };

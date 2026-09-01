@@ -13,6 +13,8 @@
     --primary-50: hsl(var(--primary-hue), var(--primary-sat), 95%);
     --primary-100: hsl(var(--primary-hue), var(--primary-sat), 85%);
     --primary-200: hsl(var(--primary-hue), var(--primary-sat), 75%);
+    --primary-300: hsl(var(--primary-hue), var(--primary-sat), 68%);
+    --primary-400: hsl(var(--primary-hue), var(--primary-sat), 62%);
     --primary-500: hsl(var(--primary-hue), var(--primary-sat), var(--primary-light));
     --primary-600: hsl(var(--primary-hue), var(--primary-sat), 45%);
     --primary-700: hsl(var(--primary-hue), var(--primary-sat), 35%);
@@ -9505,4 +9507,91 @@ tbody tr:hover {
 }
 .more-item-icon svg {
     filter: drop-shadow(0 1px 2px rgba(124, 58, 237, 0.25));
+}
+
+/* ---- Editor inline de celdas (Interlogic: Entrega / Cobra / Encargado) ---- */
+.il-cell-editor {
+    position: fixed;
+    z-index: 1400;
+    width: 230px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.6rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+    animation: ilCellEditorIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes ilCellEditorIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.il-cell-editor-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.il-cell-editor-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+.il-cell-editor-actions {
+    display: flex;
+    gap: 0.45rem;
+}
+.il-cell-editor-btn {
+    flex: 1;
+    min-height: 40px;
+    padding: 0.5rem 0.6rem;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-family);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+}
+.il-cell-editor-btn:active {
+    transform: scale(0.96);
+}
+.il-cell-editor-save {
+    background: #10b981;
+    color: #ffffff;
+}
+.il-cell-editor-save:hover {
+    opacity: 0.9;
+}
+.il-cell-editor-cancel {
+    flex: 0 0 44px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+.il-cell-editor-cancel:hover {
+    color: var(--text-primary);
+}
+.il-cell-editor-hint {
+    font-size: 0.68rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+[data-theme="dark"] .il-cell-editor {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .il-cell-editor-cancel {
+    background: rgba(255, 255, 255, 0.06);
+}
+@media (max-width: 768px) {
+    .il-cell-editor-input {
+        font-size: 16px;
+    }
 }

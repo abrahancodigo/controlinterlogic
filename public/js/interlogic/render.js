@@ -527,11 +527,11 @@ const InterlogicRender = {
                 html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money" style="' + (r.doc === 'NC' ? 'color:#ef4444;font-weight:700;' : '') + '">' + formatCurrency(r.venta || 0) + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
-                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.toggleCellField(\'' + idJs + '\', \'entrega\')" style="cursor: pointer;">';
+                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'entrega\', this)" style="cursor: pointer;">';
                 html += '<span class="m-card-label">🚚 Entrega</span><span class="m-card-value">' + sanitizeHTML(r.entrega || '—') + '</span></div>';
-                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.toggleCellField(\'' + idJs + '\', \'cobra\')" style="cursor: pointer;">';
+                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'cobra\', this)" style="cursor: pointer;">';
                 html += '<span class="m-card-label">💰 Cobra</span><span class="m-card-value">' + sanitizeHTML(r.cobra || '—') + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
+                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'encargado\', this)" style="cursor: pointer;"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
                 if (r.formaPago) {
                     var fpColors = { Efectivo: { bg: '#f0fdf4', fg: '#166534', icon: '💵' }, Cheque: { bg: '#eff6ff', fg: '#1e40af', icon: '🏦' }, Transferencia: { bg: '#faf5ff', fg: '#6b21a8', icon: '📱' }, Abono: { bg: '#fff7ed', fg: '#9a3412', icon: '📝' } };
                     var fp = fpColors[r.formaPago] || { bg: '#f3f4f6', fg: '#374151', icon: '💳' };
@@ -705,13 +705,13 @@ const InterlogicRender = {
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
                 <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
                 <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
-                <td data-label="Entrega" style="cursor: pointer;" onclick="Interlogic.toggleCellField('${record.id}', 'entrega')" title="Clic para cambiar">
+                <td data-label="Entrega" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'entrega', this)" title="Clic para cambiar">
                     <span class="badge ${record.entrega === 'DALSE' ? 'badge-primary' : (record.entrega === 'INTERLOGISTIC' ? 'badge-accent' : (record.entrega === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.entrega || '—')}</span>
                 </td>
-                <td data-label="Cobra" style="cursor: pointer;" onclick="Interlogic.toggleCellField('${record.id}', 'cobra')" title="Clic para cambiar">
+                <td data-label="Cobra" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'cobra', this)" title="Clic para cambiar">
                     <span class="badge ${record.cobra === 'DALSE' ? 'badge-primary' : (record.cobra === 'INTERLOGISTIC' ? 'badge-accent' : (record.cobra === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.cobra || '—')}</span>
                 </td>
-                <td data-label="Encargado">${sanitizeHTML(record.encargado || '')}</td>
+                <td data-label="Encargado" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'encargado', this)" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
                 <td data-label="Forma Pago">
                     ${record.formaPago ? '<span class="badge ' + (record.formaPago === 'Efectivo' ? 'badge-success' : record.formaPago === 'Cheque' ? 'badge-primary' : record.formaPago === 'Transferencia' ? 'badge-purple' : 'badge-warning') + '">' + (record.formaPago === 'Efectivo' ? '💵 ' : record.formaPago === 'Cheque' ? '🏦 ' : record.formaPago === 'Transferencia' ? '📱 ' : '📝 ') + sanitizeHTML(record.formaPago) + '</span>' : '<span class="badge badge-ghost">—</span>'}
                 </td>
