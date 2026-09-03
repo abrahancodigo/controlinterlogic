@@ -1040,6 +1040,7 @@ const Deliveries = {
 
         // PDF download handler
         document.getElementById('btn-download-pdf').onclick = async () => {
+            if (typeof html2pdf === 'undefined') { showToast('PDF no disponible (sin conexión al CDN)', 'error'); return; }
             const pdfBtn = document.getElementById('btn-download-pdf');
             const originalText = pdfBtn.innerHTML;
             pdfBtn.innerHTML = '⏳ Generando...';

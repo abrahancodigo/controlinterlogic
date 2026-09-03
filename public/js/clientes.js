@@ -572,6 +572,7 @@ const Clientes = {
 
     // Export to Excel
     exportToExcel() {
+        if (typeof XLSX === 'undefined') { showToast('Excel no disponible', 'error'); return; }
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos para exportar', 'error');
             return;

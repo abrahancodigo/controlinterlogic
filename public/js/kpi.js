@@ -424,6 +424,7 @@ const KpiEvaluation = {
     },
 
     exportToExcel() {
+        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos para exportar.', 'warning');
             return;

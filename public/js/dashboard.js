@@ -527,10 +527,14 @@ const Dashboard = {
         );
 
         this.updateKpiCards(stats, sparkData);
+        const vendedorNames = Object.entries(vendedorStats).sort((a, b) => b[1].monto - a[1].monto).map(([n]) => n);
+        const zonaNames = Object.entries(zonaStats).sort((a, b) => b[1].monto - a[1].monto).map(([n]) => n);
         this.updateCharts({
             donut: { contado: Math.round(stats.contado), credito: Math.round(stats.credito) },
             incede: { dalse: Math.round(stats.dalse), incede: Math.round(stats.incede), dalseCount: stats.dalseCount, incedeCount: stats.incedeCount, total: stats.totalCount },
-            bar: { categories: carrierNames, data: carrierBarData }
+            bar: { categories: carrierNames, data: carrierBarData },
+            vendedor: { categories: vendedorNames, data: vendedorNames.map(n => Math.round(vendedorStats[n].monto)) },
+            zona: { categories: zonaNames, data: zonaNames.map(n => Math.round(zonaStats[n].monto)) }
         });
         this.updateCarrierStats(carrierStats, stats.total);
         this.updateVendedorStats(vendedorStats, stats.total);
@@ -615,6 +619,7 @@ const Dashboard = {
     renderSparkline(elId, data, color) {
         const el = document.getElementById(elId);
         if (!el) return;
+        if (typeof ApexCharts === 'undefined') { el.style.display = 'none'; return; }
         if (!this.charts.sparklines) this.charts.sparklines = {};
         if (this.charts.sparklines[elId]) { this.charts.sparklines[elId].destroy(); delete this.charts.sparklines[elId]; }
         if (!data || data.length < 2) {
@@ -745,6 +750,7 @@ const Dashboard = {
 
     initCharts() {
         if (this.chartInit) return;
+        if (typeof ApexCharts === 'undefined') { showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
         const theme = this.getChartTheme();
         const labelColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
         const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
@@ -1065,36 +1071,38 @@ const Dashboard = {
     updateCharts(data) {
         if (!this.chartInit) return;
 
-        if (this.charts.donut) {
+        if (data.donut) {
             const total = data.donut.contado + data.donut.credito;
             const count = (data.donut.contadoCount || 0) + (data.donut.creditoCount || 0);
-            this.charts.donut.updateOptions({
+            this._setChartTotal('dash-donut-chart-total', total, count);
+            if (this.charts.donut) this.charts.donut.updateOptions({
                 series: [data.donut.contado, data.donut.credito],
                 plotOptions: {
                     pie: { donut: { labels: { total: { formatter: () => this._moneyFull(total) } } } }
                 }
             });
-            this._setChartTotal('dash-donut-chart-total', total, count);
         }
 
-        if (this.charts.incede && data.incede) {
+        if (data.incede) {
             const incedeTotal = data.incede.dalse + data.incede.incede;
-            this.charts.incede.updateOptions({
+            this._setChartTotal('dash-incede-chart-total', incedeTotal);
+            if (this.charts.incede) this.charts.incede.updateOptions({
                 series: [data.incede.dalse, data.incede.incede],
                 plotOptions: {
                     pie: { donut: { labels: { total: { formatter: () => this._moneyFull(incedeTotal) } } } }
                 }
             });
-            this._setChartTotal('dash-incede-chart-total', incedeTotal);
         }
 
-        if (this.charts.bar) {
+        if (data.bar && data.bar.data) {
+            const total = data.bar.data.reduce((a, b) => a + b, 0);
+            this._setChartTotal('dash-bar-chart-total', total);
+            if (this.charts.bar) {
             const rawMax = Math.max(...data.bar.data, 0);
             const target = rawMax * 1.15;
             const pow = Math.pow(10, Math.floor(Math.log10(target > 0 ? target : 1)));
             const step = [1, 2, 2.5, 5, 10].map(m => m * pow).find(c => c >= target) || pow * 10;
             const barMax = step;
-            const total = data.bar.data.reduce((a, b) => a + b, 0);
             window.Dashboard.barTotal = total;
             window.Dashboard._barChartNames = data.bar.categories;
             const carrierGradients = {
@@ -1116,29 +1124,29 @@ const Dashboard = {
                 yaxis: { min: 0, max: barMax || 10, tickAmount: 5, forceNiceScale: false },
                 series: [{ data: data.bar.data }]
             });
-            this._setChartTotal('dash-bar-chart-total', total);
+            }
         }
 
-        if (this.charts.vendedor && data.vendedor) {
+        if (data.vendedor) {
             const vdata = data.vendedor.categories.map((name, i) => Math.round(data.vendedor.data[i]));
             const totalVendedor = vdata.reduce((a, b) => a + b, 0);
+            this._setChartTotal('dash-vendedor-chart-total', totalVendedor);
             window.Dashboard._vendedorChartNames = data.vendedor.categories;
-            this.charts.vendedor.updateOptions({
+            if (this.charts.vendedor) this.charts.vendedor.updateOptions({
                 xaxis: { categories: data.vendedor.categories },
                 series: [{ data: vdata }]
             });
-            this._setChartTotal('dash-vendedor-chart-total', totalVendedor);
         }
 
-        if (this.charts.zona && data.zona) {
+        if (data.zona) {
             const zdata = data.zona.categories.map((name, i) => Math.round(data.zona.data[i]));
             const totalZona = zdata.reduce((a, b) => a + b, 0);
+            this._setChartTotal('dash-zona-chart-total', totalZona);
             window.Dashboard._zonaChartNames = data.zona.categories;
-            this.charts.zona.updateOptions({
+            if (this.charts.zona) this.charts.zona.updateOptions({
                 xaxis: { categories: data.zona.categories },
                 series: [{ data: zdata }]
             });
-            this._setChartTotal('dash-zona-chart-total', totalZona);
         }
     },
 
@@ -2047,6 +2055,7 @@ const Dashboard = {
             'Observaciones': r.observations || ''
         }));
 
+        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
         try {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(rows);
