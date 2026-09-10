@@ -319,7 +319,7 @@ const InterlogicRender = {
             </div>
         `;
 
-        await this.loadRecords();
+        await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
 
         document.getElementById('filter-start-date').addEventListener('change', (e) => {
             this.filters.startDate = e.target.value;
@@ -486,7 +486,7 @@ const InterlogicRender = {
             <div id="m-pagination" style="display:none;justify-content:center;align-items:center;gap:8px;padding:12px 0;flex-wrap:wrap;"></div>
         `;
 
-        await this.loadRecords();
+        await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
 
         document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.reloadListener(true); });
         document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.reloadListener(true); });

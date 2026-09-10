@@ -38,10 +38,10 @@ const Dashboard = {
     },
 
     getPrevPeriod(inicio, fin) {
-        const dur = fin.getTime() - inicio.getTime();
+        const dur = fin.getTime() - inicio.getTime() + 1;
         return {
-            inicio: new Date(inicio.getTime() - dur - 86400000),
-            fin: new Date(inicio.getTime() - 86400000)
+            inicio: new Date(inicio.getTime() - dur),
+            fin: new Date(inicio.getTime() - 1)
         };
     },
 
@@ -49,6 +49,7 @@ const Dashboard = {
     async render() {
         const area = document.getElementById('content-area');
         if (!area) return;
+        const renderToken = this._renderToken = {};
         this.init();
 
         const dateInicio = formatDateForInput(this.fechaInicio);
@@ -238,6 +239,7 @@ const Dashboard = {
 
         document.querySelectorAll('.dash-tabpanel').forEach(panel => { panel.hidden = false; });
         await this.initCharts();
+        if (this._renderToken !== renderToken) return;
         this.setupEvents();
         document.querySelector('.dash')?.classList.add('dash-ready');
         this.subscribeToData();
@@ -308,6 +310,8 @@ const Dashboard = {
     /* ── Firestore subscriptions ── */
     subscribeToData() {
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
+        const requestKey = this._prevRequestKey = {};
+        this.prevRecords = [];
 
         this.unsubscribe = firebase.firestore().collection('interlogic')
             .where('fecha', '>=', this.fechaInicio)
@@ -315,21 +319,22 @@ const Dashboard = {
             .orderBy('fecha', 'desc')
             .limit(DASHBOARD_MAX_RECORDS)
             .onSnapshot(snapshot => {
+                if (this._prevRequestKey !== requestKey) return;
                 this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
                 const warnEl = document.getElementById('dash-truncated-warn');
                 if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
                 this.computeAndRender();
-                this.fetchPrevPeriod();
+                this.updateDeltas();
             }, err => {
                 console.error('[Dashboard] Firestore error:', err);
                 showToast('Error al cargar datos', 'error');
             });
+        this.fetchPrevPeriod();
     },
 
     fetchPrevPeriod() {
-        const requestKey = [this.fechaInicio.getTime(), this.fechaFin.getTime()].join(':');
-        this._prevRequestKey = requestKey;
+        const requestKey = this._prevRequestKey;
         const prev = this.getPrevPeriod(this.fechaInicio, this.fechaFin);
         firebase.firestore().collection('interlogic')
             .where('fecha', '>=', prev.inicio)
@@ -793,6 +798,7 @@ const Dashboard = {
 
     async initCharts() {
         if (this.chartInit) return;
+        const renderToken = this._renderToken;
         if (typeof ApexCharts === 'undefined') { showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
         const theme = this.getChartTheme();
         const labelColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
@@ -1077,6 +1083,7 @@ const Dashboard = {
             .filter(c => c && typeof c.render === 'function')
             .map(c => c.render());
         await Promise.all(renderJobs);
+        if (this._renderToken !== renderToken) return;
 
         this.chartInit = true;
 
@@ -2230,6 +2237,8 @@ const Dashboard = {
 
     /* ── Cleanup ── */
     destroy() {
+        this._renderToken = null;
+        this._prevRequestKey = null;
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         if (this.themeObserver) { this.themeObserver.disconnect(); this.themeObserver = null; }
         if (this._dashRO) { try{ this._dashRO.disconnect(); }catch(e){} this._dashRO = null; }

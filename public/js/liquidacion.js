@@ -22,6 +22,7 @@ const Liquidacion = {
     _planRows: 0,
 
     cleanup() {
+        this._renderToken = null;
         Object.keys(this.unsub).forEach(k => {
             if (this.unsub[k]) { this.unsub[k](); this.unsub[k] = null; }
         });
@@ -101,25 +102,26 @@ const Liquidacion = {
     async render() {
         const area = document.getElementById('content-area');
         if (!area) return;
+        const renderToken = this._renderToken = {};
         area.innerHTML = '<div style="text-align:center;padding:3rem;">Cargando liquidación...</div>';
         this._loadLastActions();
         console.log('[Liquidacion] v8 cargado · acciones deshacibles:', Object.keys(this._lastActions).length);
         this.dayFilter = getLocalDateString();
-        await this._loadBase();
+        await this._loadBase(renderToken);
+        if (this._renderToken !== renderToken) return;
         this._renderShell();
         this._subscribeAll();
     },
 
-    async _loadBase() {
+    async _loadBase(renderToken = this._renderToken) {
         const db = firebase.firestore();
-        try {
-            const repSnap = await db.collection('repartidores').orderBy('nombre', 'asc').get();
-            this.repartidores = repSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { this.repartidores = []; }
-        try {
-            const liqSnap = await db.collection('liquidaciones').orderBy('createdAt', 'desc').limit(500).get();
-            this.liquidaciones = liqSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        } catch (e) { this.liquidaciones = []; }
+        const results = await Promise.allSettled([
+            db.collection('repartidores').orderBy('nombre', 'asc').get(),
+            db.collection('liquidaciones').orderBy('createdAt', 'desc').limit(500).get()
+        ]);
+        if (this._renderToken !== renderToken) return;
+        this.repartidores = results[0].status === 'fulfilled' ? results[0].value.docs.map(d => ({ id: d.id, ...d.data() })) : [];
+        this.liquidaciones = results[1].status === 'fulfilled' ? results[1].value.docs.map(d => ({ id: d.id, ...d.data() })) : [];
     },
 
     async _reloadRepartidores() {
