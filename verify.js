@@ -143,6 +143,7 @@ function bumpCheck() {
   const headV = versions(headIdx);
 
   for (const f of [...jsMod, ...cssMod]) {
+    if (!fs.existsSync(path.join(ROOT, f))) continue;
     const key = f.replace(/^public\//, '');
     if (!curV.has(key)) {
       warnings.push('Bump  ' + key + ' modificado pero sin ?v= en index.html');

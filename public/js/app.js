@@ -144,7 +144,7 @@ const App = {
         if (!list || list.children.length > 0) return;
 
         // Los módulos ya presentes en la barra inferior no se repiten en "Más"
-        const bottomModules = ['dashboard', 'deliveries', 'clientes', 'liquidacion-ruta'];
+        const bottomModules = ['dashboard', 'deliveries', 'clientes', 'liquidacion'];
 
         // Construye "Más" a partir de los ítems del sidebar, así móvil muestra
         // exactamente las mismas opciones que la versión PC (mobile-first).
@@ -178,9 +178,6 @@ const App = {
         const bnItem = document.querySelector(`.bn-item[data-module="${moduleName}"]`);
         if (bnItem) {
             bnItem.classList.add('active');
-        } else if (moduleName === 'liquidacion-ruta' || moduleName === 'liquidacion-contado' || moduleName === 'liquidacion-credito') {
-            const liquidacionBtn = document.querySelector('.bn-item[data-module="liquidacion-ruta"]');
-            if (liquidacionBtn) liquidacionBtn.classList.add('active');
         } else {
             // Highlight "Más" for other modules
             if (moreBtn) moreBtn.classList.add('active');
@@ -198,9 +195,8 @@ const App = {
             window.Interlogic.unsubscribe(); window.Interlogic.unsubscribe = null;
             window.Interlogic.selectedRecords.clear();
         }
-        if ((this.currentModule === 'liquidacion-ruta' || this.currentModule === 'liquidacion-contado' || this.currentModule === 'liquidacion-credito') && window.Liquidacion) {
-            if (window.Liquidacion.unsubscribeRoutes) { window.Liquidacion.unsubscribeRoutes(); window.Liquidacion.unsubscribeRoutes = null; }
-            if (window.Liquidacion.unsubscribeDeliveries) { window.Liquidacion.unsubscribeDeliveries(); window.Liquidacion.unsubscribeDeliveries = null; }
+        if (this.currentModule === 'liquidacion' && window.Liquidacion) {
+            if (window.Liquidacion.cleanup) window.Liquidacion.cleanup();
         }
         if (this.currentModule === 'kpi' && window.KpiEvaluation && window.KpiEvaluation.unsubscribe) {
             window.KpiEvaluation.unsubscribe(); window.KpiEvaluation.unsubscribe = null;
@@ -211,12 +207,6 @@ const App = {
         }
         if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {
             window.Problemas.unsubscribe(); window.Problemas.unsubscribe = null;
-        }
-        if (this.currentModule === 'cobranza' && window.Cobranza) {
-            if (window.Cobranza.unsubscribeRecords) { window.Cobranza.unsubscribeRecords(); window.Cobranza.unsubscribeRecords = null; }
-            if (window.Cobranza.unsubscribeCobros) { window.Cobranza.unsubscribeCobros(); window.Cobranza.unsubscribeCobros = null; }
-            if (window.Cobranza.unsubscribeGestiones) { window.Cobranza.unsubscribeGestiones(); window.Cobranza.unsubscribeGestiones = null; }
-            if (window.Cobranza.unsubscribeAjustes) { window.Cobranza.unsubscribeAjustes(); window.Cobranza.unsubscribeAjustes = null; }
         }
         if (this.currentModule === 'flota' && window.Flota) {
             if (window.Flota.unsubscribeVehiculos) { window.Flota.unsubscribeVehiculos(); window.Flota.unsubscribeVehiculos = null; }
@@ -233,6 +223,8 @@ const App = {
         }
 
         this.currentModule = moduleName;
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) contentArea.dataset.visualModule = moduleName;
 
         try {
             switch (moduleName) {
@@ -259,18 +251,10 @@ const App = {
                     }
                     if (window.Users && window.Users.render) await window.Users.render();
                     break;
-                case 'liquidacion-ruta':
-                case 'liquidacion-contado':
-                case 'liquidacion-credito':
+                case 'liquidacion':
                     if (window.Liquidacion && window.Liquidacion.render) await window.Liquidacion.render();
                     break;
-                                case 'entregas':
-                    if (window.Entregas && window.Entregas.render) await window.Entregas.render();
-                    break;
-case 'repartidores':
-                    if (window.Repartidores && window.Repartidores.render) await window.Repartidores.render();
-                    break;
-                case 'kpi':
+                                case 'kpi':
                     if (window.KpiEvaluation && window.KpiEvaluation.render) await window.KpiEvaluation.render();
                     break;
 
@@ -279,9 +263,6 @@ case 'repartidores':
                     break;
                 case 'problemas':
                     if (window.Problemas && window.Problemas.render) await window.Problemas.render();
-                    break;
-                case 'cobranza':
-                    if (window.Cobranza && window.Cobranza.render) await window.Cobranza.render();
                     break;
                 case 'flota':
                     if (window.Flota && window.Flota.render) await window.Flota.render();

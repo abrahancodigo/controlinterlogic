@@ -55,30 +55,24 @@ const Dashboard = {
         const dateFin = formatDateForInput(this.fechaFin);
         const todayLabel = this.formatDateFull(new Date());
         // Saludo dinámico según hora — toque humano tipo app nativa
-        const hr = new Date().getHours();
-        const greeting = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
-
         area.innerHTML = `
 <div class="dash">
-    <div class="dash-hero">
-        <div class="dash-hero-bg"></div>
-        <div class="dash-hero-inner">
-            <div class="dash-hero-top">
-                <div class="dash-hero-text">
-                    <div class="dash-hero-greeting">${greeting} · Resumen de Ventas</div>
-                    <h1 class="dash-hero-title">${todayLabel}</h1>
-                </div>
-                <div class="dash-hero-actions">
-                    <div class="dash-period-chips" id="dash-period-chips">
-                        <button class="dash-chip active" data-period="today">Hoy</button>
-                        <button class="dash-chip" data-period="week">Semana</button>
-                        <button class="dash-chip" data-period="month">Mes</button>
-                        <button class="dash-chip" data-period="quarter">Trimestre</button>
-                        <button class="dash-chip" data-period="custom">Personalizado</button>
-                    </div>
-                    <div class="dash-date-pill">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <input type="date" id="dash-date-inicio" value="${dateInicio}" class="dash-pill-input">
+    <div class="dash-topbar">
+        <div class="dash-topbar-title">
+            <h1>Resumen de ventas</h1>
+            <p id="dash-range-label">${todayLabel}</p>
+        </div>
+        <div class="dash-topbar-controls">
+            <div class="dash-period-chips" id="dash-period-chips">
+                <button class="dash-chip active" data-period="today">Hoy</button>
+                <button class="dash-chip" data-period="week">Semana</button>
+                <button class="dash-chip" data-period="month">Mes</button>
+                <button class="dash-chip" data-period="quarter">Trimestre</button>
+                <button class="dash-chip" data-period="custom">Personalizado</button>
+            </div>
+            <div class="dash-date-pill">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <input type="date" id="dash-date-inicio" value="${dateInicio}" class="dash-pill-input">
                         <span class="dash-pill-sep">→</span>
                         <input type="date" id="dash-date-fin" value="${dateFin}" class="dash-pill-input">
                         <button class="dash-pill-btn" id="dash-apply-btn">
@@ -91,86 +85,26 @@ const Dashboard = {
                 </div>
             </div>
 
-            <div class="dash-kpi-grid">
-                <div class="dash-kpi-card">
-                    <div class="dash-kpi-head">
-                        <div class="dash-kpi-icon dash-kpi-icon-total">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="23" y2="6"/><path d="M12 1v6m0 0L1 6m11 16v-5l-4-2 4-2 4 2-4 2v5"/></svg>
-                        </div>
-                        <div class="dash-kpi-delta" id="dash-total-delta"></div>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-label">Total Ventas</div>
-                        <div class="dash-kpi-value" id="dash-total-monto">$0</div>
-                        <div class="dash-kpi-meta" id="dash-total-count">0 entregas</div>
-                        <div class="dash-kpi-sparkline" id="dash-total-spark"></div>
-                    </div>
-                </div>
-                <div class="dash-kpi-card">
-                    <div class="dash-kpi-head">
-                        <div class="dash-kpi-icon dash-kpi-icon-contado">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                        </div>
-                        <div class="dash-kpi-delta" id="dash-contado-delta"></div>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-label">Contado</div>
-                        <div class="dash-kpi-value" id="dash-contado-monto">$0</div>
-                        <div class="dash-kpi-meta" id="dash-contado-count">0 entregas</div>
-                        <div class="dash-kpi-sparkline" id="dash-contado-spark"></div>
-                    </div>
-                </div>
-                <div class="dash-kpi-card">
-                    <div class="dash-kpi-head">
-                        <div class="dash-kpi-icon dash-kpi-icon-credito">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                        </div>
-                        <div class="dash-kpi-delta" id="dash-credito-delta"></div>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-label">Crédito</div>
-                        <div class="dash-kpi-value" id="dash-credito-monto">$0</div>
-                        <div class="dash-kpi-meta" id="dash-credito-count">0 entregas</div>
-                        <div class="dash-kpi-sparkline" id="dash-credito-spark"></div>
-                    </div>
-                </div>
-                <div class="dash-kpi-card">
-                    <div class="dash-kpi-head">
-                        <div class="dash-kpi-icon dash-kpi-icon-dalse">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        </div>
-                        <div class="dash-kpi-delta" id="dash-dalse-delta"></div>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-label">Dalse</div>
-                        <div class="dash-kpi-value" id="dash-dalse-monto">$0</div>
-                        <div class="dash-kpi-meta" id="dash-dalse-count">0 entregas</div>
-                        <div class="dash-kpi-sparkline" id="dash-dalse-spark"></div>
-                    </div>
-                </div>
-                <div class="dash-kpi-card">
-                    <div class="dash-kpi-head">
-                        <div class="dash-kpi-icon dash-kpi-icon-incede">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        </div>
-                        <div class="dash-kpi-delta" id="dash-incede-delta"></div>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-label">Incede</div>
-                        <div class="dash-kpi-value" id="dash-incede-monto">$0</div>
-                        <div class="dash-kpi-meta" id="dash-incede-count">0 entregas</div>
-                        <div class="dash-kpi-sparkline" id="dash-incede-spark"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <div id="dash-insights" class="dash-insights" aria-live="polite"></div>
+
+    <div class="dash-kpi-grid" id="dash-kpi-grid"></div>
 
     <div id="dash-truncated-warn" style="display:none;margin:0 0 16px;padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.85rem;font-weight:600;">
         ⚠️ El rango seleccionado tiene más de 2,000 registros: los totales mostrados corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver datos completos.
     </div>
 
-    <div class="dash-charts-row">
+    <div class="dash-tabs" role="tablist" aria-label="Dimensiones del dashboard">
+        <button class="dash-tab active" role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
+        <button class="dash-tab" role="tab" aria-selected="false" data-tab="vendedor">Vendedor</button>
+        <button class="dash-tab" role="tab" data-tab="zona">Departamento</button>
+        <button class="dash-tab" role="tab" data-tab="entregador">Entregador</button>
+        <button class="dash-tab" role="tab" data-tab="matriz">Matriz</button>
+        <button class="dash-tab" role="tab" data-tab="dia">Por día</button>
+    </div>
+
+    <div class="dash-tabpanels">
+    <div class="dash-tabpanel" data-panel="resumen">
+    <div class="dash-charts-row" style="margin-top:16px;">
         <div class="dash-chart-card">
             <div class="dash-chart-header"><h3>Contado vs Crédito</h3><span class="dash-chart-total" id="dash-donut-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-donut-chart"></div>
@@ -180,34 +114,15 @@ const Dashboard = {
             <div class="dash-chart-body" id="dash-incede-chart"></div>
         </div>
     </div>
-    <div class="dash-charts-row">            <div class="dash-chart-card dash-chart-full" id="dash-bar-chart-card">
-                <div class="dash-chart-header"><h3>Ventas por Despachador</h3><span class="dash-chart-total" id="dash-bar-chart-total"></span></div>
-                <div class="dash-chart-body" id="dash-bar-chart"></div>
-            </div>
     </div>
-
-    <div class="dash-section">
-        <div class="dash-section-header">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            <h2 class="dash-section-title">Desglose por Entregador</h2>
-        </div>
-        <div class="dash-carrier-grid" id="dash-carrier-stats"></div>
-    </div>
-
-    <div class="dash-charts-row">
+    <div class="dash-tabpanel" data-panel="vendedor" hidden>
+    <div class="dash-charts-row" style="margin-top:16px;">
         <div class="dash-chart-card">
             <div class="dash-chart-header"><h3>Ventas por Vendedor</h3><span class="dash-chart-total" id="dash-vendedor-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-vendedor-chart"></div>
         </div>
         <div class="dash-chart-card">
-            <div class="dash-chart-header"><h3>Ventas por Departamento</h3><span class="dash-chart-total" id="dash-zona-chart-total"></span></div>
-            <div class="dash-chart-body" id="dash-zona-chart"></div>
-        </div>
-    </div>
-
-    <div class="dash-charts-row">
-        <div class="dash-chart-card dash-chart-full">
-            <div class="dash-chart-header"><h3>Acumulado por Vendedor</h3><span class="dash-chart-total" id="dash-acum-chart-total"></span></div>
+            <div class="dash-chart-header"><h3>Participación por Vendedor</h3><span class="dash-chart-total" id="dash-acum-chart-total"></span></div>
             <div class="dash-chart-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
                 <div class="dash-acum-list-wrap" style="flex:1;min-width:260px;">
                     <div class="dash-acum-toolbar">
@@ -225,39 +140,61 @@ const Dashboard = {
         </div>
     </div>
 
-    <div class="dash-section has-toggle">
+    <div class="dash-section" style="margin-top:16px;">
         <div class="dash-section-header">
-            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-vendedor-content">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <h2 class="dash-section-title">Desglose por Vendedor</h2>
+            <h2 class="dash-section-title">Ranking de Vendedores</h2>
             <span class="dash-section-badge" id="dash-vendedor-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn" id="dash-vendedor-toggle">Ver todos</button>
         </div>
         <div id="dash-vendedor-content">
             <div class="dash-vendedor-grid" id="dash-vendedor-grid"></div>
         </div>
     </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="zona" hidden>
+    <div class="dash-charts-row" style="margin-top:16px;">
+        <div class="dash-chart-card dash-chart-full">
+            <div class="dash-chart-header"><h3>Ventas por Departamento</h3><span class="dash-chart-total" id="dash-zona-chart-total"></span></div>
+            <div class="dash-chart-body" id="dash-zona-chart"></div>
+        </div>
+    </div>
 
-    <div class="dash-section has-toggle">
+    <div class="dash-section" style="margin-top:16px;">
         <div class="dash-section-header">
-            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-zona-content">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <h2 class="dash-section-title">Desglose por Departamento</h2>
+            <h2 class="dash-section-title">Ranking de Departamentos</h2>
             <span class="dash-section-badge" id="dash-zona-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn" id="dash-zona-toggle">Ver todos</button>
         </div>
         <div id="dash-zona-content">
             <div class="dash-zona-grid" id="dash-zona-grid"></div>
         </div>
     </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="entregador" hidden>
+    <div class="dash-charts-row" style="margin-top:16px;">
+        <div class="dash-chart-card dash-chart-full" id="dash-bar-chart-card">
+            <div class="dash-chart-header"><h3>Ventas por Entregador</h3><span class="dash-chart-total" id="dash-bar-chart-total"></span></div>
+            <div class="dash-chart-body" id="dash-bar-chart"></div>
+        </div>
+    </div>
 
-    <div class="dash-section has-toggle">
+    <div class="dash-section" style="margin-top:16px;">
         <div class="dash-section-header">
-            <button class="dash-section-toggle" aria-label="Colapsar sección" data-section="dash-matriz-content">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <h2 class="dash-section-title">Ranking de Entregadores</h2>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn" id="dash-carrier-toggle">Ver todos</button>
+        </div>
+        <div class="dash-carrier-grid" id="dash-carrier-stats"></div>
+    </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="matriz" hidden>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
             <h2 class="dash-section-title">Matriz Vendedor × Departamento</h2>
             <span class="dash-section-badge" id="dash-matriz-resumen"></span>
@@ -276,28 +213,17 @@ const Dashboard = {
             </p>
         </div>
     </div>
-
-    <div class="dash-section" id="dash-daily-section" style="display:none;">
-        <div class="dash-section-header">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <h2 class="dash-section-title">Desglose por Día</h2>
-        </div>
-        <div class="dash-table-wrap">
-            <table class="dash-table">
-                <thead><tr>
-                    <th>Día</th><th>Contado</th><th>Crédito</th><th>Total</th><th>Entregas</th>
-                </tr></thead>
-                <tbody id="dash-daily-tbody"></tbody>
-            </table>
-        </div>
     </div>
-
-    <div class="dash-section">
+    <div class="dash-tabpanel" data-panel="dia" hidden>
+    <div class="dash-section" style="margin-top:16px;">
         <div class="dash-section-header">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             <h2 class="dash-section-title">Detalle por Día</h2>
+            <span class="dash-section-badge" id="dash-dia-resumen"></span>
         </div>
         <div class="dash-day-grid" id="dash-day-cards"></div>
+    </div>
+    </div>
     </div>
 
     <!-- Pill flotante: total siempre a la vista, tap = volver arriba -->
@@ -310,8 +236,10 @@ const Dashboard = {
     </button>
 </div>`;
 
+        document.querySelectorAll('.dash-tabpanel').forEach(panel => { panel.hidden = false; });
+        await this.initCharts();
         this.setupEvents();
-        this.initCharts();
+        document.querySelector('.dash')?.classList.add('dash-ready');
         this.subscribeToData();
     },
 
@@ -338,8 +266,10 @@ const Dashboard = {
                 const iv = document.getElementById('dash-date-inicio').value;
                 const fv = document.getElementById('dash-date-fin').value;
                 if (!iv || !fv) { showToast('Selecciona ambas fechas', 'error'); return; }
+                if (iv > fv) { showToast('La fecha inicial no puede ser posterior a la final', 'error'); return; }
                 this.fechaInicio = new Date(iv + 'T00:00:00');
                 this.fechaFin = new Date(fv + 'T23:59:59.999');
+                document.querySelectorAll('.dash-chip').forEach(c => c.classList.toggle('active', c.dataset.period === 'custom'));
                 this.subscribeToData();
             });
         }
@@ -349,40 +279,14 @@ const Dashboard = {
             exportBtn.addEventListener('click', () => this.exportDashboard());
         }
 
-        /* ── Section toggle (colapsar/expandir) ── */
-        document.querySelectorAll('.dash-section-toggle').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const sectionId = btn.dataset.section;
-                const content = document.getElementById(sectionId);
-                if (!content) return;
-                const isCollapsed = content.classList.toggle('dash-section-collapsed');
-                btn.classList.toggle('collapsed', isCollapsed);
-            });
-        });
+        /* ── KPI cards dinámicas ── */
+        const kpiGrid = document.getElementById('dash-kpi-grid');
+        if (kpiGrid) this._renderKpiGrid();
 
-        /* ── KPI card click → detail modal ── */
-        const kpiTypes = ['total', 'contado', 'credito', 'dalse', 'incede'];
-        document.querySelectorAll('.dash-kpi-card').forEach((card, index) => {
-            if (index < 5) {
-                card.style.cursor = 'pointer';
-                card.addEventListener('click', () => {
-                    if (kpiTypes[index] === 'incede') this.showIncedeDetailModal();
-                    else this.showDetailModal(kpiTypes[index]);
-                });
-            }
-        });
-
-        /* ── Mobile UX: secciones colapsadas por defecto (dashboard escaneable) ── */
-        if (window.innerWidth <= 768) {
-            ['dash-vendedor-content', 'dash-zona-content', 'dash-matriz-content'].forEach(id => {
-                const content = document.getElementById(id);
-                const btn = document.querySelector(`.dash-section-toggle[data-section="${id}"]`);
-                if (content && btn && !content.classList.contains('dash-section-collapsed')) {
-                    content.classList.add('dash-section-collapsed');
-                    btn.classList.add('collapsed');
-                }
-            });
-        }
+        /* ── Tabs + ranking toggles ── */
+        this._setupTabs();
+        this._setupRankToggles();
+        this._updateRangeLabel();
 
         /* ── Pill flotante: aparece al pasar los KPIs, tap = scroll to top ── */
         const floatPill = document.getElementById('dash-float-pill');
@@ -424,6 +328,8 @@ const Dashboard = {
     },
 
     fetchPrevPeriod() {
+        const requestKey = [this.fechaInicio.getTime(), this.fechaFin.getTime()].join(':');
+        this._prevRequestKey = requestKey;
         const prev = this.getPrevPeriod(this.fechaInicio, this.fechaFin);
         firebase.firestore().collection('interlogic')
             .where('fecha', '>=', prev.inicio)
@@ -432,13 +338,157 @@ const Dashboard = {
             .limit(DASHBOARD_MAX_RECORDS)
             .get()
             .then(snapshot => {
+                if (this._prevRequestKey !== requestKey) return;
                 this.prevRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                this.computeAndRender();
                 this.updateDeltas();
             })
             .catch(() => {});
     },
 
-    /* ── Data aggregation ── */
+    /* ── KPI + Insights templates ── */
+    _kpiIcon(name) {
+        const c = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+        if (name === 'total') return `<svg ${c}><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+        if (name === 'contado') return `<svg ${c}><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`;
+        if (name === 'credito') return `<svg ${c}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+        if (name === 'dalse') return `<svg ${c}><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`;
+        return `<svg ${c}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>`;
+    },
+
+    _kpiDefs() {
+        return [
+            { key: 'total', label: 'Total Ventas' },
+            { key: 'contado', label: 'Contado' },
+            { key: 'credito', label: 'Crédito' },
+            { key: 'dalse', label: 'Dalse' },
+            { key: 'incede', label: 'Incede' }
+        ];
+    },
+
+    _renderKpiGrid() {
+        const grid = document.getElementById('dash-kpi-grid');
+        if (!grid || grid.dataset.built) return;
+        grid.dataset.built = '1';
+        grid.innerHTML = this._kpiDefs().map(d => `
+            <div class="dash-kpi-card dash-kpi-loading" data-kpi="${d.key}" style="cursor:pointer;">
+                <div class="dash-kpi-head">
+                    <div class="dash-kpi-icon dash-kpi-icon-${d.key}">${this._kpiIcon(d.key)}</div>
+                    <div class="dash-kpi-delta" id="dash-${d.key}-delta"></div>
+                </div>
+                <div class="dash-kpi-body">
+                    <div class="dash-kpi-label">${d.label}</div>
+                    <div class="dash-kpi-value" id="dash-${d.key}-monto">$0</div>
+                    <div class="dash-kpi-meta" id="dash-${d.key}-count">0 entregas</div>
+                    <div class="dash-kpi-sub" id="dash-${d.key}-sub"></div>
+                </div>
+            </div>`).join('');
+        if (!grid.dataset.bound) {
+            grid.dataset.bound = '1';
+            grid.addEventListener('click', e => {
+                const card = e.target.closest('[data-kpi]');
+                if (!card) return;
+                const k = card.dataset.kpi;
+                if (k === 'incede') this.showIncedeDetailModal();
+                else this.showDetailModal(k);
+            });
+        }
+    },
+
+    _periodLabel() {
+        try { return this.formatDateShort(this.fechaInicio) + ' – ' + this.formatDateShort(this.fechaFin); } catch (e) { return ''; }
+    },
+
+    _updateRangeLabel() {
+        const el = document.getElementById('dash-range-label');
+        if (el && this.fechaInicio && this.fechaFin) el.textContent = this._periodLabel();
+    },
+
+    _insightIcon(name) {
+        const c = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+        if (name === 'flame') return `<svg ${c}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+        if (name === 'trend-up') return `<svg ${c}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`;
+        if (name === 'trend-down') return `<svg ${c}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+        if (name === 'trophy') return `<svg ${c}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
+        if (name === 'alert') return `<svg ${c}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+        return `<svg ${c}><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+    },
+
+    renderInsights(ctx) {
+        const box = document.getElementById('dash-insights');
+        if (!box) return;
+        const items = [];
+        const best = Object.entries(ctx.dailyStats).sort((a, b) => b[1].total - a[1].total)[0];
+        if (best) items.push({ icon: this._insightIcon('flame'), cls: 'up', title: 'Mejor día', text: best[1].label + ' · ' + this.formatMoney(best[1].total) });
+        if (ctx.deltas && ctx.deltas.total != null) {
+            const up = ctx.deltas.total >= 0;
+            items.push({ icon: this._insightIcon(up ? 'trend-up' : 'trend-down'), cls: up ? 'up' : 'down', title: 'Vs anterior', text: (up ? '+' : '') + ctx.deltas.total.toFixed(1) + '%' });
+        }
+        const topV = Object.entries(ctx.vendedorStats).filter(([n]) => n && n !== 'Sin vendedor').sort((a, b) => b[1].monto - a[1].monto)[0];
+        if (topV) items.push({ icon: this._insightIcon('trophy'), cls: 'info', title: 'Top vendedor', text: topV[0] + ' · ' + this.formatMoney(topV[1].monto) });
+        const credShare = ctx.stats.total > 0 ? (ctx.stats.credito / ctx.stats.total) * 100 : 0;
+        const ticket = ctx.stats.totalCount > 0 ? ctx.stats.total / ctx.stats.totalCount : 0;
+        items.push({ icon: this._insightIcon(credShare >= 60 ? 'alert' : 'card'), cls: credShare >= 60 ? 'warn' : 'info', title: 'Crédito del total', text: credShare.toFixed(0) + '% · ticket ' + this.formatMoney(ticket) });
+        box.innerHTML = items.map(i => '<div class="dash-insight dash-insight-' + i.cls + '"><span class="dash-insight-icon">' + i.icon + '</span><div><div class="dash-insight-title">' + i.title + '</div><div class="dash-insight-text">' + this._escapeHtml(i.text) + '</div></div></div>').join('');
+    },
+
+    _setupTabs() {
+        const tabs = document.querySelectorAll('.dash-tab');
+        const panels = document.querySelectorAll('.dash-tabpanel');
+        if (!tabs.length) return;
+        const active = document.querySelector('.dash-tab.active')?.dataset.tab || 'resumen';
+        tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === active)));
+        panels.forEach(p => { p.hidden = p.dataset.panel !== active; });
+        tabs.forEach(t => {
+            t.addEventListener('click', () => {
+                tabs.forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected', 'false'); });
+                t.classList.add('active');
+                t.setAttribute('aria-selected', 'true');
+                const name = t.dataset.tab;
+                panels.forEach(p => { p.hidden = p.dataset.panel !== name; });
+                requestAnimationFrame(() => this._resizeCharts());
+            });
+            t.addEventListener('keydown', e => {
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                e.preventDefault();
+                const list = [...tabs];
+                const next = (list.indexOf(t) + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length;
+                list[next].focus();
+                list[next].click();
+            });
+        });
+    },
+
+    _resizeCharts() {
+        Object.values(this.charts).forEach(c => {
+            if (!c) return;
+            try { c.updateOptions({}, false, false); if (typeof c.resize === 'function') c.resize(); } catch (e) {}
+        });
+    },
+
+    _rankState: { vendedor: false, zona: false, carrier: false },
+
+    _setupRankToggles() {
+        const map = [['dash-vendedor-toggle', 'vendedor'], ['dash-zona-toggle', 'zona'], ['dash-carrier-toggle', 'carrier']];
+        map.forEach(([id, key]) => {
+            const btn = document.getElementById(id);
+            if (!btn || btn.dataset.bound) return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', () => {
+                this._rankState[key] = !this._rankState[key];
+                btn.textContent = this._rankState[key] ? 'Ver menos' : 'Ver todos';
+                this.computeAndRender();
+            });
+        });
+    },
+
+    _rankDeltaHtml(name, kind) {
+        const d = (this._dimDeltas && this._dimDeltas[kind] && this._dimDeltas[kind][name]);
+        if (d == null) return '';
+        const up = d >= 0;
+        return `<span class="dash-rank-delta ${up ? 'up' : 'down'}" title="Vs periodo anterior">${up ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%</span>`;
+    },
+
     computeAndRender() {
         const records = this.records;
         let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0, incede: 0, incedeCount: 0 };
@@ -507,18 +557,6 @@ const Dashboard = {
             if (emp === 'INCEDE') dailyStats[dk].incede += m;
         });
 
-        const sortedDays = Object.entries(dailyStats).sort((a, b) => a[0].localeCompare(b[0]));
-
-        const sparkData = {
-            total: sortedDays.map(([, d]) => d.total),
-            contado: sortedDays.map(([, d]) => d.contado),
-            credito: sortedDays.map(([, d]) => d.credito),
-            dalse: sortedDays.map(([, d]) => d.dalse),
-            incede: sortedDays.map(([, d]) => d.incede)
-        };
-
-        const chartDays = sortedDays.map(([, d]) => d.label);
-
         const carrierNames = Object.entries(carrierStats)
             .sort((a, b) => b[1].monto - a[1].monto)
             .map(([name]) => name);
@@ -526,23 +564,29 @@ const Dashboard = {
             Math.round((carrierStats[name] && carrierStats[name].monto) || 0)
         );
 
-        this.updateKpiCards(stats, sparkData);
+        this.updateKpiCards(stats);
         const vendedorNames = Object.entries(vendedorStats).sort((a, b) => b[1].monto - a[1].monto).map(([n]) => n);
         const zonaNames = Object.entries(zonaStats).sort((a, b) => b[1].monto - a[1].monto).map(([n]) => n);
         this.updateCharts({
-            donut: { contado: Math.round(stats.contado), credito: Math.round(stats.credito) },
+            donut: { contado: Math.round(stats.contado), credito: Math.round(stats.credito), contadoCount: stats.contadoCount, creditoCount: stats.creditoCount },
             incede: { dalse: Math.round(stats.dalse), incede: Math.round(stats.incede), dalseCount: stats.dalseCount, incedeCount: stats.incedeCount, total: stats.totalCount },
-            bar: { categories: carrierNames, data: carrierBarData },
-            vendedor: { categories: vendedorNames, data: vendedorNames.map(n => Math.round(vendedorStats[n].monto)) },
-            zona: { categories: zonaNames, data: zonaNames.map(n => Math.round(zonaStats[n].monto)) }
+            bar: { categories: carrierNames, data: carrierBarData, count: carrierNames.reduce((a, n) => a + ((carrierStats[n] && carrierStats[n].count) || 0), 0) },
+            vendedor: { categories: vendedorNames, data: vendedorNames.map(n => Math.round(vendedorStats[n].monto)), count: vendedorNames.reduce((a, n) => a + ((vendedorStats[n] && vendedorStats[n].count) || 0), 0) },
+            zona: { categories: zonaNames, data: zonaNames.map(n => Math.round(zonaStats[n].monto)), count: zonaNames.reduce((a, n) => a + ((zonaStats[n] && zonaStats[n].count) || 0), 0) }
         });
         this.updateCarrierStats(carrierStats, stats.total);
         this.updateVendedorStats(vendedorStats, stats.total);
         this.updateZonaStats(zonaStats, stats.total);
         this.updateAcumuladoVendedor(vendedorStats);
         this.updateMatriz(matriz, vendedorStats, zonaStats);
-        this.updateDailyTable(dailyStats);
         this.updateDayCards(dailyStats);
+        const badge = document.getElementById('dash-dia-resumen');
+        if (badge) badge.textContent = Object.keys(dailyStats).length + ' días';
+        const cur = this.computeTotals(this.records);
+        const prev = this.computeTotals(this.prevRecords || []);
+        const pct = (c, p) => p !== 0 ? ((c - p) / Math.abs(p) * 100) : null;
+        this.renderInsights({ stats, dailyStats, vendedorStats, zonaStats, carrierStats, deltas: { total: pct(cur.total, prev.total) } });
+        this._updateRangeLabel();
         // Pill flotante: total siempre visible al scrollear
         const pillTotal = document.getElementById('dash-float-pill-total');
         const pillCount = document.getElementById('dash-float-pill-count');
@@ -581,8 +625,36 @@ const Dashboard = {
         }
     },
 
-    updateKpiCards(s, spark) {
+    _dimName(r, kind) {
+        if (kind === 'vendedor') return (r.vendedor || 'Sin vendedor').trim() || 'Sin vendedor';
+        if (kind === 'zona') return (r.departamento || r.zona || 'Sin departamento').trim() || 'Sin departamento';
+        return (r.entrega || 'Sin asignar').toUpperCase().trim();
+    },
+
+    _aggregateDim(records, kind) {
+        const out = {};
+        (records || []).forEach(r => {
+            const n = this._dimName(r, kind);
+            out[n] = (out[n] || 0) + signedAmount(r, 'venta');
+        });
+        return out;
+    },
+
+    _dimPct(cur, prev) {
+        const d = {};
+        Object.keys(cur).forEach(n => {
+            const p = prev[n] || 0;
+            d[n] = p !== 0 ? ((cur[n] - p) / Math.abs(p) * 100) : null;
+        });
+        return d;
+    },
+
+    _dimDeltas: { vendedor: {}, zona: {}, carrier: {} },
+
+    updateKpiCards(s) {
         const e = id => document.getElementById(id);
+        const sub = (id, v) => { const n = e(id); if (n) n.textContent = v; };
+        document.querySelectorAll('.dash-kpi-loading').forEach(card => card.classList.remove('dash-kpi-loading'));
 
         this._animateMoney(e('dash-total-monto'), s.total);
         this._animateMoney(e('dash-contado-monto'), s.contado);
@@ -598,6 +670,21 @@ const Dashboard = {
         if (e('dash-dalse-count')) e('dash-dalse-count').textContent = s.dalseCount === 0 ? 'Sin entregas' : `${s.dalseCount} entrega${s.dalseCount !== 1 ? 's' : ''}`;
         if (e('dash-incede-count')) e('dash-incede-count').textContent = s.incedeCount === 0 ? 'Sin entregas' : `${s.incedeCount} entrega${s.incedeCount !== 1 ? 's' : ''}`;
 
+        sub('dash-total-sub', s.totalCount > 0 ? 'Ticket prom. ' + this.formatMoney(s.total / s.totalCount) : '');
+        sub('dash-contado-sub', s.total > 0 ? ((s.contado / s.total) * 100).toFixed(0) + '% del total' : '');
+        sub('dash-credito-sub', s.total > 0 ? ((s.credito / s.total) * 100).toFixed(0) + '% del total' : '');
+        sub('dash-dalse-sub', s.total > 0 ? ((s.dalse / s.total) * 100).toFixed(0) + '% del total' : '');
+        sub('dash-incede-sub', s.total > 0 ? ((s.incede / s.total) * 100).toFixed(0) + '% del total' : '');
+
+        try {
+            const curV = this._aggregateDim(this.records, 'vendedor');
+            const prevV = this._aggregateDim(this.prevRecords || [], 'vendedor');
+            const curC = this._aggregateDim(this.records, 'carrier');
+            const prevC = this._aggregateDim(this.prevRecords || [], 'carrier');
+            const curZ = this._aggregateDim(this.records, 'zona');
+            const prevZ = this._aggregateDim(this.prevRecords || [], 'zona');
+            this._dimDeltas = { vendedor: this._dimPct(curV, prevV), zona: this._dimPct(curZ, prevZ), carrier: this._dimPct(curC, prevC) };
+        } catch (e) { this._dimDeltas = { vendedor: {}, zona: {}, carrier: {} }; }
         const dalseCard = document.querySelector('.dash-kpi-icon-dalse')?.closest('.dash-kpi-card');
         if (dalseCard) {
             if (s.dalseCount === 0) dalseCard.classList.add('dash-kpi-empty');
@@ -609,46 +696,6 @@ const Dashboard = {
             else incedeCard.classList.remove('dash-kpi-empty');
         }
 
-        this.renderSparkline('dash-total-spark', spark.total, '#a78bfa');
-        this.renderSparkline('dash-contado-spark', spark.contado, '#34d399');
-        this.renderSparkline('dash-credito-spark', spark.credito, '#fbbf24');
-        this.renderSparkline('dash-dalse-spark', spark.dalse, '#22d3ee');
-        this.renderSparkline('dash-incede-spark', spark.incede, '#f43f5e');
-    },
-
-    renderSparkline(elId, data, color) {
-        const el = document.getElementById(elId);
-        if (!el) return;
-        if (typeof ApexCharts === 'undefined') { el.style.display = 'none'; return; }
-        if (!this.charts.sparklines) this.charts.sparklines = {};
-        if (this.charts.sparklines[elId]) { this.charts.sparklines[elId].destroy(); delete this.charts.sparklines[elId]; }
-        if (!data || data.length < 2) {
-            el.innerHTML = '';
-            el.style.display = 'none';
-            return;
-        }
-        el.style.display = '';
-        const opt = {
-            chart: {
-                type: 'line',
-                sparkline: { enabled: true },
-                animations: { enabled: true, easing: 'easeinout', speed: 450 }
-            },
-            series: [{ data: data }],
-            stroke: { curve: 'smooth', width: 3, lineCap: 'round' },
-            colors: [color],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    opacityFrom: 0.45,
-                    opacityTo: 0.05,
-                    stops: [0, 90, 100]
-                }
-            },
-            tooltip: { enabled: false }
-        };
-        this.charts.sparklines[elId] = new ApexCharts(el, opt);
-        this.charts.sparklines[elId].render();
     },
 
     /* ── Update deltas ── */
@@ -721,10 +768,6 @@ const Dashboard = {
         const { theme, labelColor, mutedColor, gridColor, strokeColor } = this.getChartColors();
         Object.entries(this.charts).forEach(([k, c]) => {
             if (!c) return;
-            if (k === 'sparklines') {
-                Object.values(c).forEach(sc => { if (sc) sc.updateOptions({ theme: { mode: theme } }); });
-                return;
-            }
             const opts = { theme: { mode: theme }, grid: { borderColor: gridColor } };
             if (k === 'donut' || k === 'incede') {
                 opts.plotOptions = { pie: { donut: { labels: {
@@ -748,7 +791,7 @@ const Dashboard = {
         });
     },
 
-    initCharts() {
+    async initCharts() {
         if (this.chartInit) return;
         if (typeof ApexCharts === 'undefined') { showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
         const theme = this.getChartTheme();
@@ -1020,7 +1063,8 @@ const Dashboard = {
                     fontWeight: 700,
                     fontFamily: 'Inter, sans-serif',
                     labels: { colors: labelColor },
-                    itemMargin: { horizontal: 10, vertical: 6 }
+                    itemMargin: { horizontal: 10, vertical: 7 },
+                    formatter: (name, opts) => name + ' · ' + this.formatMoney(opts.w.config.series[opts.seriesIndex] || 0)
                 },
                 tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
                 theme: { mode: theme },
@@ -1029,27 +1073,24 @@ const Dashboard = {
             this.charts.acum = new ApexCharts(acumEl, acumOptions);
         }
 
-        Object.values(this.charts).forEach(c => { if (c && typeof c.render === 'function') c.render(); });
+        const renderJobs = Object.values(this.charts)
+            .filter(c => c && typeof c.render === 'function')
+            .map(c => c.render());
+        await Promise.all(renderJobs);
 
         this.chartInit = true;
 
         // — Mobile resize handling: ResizeObserver + orientationchange
-        const _isMobile = () => window.innerWidth <= 768;
         const _debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
         const _handleChartResize = _debounce(() => {
-            const isM = _isMobile();
-            Object.entries(this.charts).forEach(([k, c]) => {
-                if (!c || k === 'sparklines') return;
+            Object.values(this.charts).forEach(c => {
+                if (!c) return;
                 try {
                     // Force ApexCharts to recalc width; height handled by CSS (260 mobile / 380 desktop)
                     c.updateOptions({}, false, false);
                     if (typeof c.resize === 'function') c.resize();
                 } catch(e) {}
             });
-            // Sparklines also need reflow on mobile rotate
-            if (isM && this.charts.sparklines) {
-                Object.values(this.charts.sparklines).forEach(sc => { try{ if(sc && typeof sc.resize==='function') sc.resize(); }catch(e){} });
-            }
         }, 120);
         if (window.ResizeObserver) {
             const roTarget = document.querySelector('.dash') || document.getElementById('content-area');
@@ -1085,7 +1126,7 @@ const Dashboard = {
 
         if (data.incede) {
             const incedeTotal = data.incede.dalse + data.incede.incede;
-            this._setChartTotal('dash-incede-chart-total', incedeTotal);
+            this._setChartTotal('dash-incede-chart-total', incedeTotal, (data.incede.dalseCount || 0) + (data.incede.incedeCount || 0));
             if (this.charts.incede) this.charts.incede.updateOptions({
                 series: [data.incede.dalse, data.incede.incede],
                 plotOptions: {
@@ -1096,7 +1137,7 @@ const Dashboard = {
 
         if (data.bar && data.bar.data) {
             const total = data.bar.data.reduce((a, b) => a + b, 0);
-            this._setChartTotal('dash-bar-chart-total', total);
+            this._setChartTotal('dash-bar-chart-total', total, data.bar.count);
             if (this.charts.bar) {
             const rawMax = Math.max(...data.bar.data, 0);
             const target = rawMax * 1.15;
@@ -1130,7 +1171,7 @@ const Dashboard = {
         if (data.vendedor) {
             const vdata = data.vendedor.categories.map((name, i) => Math.round(data.vendedor.data[i]));
             const totalVendedor = vdata.reduce((a, b) => a + b, 0);
-            this._setChartTotal('dash-vendedor-chart-total', totalVendedor);
+            this._setChartTotal('dash-vendedor-chart-total', totalVendedor, data.vendedor.count);
             window.Dashboard._vendedorChartNames = data.vendedor.categories;
             if (this.charts.vendedor) this.charts.vendedor.updateOptions({
                 xaxis: { categories: data.vendedor.categories },
@@ -1141,7 +1182,7 @@ const Dashboard = {
         if (data.zona) {
             const zdata = data.zona.categories.map((name, i) => Math.round(data.zona.data[i]));
             const totalZona = zdata.reduce((a, b) => a + b, 0);
-            this._setChartTotal('dash-zona-chart-total', totalZona);
+            this._setChartTotal('dash-zona-chart-total', totalZona, data.zona.count);
             window.Dashboard._zonaChartNames = data.zona.categories;
             if (this.charts.zona) this.charts.zona.updateOptions({
                 xaxis: { categories: data.zona.categories },
@@ -1172,18 +1213,19 @@ const Dashboard = {
             const avg = d.count > 0 ? d.monto / d.count : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
+            const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
             const avatarColors = ['#7c3aed', '#8b5cf6', '#a78bfa', '#6366f1', '#9333ea', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
             const avatarColor = avatarColors[index % avatarColors.length];
             const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || name.substring(0, 2).toUpperCase();
-            return `<div class="dash-vendedor-card" data-vendedor="${this._escapeAttr(name)}">
-                <div class="dash-vendedor-rank">${index + 1}</div>
+            return `<div class="dash-vendedor-card" data-vendedor="${this._escapeAttr(name)}" style="${index >= 5 && !this._rankState.vendedor ? 'display:none;' : ''}">
+                <div class="dash-vendedor-rank">${medal}</div>
                 <div class="dash-vendedor-card-inner">
                     <div class="dash-vendedor-card-top">
                         <div class="dash-vendedor-avatar" style="background:${avatarColor}"><span class="dash-vendedor-avatar-text">${initials}</span></div>
                         <div class="dash-vendedor-body">
                             <div class="dash-vendedor-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
                             <div class="dash-vendedor-amount">${this.formatMoney(d.monto)}</div>
-                            <div class="dash-vendedor-meta"><span>${d.count} ent.</span><span class="dash-vendedor-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-vendedor-sep">·</span><span>${pct}% del total</span></div>
+                            <div class="dash-vendedor-meta"><span>${d.count} ent.</span><span class="dash-vendedor-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-vendedor-sep">·</span><span>${pct}% del total</span> ${this._rankDeltaHtml(name, 'vendedor')}</div>
                         </div>
                     </div>
                     <div class="dash-vendedor-bar-wrap">
@@ -1238,16 +1280,17 @@ const Dashboard = {
             const avg = d.count > 0 ? d.monto / d.count : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
+            const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
             const zonaColors = ['#0891b2', '#0ea5e9', '#06b6d4', '#0284c7', '#2563eb', '#6366f1', '#7c3aed', '#0d9488', '#059669', '#d946ef'];
             const zonaColor = zonaColors[index % zonaColors.length];
-            return `<div class="dash-zona-card" data-zona="${this._escapeAttr(name)}">
+            return `<div class="dash-zona-card" data-zona="${this._escapeAttr(name)}" style="${index >= 5 && !this._rankState.zona ? 'display:none;' : ''}">
                 <div class="dash-zona-card-inner">
                     <div class="dash-zona-card-top">
-                        <div class="dash-zona-icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${zonaColor};"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                        <div class="dash-zona-icon-wrap"><span class="dash-rank-medal">${medal}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${zonaColor};"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
                         <div class="dash-zona-body">
                             <div class="dash-zona-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
                             <div class="dash-zona-amount">${this.formatMoney(d.monto)}</div>
-                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span></div>
+                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span> ${this._rankDeltaHtml(name, 'zona')}</div>
                         </div>
                     </div>
                     <div class="dash-zona-bar-wrap">
@@ -1378,7 +1421,7 @@ const Dashboard = {
 
         if (this.charts.acum) {
             const series = selected.map(([, d]) => Math.round(d.monto));
-            const labels = selected.map(([name]) => name.length > 16 ? name.substring(0, 15) + '\u2026' : name);
+            const labels = selected.map(([name]) => name);
             window.Dashboard._acumChartNames = selected.map(([name]) => name);
             const colorMap = {};
             vendedores.forEach(function(entry, idx) { colorMap[entry[0]] = this._getAcumColor(idx); }, this);
@@ -1405,6 +1448,9 @@ const Dashboard = {
                         },
                         style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif' },
                         dropShadow: { enabled: false }
+                    },
+                    legend: {
+                        formatter: (name, opts) => name + ' · ' + this.formatMoney(opts.w.config.series[opts.seriesIndex] || 0)
                     },
                     plotOptions: { pie: { expandOnClick: true } }
                 });
@@ -1602,20 +1648,22 @@ const Dashboard = {
             'INCEDE': { cls: 'dash-carrier-avatar-incede' }
         };
 
-        container.innerHTML = carriers.map(([name, d]) => {
+        container.innerHTML = carriers.map(([name, d], index) => {
             const c = cfg[name] || { cls: 'dash-carrier-avatar-default' };
             const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
-            return `<div class="dash-carrier-card">
+            const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
+            return `<div class="dash-carrier-card" data-carrier="${this._escapeAttr(name)}" style="${index >= 5 && !this._rankState.carrier ? 'display:none;' : ''}">
                 <div class="dash-carrier-top">
+                    <div class="dash-carrier-rank">${medal}</div>
                     <div class="dash-carrier-avatar ${c.cls}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
                     </div>
                     <div class="dash-carrier-body">
-                        <div class="dash-carrier-name">${name}</div>
+                        <div class="dash-carrier-name">${this._escapeHtml(name)}</div>
                         <div class="dash-carrier-amount">${this.formatMoney(d.monto)}</div>
-                        <div class="dash-carrier-meta">${d.count} entrega${d.count !== 1 ? 's' : ''} · ${pct}%</div>
+                        <div class="dash-carrier-meta">${d.count} entrega${d.count !== 1 ? 's' : ''} · ${pct}% ${this._rankDeltaHtml(name, 'carrier')}</div>
                     </div>
                 </div>
                 <div class="dash-carrier-bar-wrap">
@@ -1626,49 +1674,18 @@ const Dashboard = {
                 </div>
             </div>`;
         }).join('');
+        if (!container.dataset.bound) {
+            container.dataset.bound = '1';
+            container.addEventListener('click', e => {
+                const card = e.target.closest('[data-carrier]');
+                if (card) this.showCarrierDetailModal(card.dataset.carrier);
+            });
+        }
     },
 
-    /* ── Daily table ── */
+    /* ── Daily table (legacy, fusionada en day-cards) ── */
     updateDailyTable(dailyStats) {
-        const days = Object.entries(dailyStats).sort((a, b) => b[0].localeCompare(a[0]));
-        const section = document.getElementById('dash-daily-section');
-        const tbody = document.getElementById('dash-daily-tbody');
-        if (!section || !tbody) return;
-
-        if (days.length <= 1) { section.style.display = 'none'; return; }
-        section.style.display = '';
-
-        const maxTotal = Math.max(...days.map(([, d]) => d.total), 1);
-        const sum = days.reduce((acc, [, d]) => ({
-            contado: acc.contado + d.contado,
-            credito: acc.credito + d.credito,
-            total: acc.total + d.total,
-            count: acc.count + d.totalCount
-        }), { contado: 0, credito: 0, total: 0, count: 0 });
-
-        tbody.innerHTML = days.map(([, d]) => `<tr class="dash-daily-row">
-            <td class="dash-td-day">${d.label}</td>
-            <td class="dash-td-contado"><span class="dash-mini-dot dash-dot-contado"></span>$${this.formatNumber(d.contado)}</td>
-            <td class="dash-td-credito"><span class="dash-mini-dot dash-dot-credito"></span>$${this.formatNumber(d.credito)}</td>
-            <td class="dash-td-total"><div class="dash-td-total-cell"><span class="dash-td-total-bar"><span style="width:${Math.round((d.total / maxTotal) * 100)}%"></span></span><span class="dash-td-total-amount">$${this.formatNumber(d.total)}</span></div></td>
-            <td class="dash-td-count">${d.totalCount}</td>
-        </tr>`).join('');
-
-        const table = tbody.closest('table');
-        let foot = table ? table.querySelector('tfoot') : null;
-        if (!foot && table) {
-            foot = document.createElement('tfoot');
-            table.appendChild(foot);
-        }
-        if (foot) {
-            foot.innerHTML = `<tr class="dash-daily-foot">
-                <td>Total</td>
-                <td>$${this.formatNumber(sum.contado)}</td>
-                <td>$${this.formatNumber(sum.credito)}</td>
-                <td>$${this.formatNumber(sum.total)}</td>
-                <td>${sum.count}</td>
-            </tr>`;
-        }
+        return;
     },
 
     /* ── Day cards ── */
@@ -1683,17 +1700,20 @@ const Dashboard = {
             return;
         }
 
+        const bestKey = [...days].sort((a, b) => b[1].total - a[1].total)[0]?.[0];
         container.innerHTML = days.map(([key, d]) => {
             const ctPct = d.total > 0 ? (d.contado / d.total) * 100 : 0;
             const crPct = d.total > 0 ? (d.credito / d.total) * 100 : 0;
-            return `<div class="dash-day-card">
+            const isBest = key === bestKey && days.length > 1;
+            const best = isBest ? '<span class="dash-day-best">Mejor día</span>' : '';
+            return `<div class="dash-day-card${isBest ? ' dash-day-best-card' : ''}">
                 <div class="dash-day-card-top">
                     <div class="dash-day-badge">
                         <span class="dash-day-badge-day">${key.split('-')[2]}</span>
                         <span class="dash-day-badge-month">${this.formatMonthShort(parseInt(key.split('-')[1]) - 1)}</span>
                     </div>
                     <div class="dash-day-info">
-                        <div class="dash-day-label">${d.label}</div>
+                        <div class="dash-day-label">${d.label} ${best}</div>
                         <div class="dash-day-total">${d.totalCount} entregas</div>
                     </div>
                     <div class="dash-day-total-main">${this.formatMoney(d.total)}</div>
@@ -2089,6 +2109,14 @@ const Dashboard = {
         const clone = el.cloneNode(true);
         clone.style.background = '#ffffff';
         clone.style.color = '#0f172a';
+        clone.querySelectorAll('.dash-tabpanel').forEach(panel => {
+            panel.hidden = false;
+            panel.style.display = 'block';
+        });
+        clone.querySelectorAll('.dash-tabs, .dash-float-pill, .dash-acum-toolbar').forEach(node => node.remove());
+        clone.querySelectorAll('[style*="display:none"], [style*="display: none"]').forEach(node => {
+            if (node.classList.contains('dash-vendedor-card') || node.classList.contains('dash-zona-card') || node.classList.contains('dash-carrier-card')) node.style.display = '';
+        });
 
         /* forzamos tema claro en el clon */
         clone.querySelectorAll('[class*="dash-"]').forEach(child => {
@@ -2118,7 +2146,6 @@ const Dashboard = {
                 backgroundColor: '#ffffff',
                 windowWidth: 800,
                 onclone: (doc) => {
-                    doc.querySelectorAll('.dash-kpi-sparkline').forEach(el => el.style.display = 'none');
                     doc.querySelectorAll('.dash-chip').forEach(el => el.style.display = 'none');
                     doc.querySelectorAll('.dash-period-chips, .dash-date-pill, .dash-export-btn').forEach(el => el.style.display = 'none');
                 }
@@ -2213,9 +2240,6 @@ const Dashboard = {
             this._handleChartResize = null;
         }
         Object.values(this.charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
-        if (this.charts.sparklines) {
-            Object.values(this.charts.sparklines).forEach(c => { if (c) c.destroy(); });
-        }
         this.charts = {};
         this.chartInit = false;
         this._acumInit = false;

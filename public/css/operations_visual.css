@@ -1,0 +1,293 @@
+#sidebar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: radial-gradient(ellipse at 0 0, #453067 0%, transparent 50%), #171526;
+    border-right: 1px solid #ffffff14;
+    box-shadow: 6px 0 30px -16px #17152670;
+}
+
+#sidebar .sidebar-header {
+    padding: 28px 22px;
+    border-bottom: 1px solid #ffffff14;
+}
+
+#sidebar .sidebar-brand-text h2 {
+    background: none;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.06em;
+}
+
+#sidebar .sidebar-brand-text span {
+    background: none;
+    color: #bdb0d6;
+    -webkit-text-fill-color: #bdb0d6;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    margin-top: 7px;
+}
+
+#sidebar .sidebar-toggle {
+    color: #ddd6fe;
+    background: #ffffff0a;
+    border: 1px solid #ffffff20;
+}
+
+#sidebar .sidebar-nav { padding: 18px 12px; }
+
+#sidebar .nav-item {
+    color: #c7bfd9;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 5px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+#sidebar .nav-icon {
+    color: #b7a6d9;
+    background: #ffffff08;
+    border-radius: 9px;
+    box-shadow: none;
+}
+
+#sidebar .nav-item:hover {
+    color: #fff;
+    background: #ffffff0a;
+    transform: none;
+}
+
+#sidebar .nav-item.active {
+    color: #fff;
+    background: linear-gradient(110deg, #6d28d9, #7645c8);
+    border-color: #a78bfa55;
+    box-shadow: 0 5px 18px -10px #8b5cf6aa;
+    font-weight: 600;
+}
+
+#sidebar .nav-item.active .nav-icon {
+    color: #fff;
+    background: #ffffff18;
+}
+
+#sidebar .nav-item::before { background: #c4b5fd; box-shadow: none; }
+#sidebar .sidebar-divider { background: #ffffff14; }
+#sidebar .sidebar-footer { border-top: 1px solid #ffffff14; background: transparent; }
+#sidebar .user-info { background: #ffffff06; border: 1px solid #ffffff12; box-shadow: none; }
+#sidebar .user-name { color: #f5f3ff; }
+#sidebar .user-role { color: #bdb0d6; }
+#sidebar #logout-btn { background: transparent; color: #c7bfd9; border-color: #ffffff20; }
+#sidebar #logout-btn:hover { background: #ffffff0a; color: #fff; box-shadow: none; }
+#sidebar :is(a, button):focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+
+#sidebar::before { animation: none; }
+#sidebar .nav-item,
+#sidebar .nav-icon,
+#sidebar .nav-icon svg,
+#sidebar .user-info {
+    transition: none !important;
+}
+
+#content-area[data-visual-module="interlogic"] > .card,
+#content-area[data-visual-module="interlogic"] .stat-card,
+#content-area[data-visual-module="interlogic"] .m-data-card,
+#il-data-table,
+#il-data-table * {
+    transition: none !important;
+}
+
+#content-area[data-visual-module="interlogic"] > .card:hover,
+#content-area[data-visual-module="interlogic"] .m-data-card:hover {
+    transform: none;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 22px;
+    padding: 28px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    background: radial-gradient(ellipse at 100% 0, #8b5cf617, transparent 65%), var(--bg-primary);
+    box-shadow: 0 12px 28px -24px #24133c66;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header > div:first-child {
+    padding-left: 16px;
+    border-left: 3px solid #8b5cf6;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header h1 {
+    color: var(--text-primary);
+    font-size: clamp(1.6rem, 2.6vw, 2.3rem);
+    letter-spacing: -0.04em;
+    line-height: 1.3;
+    margin-bottom: 6px;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header > div:last-child {
+    gap: 10px !important;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header .btn {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    box-shadow: none;
+}
+
+#content-area[data-visual-module="interlogic"] > .module-header .btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+#content-area[data-visual-module="interlogic"] #btn-add-record {
+    margin-left: auto;
+    padding: 10px 18px;
+    background: #6d28d9;
+    color: #fff;
+}
+
+#content-area[data-visual-module="interlogic"] :is(#filter-start-date, #filter-end-date) {
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 10px !important;
+    font-size: 0.875rem !important;
+}
+
+#interlogic-stats {
+    grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+#interlogic-stats .stat-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    min-width: 0;
+    min-height: 134px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: var(--bg-primary);
+    box-shadow: 0 8px 20px -18px #24133c55;
+}
+
+#interlogic-stats .stat-card::before { content: none; }
+#interlogic-stats .stat-card:hover { transform: none; }
+#interlogic-stats .stat-card h3 { color: var(--text-secondary); font-size: 0.75rem; letter-spacing: 0.08em; }
+#interlogic-stats .stat-card p { color: var(--text-primary); font-size: clamp(1.5rem, 2.3vw, 2.2rem); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+#interlogic-stats .stat-card:first-child { background: linear-gradient(120deg, #4c1d95, #7c3aed); border-color: #7c3aed; }
+#interlogic-stats .stat-card:first-child h3 { color: #ede9fe; }
+#interlogic-stats .stat-card:first-child p { color: #fff; }
+
+#content-area[data-visual-module="interlogic"] #global-search {
+    min-height: 50px;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 14px !important;
+    background: var(--bg-primary) !important;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    box-shadow: 0 3px 14px -12px #24133c55;
+}
+
+#content-area[data-visual-module="interlogic"] > .card {
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: var(--bg-primary);
+    box-shadow: 0 12px 28px -24px #24133c66;
+}
+
+#il-data-table th {
+    padding: 13px 10px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.6875rem;
+    letter-spacing: 0.05em;
+}
+
+#il-data-table td {
+    padding: 11px 10px;
+    border-bottom-color: var(--border-color);
+    font-variant-numeric: tabular-nums;
+}
+
+#il-data-table tbody tr { line-height: 1.45; }
+#il-data-table tbody tr:hover { outline: none; }
+#il-data-table .filter-trigger { color: #8b5cf6; }
+#content-area[data-visual-module="interlogic"] :is(input, button):focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; }
+
+@media (min-width: 769px) and (max-width: 1150px) {
+    #interlogic-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+    #content-area[data-visual-module="interlogic"] > div:first-child {
+        padding: 24px 20px !important;
+        margin-bottom: 16px;
+        border-radius: 20px;
+        background: radial-gradient(ellipse at 100% 0, #6640a0, transparent 70%), #211933;
+        border: 1px solid #6d518f;
+    }
+    #content-area[data-visual-module="interlogic"] > div:first-child h1 { color: #fff !important; font-size: 1.7rem !important; letter-spacing: -0.04em; }
+    #content-area[data-visual-module="interlogic"] > div:first-child p { color: #d8cdef !important; margin-top: 6px; }
+    #content-area[data-visual-module="interlogic"] :is(#m-filter-start, #m-filter-end) {
+        min-width: 0;
+        min-height: 46px !important;
+        background: var(--bg-primary) !important;
+        color: var(--text-primary);
+        border-color: var(--border-color) !important;
+    }
+    #content-area[data-visual-module="interlogic"] .m-search-bar {
+        min-height: 48px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-primary);
+    }
+    #content-area[data-visual-module="interlogic"] #m-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        overflow: visible;
+        padding: 6px 0 16px;
+    }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip {
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: var(--bg-primary);
+    }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip:first-child {
+        grid-column: 1 / -1;
+        padding: 22px;
+        background: linear-gradient(120deg, #4c1d95, #7c3aed);
+        border-color: #7c3aed;
+    }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip-label { color: var(--text-secondary); font-size: 0.75rem; }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip-value { color: var(--text-primary); font-size: 1.3rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip:first-child .m-stat-chip-label { color: #ede9fe; }
+    #content-area[data-visual-module="interlogic"] .m-stat-chip:first-child .m-stat-chip-value { color: #fff; font-size: 2rem; }
+    #content-area[data-visual-module="interlogic"] .m-actions-bar { gap: 8px; flex-wrap: wrap; }
+    #content-area[data-visual-module="interlogic"] .m-actions-bar .btn { min-height: 44px; border-radius: 10px !important; }
+    #content-area[data-visual-module="interlogic"] .m-data-card { border-radius: 16px; box-shadow: 0 6px 18px -14px #24133c55; }
+    #content-area[data-visual-module="interlogic"] .m-data-card:not(.m-card-entregada) { border: 1px solid var(--border-color); background: var(--bg-primary); }
+    #content-area[data-visual-module="interlogic"] .m-card-header { padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+    #content-area[data-visual-module="interlogic"] .m-card-action { min-width: 44px; min-height: 44px; }
+}

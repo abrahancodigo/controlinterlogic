@@ -37,7 +37,10 @@ const InterlogicRender = {
                         <input type="date" id="filter-end-date" value="${this.filters.endDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
                     </div>
                     <button id="btn-export-excel" class="btn btn-secondary">
-                        📥 Exportar Excel
+                        📥 Excel
+                    </button>
+                    <button id="btn-export-pdf" class="btn btn-secondary">
+                        🖨 PDF
                     </button>
                     <button id="btn-import-excel" class="btn btn-secondary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
                         📤 Importar Excel
@@ -334,6 +337,7 @@ const InterlogicRender = {
         });
         document.getElementById('btn-clear-all-filters').addEventListener('click', () => this.clearAllFilters());
         document.getElementById('btn-export-excel').addEventListener('click', () => this.exportToExcel());
+        document.getElementById('btn-export-pdf').addEventListener('click', () => this._exportIlPdf());
 
         let searchTimer;
         document.getElementById('global-search').addEventListener('input', (e) => {
@@ -473,6 +477,7 @@ const InterlogicRender = {
                 <button class="btn" id="m-btn-filter" style="border-radius:20px;">🔽 Filtrar</button>
                 <button class="btn btn-primary" id="m-btn-add" style="border-radius:20px;">➕ Nuevo</button>
                 <button class="btn" id="m-btn-export" style="border-radius:20px;">📥 Excel</button>
+                <button class="btn" id="m-btn-pdf" style="border-radius:20px;">🖨 PDF</button>
             </div>
 
             <div class="m-data-list" id="m-data-list">
@@ -493,6 +498,7 @@ const InterlogicRender = {
         });
         document.getElementById('m-btn-add').addEventListener('click', () => this.showMobileForm());
         document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
+        document.getElementById('m-btn-pdf').addEventListener('click', () => this._exportIlPdf());
         document.getElementById('m-btn-filter').addEventListener('click', () => this.showMobileFilters());
     },
 

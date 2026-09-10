@@ -4,107 +4,248 @@
 
 const InterlogicExcel = {
     mobileExportExcel() {
-        if (typeof XLSX === 'undefined') {
-            showToast('Librería Excel no disponible', 'error');
-            return;
-        }
-        if (this.filteredRecords.length === 0) {
-            showToast('No hay datos', 'warning');
-            return;
-        }
-        var self = this;
-        var visibleCols = this.columnDefs.filter(function(c) {
-            return c.key !== 'acciones' && !self.hiddenColumns.includes(c.key);
-        });
-        var data = this.filteredRecords.map(function(r) {
-            var row = {};
-            visibleCols.forEach(function(c) {
-                if (c.key === 'fecha') row[c.label] = r.fecha ? formatDate(r.fecha, false) : '';
-                else if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') row[c.label] = self.signedAmount(r, c.key);
-                else if (c.key === 'costoPorcentaje') row[c.label] = Number(r.costoPorcentaje || 0);
-                else row[c.label] = r[c.key] || '';
-            });
-            return row;
-        });
-        var ws = XLSX.utils.json_to_sheet(data);
-        var wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
-        XLSX.writeFile(wb, 'Interlogic_' + formatDateForInput(new Date()) + '.xlsx');
-        showToast('Excel exportado');
+        this._exportIlExcel();
     },
 
     exportToExcel() {
-        if (typeof XLSX === 'undefined') {
-            showToast('Error: Librería de Excel no cargada.', 'error');
-            return;
+        this._exportIlExcel();
+    },
+
+    _ilVisibleCols() {
+        var cols = this.columnDefs.filter(c => c.key !== 'acciones' && !this.hiddenColumns.includes(c.key));
+        return cols.length > 0 ? cols : this.columnDefs.filter(c => c.key !== 'acciones');
+    },
+
+    _ilCellValue(r, key) {
+        if (key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
+        if (key === 'venta' || key === 'costoEnvio' || key === 'bultos') return this.signedAmount(r, key);
+        if (key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
+        var v = r[key];
+        return v == null ? '' : v;
+    },
+
+    _ilFilterLabel() {
+        var parts = [];
+        if (this.filters.startDate || this.filters.endDate) {
+            var fmt = d => { try { return formatDate(new Date(d + 'T12:00:00'), false); } catch (e) { return d; } };
+            parts.push('Periodo: ' + (this.filters.startDate ? fmt(this.filters.startDate) : '...') + ' al ' + (this.filters.endDate ? fmt(this.filters.endDate) : '...'));
         }
-
-        if (this.filteredRecords.length === 0) {
-            showToast('No hay datos para exportar.', 'warning');
-            return;
-        }
-
-        const parseLocalDateStr = (str) => {
-            const p = String(str).split('-');
-            return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-        };
-        const dateStrStart = this.filters.startDate ? formatDate(parseLocalDateStr(this.filters.startDate), false) : '(Inicio)';
-        const dateStrEnd = this.filters.endDate ? formatDate(parseLocalDateStr(this.filters.endDate), false) : '(Fin)';
-
-        const visibleCols = this.columnDefs.filter(c =>
-            c.key !== 'acciones' && !this.hiddenColumns.includes(c.key)
-        );
-
-        const headers = visibleCols.map(c => c.label);
-
-        const idxVenta = visibleCols.findIndex(c => c.key === 'venta');
-        const idxBultos = visibleCols.findIndex(c => c.key === 'bultos');
-        const idxEnvio = visibleCols.findIndex(c => c.key === 'costoEnvio');
-
-        const rows = this.filteredRecords.map(r =>
-            visibleCols.map(c => {
-                if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
-                if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') return this.signedAmount(r, c.key);
-                if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
-                return r[c.key] || '';
-            })
-        );
-
-        const totalVenta = idxVenta >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxVenta]) || 0), 0) : 0;
-        const totalBultos = idxBultos >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxBultos]) || 0), 0) : 0;
-        const totalEnvio = idxEnvio >= 0 ? rows.reduce((sum, row) => sum + (Number(row[idxEnvio]) || 0), 0) : 0;
-
-        const totalRow = visibleCols.map((c, i) => {
-            if (i === idxVenta) return totalVenta;
-            if (i === idxBultos) return totalBultos;
-            if (i === idxEnvio) return totalEnvio;
-            if (i === idxVenta - 1) return 'TOTALES:';
-            return '';
+        if (this.filters.search) parts.push('Búsqueda: ' + this.filters.search);
+        Object.keys(this.filters).forEach(k => {
+            if (['search', 'startDate', 'endDate'].indexOf(k) !== -1) return;
+            var v = this.filters[k];
+            if (Array.isArray(v) && v.length > 0) parts.push(k + ': ' + v.join(', '));
         });
+        return parts.length > 0 ? parts.join('  |  ') : 'Sin filtros (todos los registros)';
+    },
 
-        const finalAOA = [
-            ['REPORTE DE CONTROL INTERLOGIC'],
-            [`Periodo: ${dateStrStart} al ${dateStrEnd}`],
-            [],
-            headers,
-            ...rows,
-            [],
-            totalRow
-        ];
+    async _exportIlExcel() {
+        if (this.filteredRecords.length === 0) {
+            showToast('No hay datos filtrados para exportar', 'warning');
+            return;
+        }
+        if (typeof ExcelJS === 'undefined') {
+            showToast('Librería Excel no disponible', 'error');
+            return;
+        }
+        try {
+            var cols = this._ilVisibleCols();
+            var totalCols = cols.length;
+            var workbook = new ExcelJS.Workbook();
+            var sheet = workbook.addWorksheet('Control Interlogic', { views: [{ state: 'frozen', ySplit: 3 }] });
+            var moneyFmt = '#,##0.00';
+            var center = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            var left = { vertical: 'middle', horizontal: 'left', wrapText: true };
+            var right = { vertical: 'middle', horizontal: 'right', wrapText: true };
+            var thin = { style: 'thin', color: { argb: 'FFD1D5DB' } };
+            var border = { top: thin, bottom: thin, left: thin, right: thin };
+            sheet.mergeCells(1, 1, 1, totalCols);
+            var title = sheet.getCell(1, 1);
+            title.value = 'Control Interlogic';
+            title.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF111111' } };
+            title.alignment = { vertical: 'middle', horizontal: 'center' };
+            sheet.getRow(1).height = 24;
+            sheet.mergeCells(2, 1, 2, totalCols);
+            var sub = sheet.getCell(2, 1);
+            sub.value = 'Registros: ' + this.filteredRecords.length + ' · ' + this._ilFilterLabel();
+            sub.font = { name: 'Arial', size: 10, color: { argb: 'FF6B7280' } };
+            sub.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+            sheet.getRow(2).height = 28;
+            var self = this;
+            cols.forEach(function(c, i) {
+                var cell = sheet.getCell(3, i + 1);
+                cell.value = c.label;
+                cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+                cell.alignment = center;
+                cell.border = border;
+                var w = 16;
+                if (c.key === 'cliente' || c.key === 'observations') w = 30;
+                else if (c.key === 'guia' || c.key === 'docNum' || c.key === 'formaPago') w = 14;
+                sheet.getColumn(i + 1).width = w;
+            });
+            sheet.getRow(3).height = 18;
+            sheet.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: totalCols } };
+            this.filteredRecords.forEach(function(r, idx) {
+                var n = idx + 4;
+                cols.forEach(function(c, i) {
+                    var cell = sheet.getCell(n, i + 1);
+                    cell.value = self._ilCellValue(r, c.key);
+                    cell.font = { name: 'Arial', size: 10, color: { argb: 'FF111111' } };
+                    cell.border = border;
+                    if (c.key === 'venta' || c.key === 'costoEnvio') { cell.numFmt = moneyFmt; cell.alignment = right; }
+                    else if (c.key === 'costoPorcentaje') { cell.numFmt = '0.00%'; cell.alignment = right; }
+                    else if (c.key === 'bultos') { cell.numFmt = '#,##0'; cell.alignment = right; }
+                    else if (c.key === 'cliente' || c.key === 'observations') cell.alignment = left;
+                    else cell.alignment = center;
+                    if (idx % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+                });
+                sheet.getRow(n).height = 16;
+            });
+            var tot = this.filteredRecords.length + 4;
+            var sums = { venta: 0, bultos: 0, costoEnvio: 0 };
+            this.filteredRecords.forEach(function(r) {
+                sums.venta += Number(self.signedAmount(r, 'venta')) || 0;
+                sums.bultos += Number(self.signedAmount(r, 'bultos')) || 0;
+                sums.costoEnvio += Number(self.signedAmount(r, 'costoEnvio')) || 0;
+            });
+            var totLabel = sheet.getCell(tot, 1);
+            totLabel.value = 'TOTALES (' + this.filteredRecords.length + ' registros)';
+            totLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
+            totLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+            totLabel.alignment = center;
+            totLabel.border = border;
+            if (totalCols > 1) sheet.mergeCells(tot, 1, tot, Math.min(2, totalCols));
+            cols.forEach(function(c, i) {
+                var cell = sheet.getCell(tot, i + 1);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+                cell.border = border;
+                if (c.key === 'venta' || c.key === 'bultos' || c.key === 'costoEnvio') {
+                    cell.value = Math.round(sums[c.key] * 100) / 100;
+                    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
+                    cell.alignment = right;
+                    cell.numFmt = c.key === 'bultos' ? '#,##0' : moneyFmt;
+                }
+            });
+            sheet.getRow(tot).height = 18;
+            sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
+            sheet.pageMargins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
+            sheet.printTitleRow = '1:3';
+            var buffer = await workbook.xlsx.writeBuffer();
+            var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'Interlogic_' + formatDateForInput(new Date()) + '.xlsx';
+            a.click();
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            showToast(this.filteredRecords.length + ' registros exportados a Excel', 'success');
+        } catch (e) {
+            showToast('No se pudo generar el Excel', 'error');
+        }
+    },
 
-        const worksheet = XLSX.utils.aoa_to_sheet(finalAOA);
-
-        const colWidths = visibleCols.map(() => ({ wch: 14 }));
-        worksheet['!cols'] = colWidths;
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
-
-        const dateNow = formatDateForInput(new Date());
-        const filename = `Reporte_Interlogic_${dateNow}.xlsx`;
-
-        XLSX.writeFile(workbook, filename);
-        showToast('Reporte Excel profesional generado.');
+    _exportIlPdf() {
+        if (this.filteredRecords.length === 0) {
+            showToast('No hay datos filtrados para exportar', 'warning');
+            return;
+        }
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            showToast('Librería PDF no disponible', 'error');
+            return;
+        }
+        showToast('Generando PDF...', 'info');
+        try {
+            var self = this;
+            var all = this._ilVisibleCols();
+            var weights = { guia: 1.1, empresa: 1.1, fecha: 1 };
+            weights.doc = 0.7; weights.docNum = 1; weights.cliente = 2;
+            weights.departamento = 1.3; weights.municipio = 1.3; weights.vendedor = 1.2;
+            weights.condicionPago = 1.1; weights.venta = 1.1; weights.bultos = 0.8;
+            weights.cobrador = 0.9; weights.costoEnvio = 1; weights.costoPorcentaje = 0.9;
+            weights.observations = 1.8; weights.entrega = 1.1; weights.cobra = 1.1;
+            weights.encargado = 1.2; weights.formaPago = 1.1;
+            var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+            var M = 10, PW = 297, PH = 210, W = PW - M * 2;
+            var totalW = all.reduce(function(s, c) { return s + (weights[c.key] || 1); }, 0);
+            var cols = all.map(function(c) {
+                var num = c.key === 'venta' || c.key === 'bultos' || c.key === 'costoEnvio';
+                return { k: c.key, label: c.label, w: W * ((weights[c.key] || 1) / totalW), num: num };
+            });
+            var plain = function(v) { return String(v == null ? '' : v); };
+            var money = function(r, k) { return plain(formatCurrency(self.signedAmount(r, k))); };
+            var rows = this.filteredRecords.map(function(r) {
+                return all.map(function(c) {
+                    if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
+                    if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') return money(r, c.key);
+                    if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0)).toFixed(2) + '%';
+                    return plain(r[c.key]);
+                });
+            });
+            var LH = 4.2, PAD = 1.4, MINH = 7;
+            var y = M;
+            var header = function() {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(15);
+                doc.setTextColor(17, 17, 17);
+                doc.text('Control Interlogic', PW / 2, y + 6, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Registros: ' + self.filteredRecords.length + '  -  ' + self._ilFilterLabel(), PW / 2, y + 11, { align: 'center', maxWidth: W });
+                y += 16;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7.5);
+                var x = M;
+                cols.forEach(function(c) {
+                    doc.setFillColor(229, 231, 235);
+                    doc.setDrawColor(156, 163, 175);
+                    doc.rect(x, y, c.w, MINH, 'FD');
+                    doc.setTextColor(17, 17, 17);
+                    var tx = c.num ? x + c.w - PAD : x + PAD;
+                    doc.text(c.label, tx, y + 4.6, { align: c.num ? 'right' : 'left' });
+                    x += c.w;
+                });
+                y += MINH;
+            };
+            header();
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            rows.forEach(function(cells) {
+                var lines = cells.map(function(t, i) { return doc.splitTextToSize(t, cols[i].w - PAD * 2); });
+                var h = MINH;
+                lines.forEach(function(l) { h = Math.max(h, l.length * LH + PAD * 2 - 1); });
+                if (y + h > PH - M) {
+                    doc.addPage();
+                    y = M;
+                    header();
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                }
+                var x = M;
+                cells.forEach(function(t, i) {
+                    doc.setDrawColor(209, 213, 219);
+                    doc.rect(x, y, cols[i].w, h);
+                    doc.setTextColor(17, 17, 17);
+                    var tx = cols[i].num ? x + cols[i].w - PAD : x + PAD;
+                    doc.text(lines[i], tx, y + PAD + 3.2, { align: cols[i].num ? 'right' : 'left', lineHeightFactor: 1 });
+                    x += cols[i].w;
+                });
+                y += h;
+            });
+            var n = doc.getNumberOfPages();
+            for (var i = 1; i <= n; i++) {
+                doc.setPage(i);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(120, 120, 120);
+                doc.text('Página ' + i + ' de ' + n, PW / 2, PH - 5, { align: 'center' });
+            }
+            doc.save('Interlogic_' + formatDateForInput(new Date()) + '.pdf');
+            showToast(this.filteredRecords.length + ' registros exportados a PDF', 'success');
+        } catch (e) {
+            showToast('No se pudo generar el PDF', 'error');
+        }
     },
 
     showImportExcel() {
