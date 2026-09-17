@@ -36,7 +36,6 @@ const InterlogicRender = {
                         <label for="filter-end-date" style="margin-bottom: 0; white-space: nowrap; font-size: 0.85rem;">Hasta:</label>
                         <input type="date" id="filter-end-date" value="${this.filters.endDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                     <button id="btn-export-excel" class="btn btn-secondary">
                         📥 Excel
                     </button>
@@ -72,7 +71,6 @@ const InterlogicRender = {
                     <button id="btn-add-record" class="btn btn-primary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
                         ➕ Nuevo Registro
                     </button>
-                    </div>
                 </div>
             </div>
 
