@@ -127,7 +127,7 @@
     background: #fff;
     border: 1px solid var(--il-line);
     border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 12px 28px -12px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 1px 4px rgba(36, 19, 60, 0.05), 0 8px 24px -12px rgba(76, 29, 149, 0.10);
     padding: 1rem;
 }
 
@@ -135,7 +135,7 @@
     border-radius: 12px;
     border: 1px solid var(--il-line);
     background: #fff;
-    box-shadow: none;
+    box-shadow: 0 1px 2px rgba(36, 19, 60, 0.03);
 }
 
 /* ---- Table head ---- */
@@ -165,7 +165,7 @@
 }
 
 .il-premium .data-table tbody tr {
-    transition: background 0.12s ease;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .il-premium .data-table tbody tr:nth-child(even) {
@@ -174,10 +174,12 @@
 
 .il-premium .data-table tbody tr:hover {
     background: hsl(262, 50%, 91%);
+    box-shadow: 0 1px 6px rgba(76, 29, 149, 0.10), inset 3px 0 0 hsl(262, 75%, 58%);
 }
 
 .il-premium .data-table tbody tr:active {
     background: hsl(262, 55%, 88%);
+    box-shadow: inset 3px 0 0 hsl(262, 75%, 58%);
 }
 
 /* Selected / anulado rows keep meaning but premium tone */
@@ -319,6 +321,7 @@
 
 [data-theme="dark"] .il-premium .data-table tbody tr:hover {
     background: hsl(262, 30%, 20%);
+    box-shadow: none;
 }
 
 [data-theme="dark"] .il-premium .data-table tfoot {
