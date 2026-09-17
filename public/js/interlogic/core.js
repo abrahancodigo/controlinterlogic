@@ -87,6 +87,7 @@ const InterlogicCore = {
      * Delega en la función global signedAmount() de utils.js.
      */
     signedAmount(record, field) {
+        if (record && record.anulado === true) return 0;
         return signedAmount(record, field);
     },
 

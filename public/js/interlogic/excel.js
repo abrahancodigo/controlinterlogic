@@ -18,7 +18,13 @@ const InterlogicExcel = {
 
     _ilCellValue(r, key) {
         if (key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
-        if (key === 'venta' || key === 'costoEnvio' || key === 'bultos') return this.signedAmount(r, key);
+        if (key === 'venta' || key === 'costoEnvio' || key === 'bultos') {
+            if (r.anulado === true) {
+                const value = Number(r[key]) || 0;
+                return r.doc === 'NC' ? -Math.abs(value) : value;
+            }
+            return this.signedAmount(r, key);
+        }
         if (key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
         var v = r[key];
         return v == null ? '' : v;
@@ -173,7 +179,10 @@ const InterlogicExcel = {
                 return { k: c.key, label: c.label, w: W * ((weights[c.key] || 1) / totalW), num: num };
             });
             var plain = function(v) { return String(v == null ? '' : v); };
-            var money = function(r, k) { return plain(formatCurrency(self.signedAmount(r, k))); };
+            var money = function(r, k) {
+                var value = r.anulado === true ? (r.doc === 'NC' ? -Math.abs(Number(r[k]) || 0) : Number(r[k]) || 0) : self.signedAmount(r, k);
+                return plain(formatCurrency(value));
+            };
             var rows = this.filteredRecords.map(function(r) {
                 return all.map(function(c) {
                     if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';

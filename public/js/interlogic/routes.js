@@ -4,10 +4,16 @@
 
 const InterlogicRoutes = {
     async createRouteFromSelection() {
-        const count = this.selectedRecords.size;
-        if (count === 0) return;
-
-        const selectedRecords = this.records.filter(r => this.selectedRecords.has(r.id));
+        const selectedRecords = this.records.filter(r => this.selectedRecords.has(r.id) && r.anulado !== true);
+        const count = selectedRecords.length;
+        if (count === 0) {
+            showToast('Reactiva los registros anulados antes de crear una ruta', 'warning');
+            return;
+        }
+        if (count > 200) {
+            showToast('Puedes crear una ruta con un máximo de 200 registros a la vez', 'warning');
+            return;
+        }
         const clientesUnicos = [...new Set(selectedRecords.map(r => (r.cliente || '').trim()).filter(Boolean))];
         const zonasUnicas = [...new Set(selectedRecords.map(r => (r.departamento || r.zona || '').trim()).filter(Boolean))];
         const totalVenta = selectedRecords.reduce((s, r) => s + (Number(r.venta) || 0), 0);

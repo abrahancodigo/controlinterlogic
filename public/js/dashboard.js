@@ -320,7 +320,7 @@ const Dashboard = {
             .limit(DASHBOARD_MAX_RECORDS)
             .onSnapshot(snapshot => {
                 if (this._prevRequestKey !== requestKey) return;
-                this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
                 this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
                 const warnEl = document.getElementById('dash-truncated-warn');
                 if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
@@ -344,7 +344,7 @@ const Dashboard = {
             .get()
             .then(snapshot => {
                 if (this._prevRequestKey !== requestKey) return;
-                this.prevRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                this.prevRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
                 this.computeAndRender();
                 this.updateDeltas();
             })

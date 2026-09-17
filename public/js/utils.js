@@ -364,6 +364,7 @@ function formatCurrencySigned(num) {
  */
 function signedAmount(record, field) {
     if (!record) return 0;
+    if (record.anulado === true) return 0;
     const v = Number(record[field]) || 0;
     return record.doc === 'NC' ? -Math.abs(v) : v;
 }

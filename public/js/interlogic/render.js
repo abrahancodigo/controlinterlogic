@@ -24,33 +24,40 @@ const InterlogicRender = {
         const canDelete = window.permissions?.canDelete;
 
         contentArea.innerHTML = `
-            <div class="module-header">
-                <div>
-                    <h1>📊 Control Interlogic</h1>
-                    <p>Gestión automatizada de registros de despacho</p>
+            <div class="module-header il-header">
+                <div class="il-title-block">
+                    <span class="il-eyebrow">Interlogic · Despachos</span>
+                    <h1>Control Interlogic</h1>
+                    <p>Gestión automatizada de registros de despacho <span id="il-record-count" class="il-count"></span></p>
                 </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <label for="filter-start-date" style="margin-bottom: 0; white-space: nowrap; font-size: 0.85rem;">📅 Desde:</label>
-                        <input type="date" id="filter-start-date" value="${this.filters.startDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
-                        <label for="filter-end-date" style="margin-bottom: 0; white-space: nowrap; font-size: 0.85rem;">Hasta:</label>
-                        <input type="date" id="filter-end-date" value="${this.filters.endDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
+                <div class="il-toolbar">
+                    <div class="il-date-group">
+                        <label for="filter-start-date">Desde:</label>
+                        <input type="date" id="filter-start-date" value="${this.filters.startDate}">
+                        <label for="filter-end-date">Hasta:</label>
+                        <input type="date" id="filter-end-date" value="${this.filters.endDate}">
+                        <div class="il-presets">
+                            <button type="button" class="il-preset" data-range="today">Hoy</button>
+                            <button type="button" class="il-preset" data-range="week">7 días</button>
+                            <button type="button" class="il-preset" data-range="month">Mes</button>
+                        </div>
                     </div>
+                    <div class="il-actions-group">
                     <button id="btn-export-excel" class="btn btn-secondary">
-                        📥 Excel
+                        Excel
                     </button>
                     <button id="btn-export-pdf" class="btn btn-secondary">
-                        🖨 PDF
+                        PDF
                     </button>
                     <button id="btn-import-excel" class="btn btn-secondary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
-                        📤 Importar Excel
+                        Importar Excel
                     </button>
                     <button id="btn-clear-all-filters" class="btn btn-secondary" style="display: none;">
-                        🧹 Quitar Filtros
+                        Quitar filtros
                     </button>
                     <div style="position: relative;">
                         <button id="btn-toggle-columns" class="btn btn-secondary">
-                            👁️ Columnas
+                            Columnas
                         </button>
                         <div id="columns-popup" class="filter-popup" style="min-width: 200px; position: absolute; right: 0; top: 100%;" onclick="event.stopPropagation()">
                             <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--gray-100);">Mostrar/Ocultar Columnas</div>
@@ -69,8 +76,9 @@ const InterlogicRender = {
                         </div>
                     </div>
                     <button id="btn-add-record" class="btn btn-primary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
-                        ➕ Nuevo Registro
+                        Nuevo Registro
                     </button>
+                    </div>
                 </div>
             </div>
 
@@ -81,12 +89,11 @@ const InterlogicRender = {
                 { label: '% Costo', id: 'stat-total-porcentaje' }
             ], { containerId: 'interlogic-stats' })}
 
-            ${SharedComponents.renderSearchBar({
-                id: 'global-search',
-                placeholder: '🔍 Buscar en todas las columnas...',
-                value: this.filters.search || '',
-                containerStyle: 'margin-bottom: 0.5rem;'
-            })}
+            <div class="il-search-wrap">
+                <span class="il-search-icon" aria-hidden="true">⌕</span>
+                <input type="text" id="global-search" placeholder="Buscar por guía, cliente, departamento..." value="${String(this.filters.search || '').replace(/"/g, '&quot;')}">
+                <button type="button" id="btn-clear-search" class="il-search-clear" title="Limpiar búsqueda" style="display: ${this.filters.search ? 'inline-flex' : 'none'};">✕</button>
+            </div>
 
             <div class="card">
                 <div id="il-pagination-top" style="margin-bottom: 0.6rem;"></div>
@@ -329,6 +336,28 @@ const InterlogicRender = {
             this.filters.endDate = e.target.value;
             this.reloadListener(true);
         });
+        contentArea.querySelectorAll('.il-preset').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const now = new Date();
+                const key = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                if (btn.dataset.range === 'today') {
+                    this.filters.startDate = key(now);
+                    this.filters.endDate = key(now);
+                } else if (btn.dataset.range === 'week') {
+                    const from = new Date(now);
+                    from.setDate(now.getDate() - 6);
+                    this.filters.startDate = key(from);
+                    this.filters.endDate = key(now);
+                } else {
+                    this.filters.startDate = key(new Date(now.getFullYear(), now.getMonth(), 1));
+                    this.filters.endDate = key(now);
+                }
+                document.getElementById('filter-start-date').value = this.filters.startDate;
+                document.getElementById('filter-end-date').value = this.filters.endDate;
+                contentArea.querySelectorAll('.il-preset').forEach((b) => b.classList.toggle('active', b === btn));
+                this.reloadListener(true);
+            });
+        });
         document.getElementById('btn-add-record').addEventListener('click', () => {
             if (canCreate) this.showForm();
         });
@@ -342,8 +371,17 @@ const InterlogicRender = {
         let searchTimer;
         document.getElementById('global-search').addEventListener('input', (e) => {
             this.filters.search = e.target.value;
+            const clearBtn = document.getElementById('btn-clear-search');
+            if (clearBtn) clearBtn.style.display = e.target.value ? 'inline-flex' : 'none';
             clearTimeout(searchTimer);
             searchTimer = setTimeout(() => this.applyFilters(), 150);
+        });
+        document.getElementById('btn-clear-search').addEventListener('click', () => {
+            const input = document.getElementById('global-search');
+            if (input) input.value = '';
+            this.filters.search = '';
+            document.getElementById('btn-clear-search').style.display = 'none';
+            this.applyFilters();
         });
 
         document.getElementById('select-all-checkbox').addEventListener('change', (e) => {
@@ -451,7 +489,7 @@ const InterlogicRender = {
 
         contentArea.innerHTML = `
             <div style="padding: 0 0 8px 0;">
-                <h1 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px; color: var(--m-text);">📊 Interlogic</h1>
+                <h1 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px; color: var(--m-text);">Interlogic</h1>
                 <p style="font-size: 0.78rem; color: var(--m-text-secondary);">Gestión de registros</p>
             </div>
 
@@ -524,7 +562,7 @@ const InterlogicRender = {
             list.innerHTML = pageRecords.map(function(r) {
                 var empresaBadge = r.doc === 'NC' ? 'nc' : (r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : ''));
                 var idJs = r.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" onclick="Interlogic.showMobileDetail(\'' + idJs + '\')">';
+                var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" onclick="Interlogic.showMobileDetail(\'' + idJs + '\')" style="' + (r.anulado === true ? 'border-left:4px solid #dc2626;color:#dc2626;background:#fef2f2;' : '') + '">';
                 html += '<div class="m-card-header"><span class="m-card-title">#' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span>';
                 if (r.doc === 'NC') html += '<span class="m-card-badge badge-nc">NC</span>';
                 else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + sanitizeHTML(r.empresa || '') + '</span>';
@@ -693,9 +731,9 @@ const InterlogicRender = {
         const pageRecords = this.showAll ? this.filteredRecords : this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         tableBody.innerHTML = pageRecords.map(record => `
-            <tr style="${record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : ''}">
+            <tr style="${record.anulado === true ? 'background: #fef2f2; border-left: 4px solid #dc2626; color: #dc2626;' : (record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : '')}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
-                <td data-label="Guía"><strong>${sanitizeHTML(record.guia || '')}</strong></td>
+                <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
@@ -738,7 +776,7 @@ const InterlogicRender = {
         const totals = this.filteredRecords.reduce((acc, r) => {
             acc.venta += this.signedAmount(r, 'venta');
             acc.bultos += this.signedAmount(r, 'bultos');
-            acc.cajas += Number(r.cobrador || 0);
+            acc.cajas += r.anulado === true ? 0 : Number(r.cobrador || 0);
             acc.envio += this.signedAmount(r, 'costoEnvio');
             return acc;
         }, { venta: 0, bultos: 0, cajas: 0, envio: 0 });
@@ -810,6 +848,13 @@ const InterlogicRender = {
         if (elBultos) elBultos.textContent = formatNumber(totalBultos);
         if (elEnvio) elEnvio.textContent = formatCurrencySigned(totalEnvio);
         if (elPct) elPct.textContent = `${formatNumber(porcentaje, 2)}% `;
+        const pctCard = elPct ? elPct.closest('.stat-card') : null;
+        if (pctCard) {
+            pctCard.classList.toggle('is-high', porcentaje > 15);
+            pctCard.classList.toggle('is-ok', porcentaje <= 15);
+        }
+        const countEl = document.getElementById('il-record-count');
+        if (countEl) countEl.textContent = `· ${targetRecords.length.toLocaleString()} registros`;
     }
 };
 

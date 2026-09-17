@@ -229,7 +229,7 @@ const Liquidacion = {
         const startTs = firebase.firestore.Timestamp.fromDate(cutoff);
         this.unsub.queue = db.collection('interlogic').where('createdAt', '>=', startTs).orderBy('createdAt', 'desc').limit(3000).onSnapshot(snap => {
             const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const valid = all.filter(r => r.doc !== 'NC');
+            const valid = all.filter(r => r.doc !== 'NC' && r.anulado !== true);
             this.queue = valid.filter(r => r.entregado !== true || this._pendiente(r) > 0);
             this.doneRecords = valid.filter(r => r.entregado === true && this._pendiente(r) <= 0);
             this._renderStats();

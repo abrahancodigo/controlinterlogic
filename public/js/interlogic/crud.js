@@ -133,6 +133,10 @@ const InterlogicCRUD = {
         }
 
         const record = recordId ? this.records.find(r => r.id === recordId) : null;
+        if (record && record.anulado === true) {
+            showToast('Reactiva el registro antes de editarlo', 'warning');
+            return;
+        }
         const prefill = sourceRecord || ((!recordId && !sourceRecord) ? (() => {
             try { return JSON.parse(localStorage.getItem('il_last_values') || '{}'); } catch (e) { return {}; }
         })() : null);
@@ -418,6 +422,7 @@ const InterlogicCRUD = {
             var clienteLower = clienteActual.toLowerCase();
             var ccfRecords = self.records.filter(function(r) {
                 return (r.doc === 'CCF' || r.doc === 'FT') &&
+                       r.anulado !== true &&
                        (r.cliente || '').toLowerCase().includes(clienteLower);
             });
 
@@ -811,6 +816,7 @@ const InterlogicCRUD = {
                                             .where('condicionPago', '==', 'Crédito').get();
                                         const deudaTotal = crSnap.docs.reduce((s, doc) => {
                                             const d = doc.data();
+                                            if (d.anulado === true) return s;
                                             const cob = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
                                             return s + Math.max(0, Number(d.venta || 0) - cob);
                                         }, 0);
@@ -848,6 +854,11 @@ const InterlogicCRUD = {
             showToast('No tienes permisos para eliminar registros', 'error');
             return;
         }
+        const record = this.records.find(r => r.id === recordId);
+        if (record && this._isOperationallyLocked(record)) {
+            showToast('No se puede eliminar un registro en ruta, entregado o con cobros', 'warning');
+            return;
+        }
         if (!await showConfirm('¿Estás seguro de eliminar este registro?', 'Esta acción no se puede deshacer.')) return;
 
         try {
@@ -879,6 +890,10 @@ const InterlogicCRUD = {
 
         const record = this.records.find(r => r.id === id);
         if (!record || !anchorEl) return;
+        if (record.anulado === true) {
+            showToast('Reactiva el registro antes de modificarlo', 'warning');
+            return;
+        }
 
         const existing = document.getElementById('il-cell-editor');
         if (existing) existing.remove();
@@ -959,44 +974,137 @@ const InterlogicCRUD = {
         if (!container) {
             container = document.createElement('div');
             container.id = 'bulk-actions-container';
-            container.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none; gap: 0.5rem; align-items: center; flex-direction: row;';
+            container.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1000;display:none;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:8px 10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:16px;box-shadow:var(--shadow-xl);flex-wrap:wrap;justify-content:center;color:var(--text-primary);';
+            container.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-bulk-action]');
+                if (!button) return;
+                const action = button.dataset.bulkAction;
+                const menu = action === 'toggle-assign' || action === 'toggle-more'
+                    ? container.querySelector('[data-bulk-menu="' + action.replace('toggle-', '') + '"]')
+                    : null;
+                const wasOpen = menu && menu.style.display === 'block';
+                container.querySelectorAll('[data-bulk-menu]').forEach(menu => { menu.style.display = 'none'; });
+                if (action === 'toggle-assign' || action === 'toggle-more') {
+                    if (menu) menu.style.display = wasOpen ? 'none' : 'block';
+                    return;
+                }
+                if (action === 'route') this.createRouteFromSelection();
+                if (action === 'entregada') this.batchMarkEntregada();
+                if (action === 'responsables') this.batchAssignResponsibles();
+                if (action === 'fecha') this.changeDateSelectedRecords();
+                if (action === 'anular') this.updateSelectedStatus('anular');
+                if (action === 'reactivar') this.updateSelectedStatus('reactivar');
+                if (action === 'eliminar') this.deleteSelectedRecords();
+                if (action === 'limpiar') {
+                    this.selectedRecords.clear();
+                    this.applyFilters();
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) container.querySelectorAll('[data-bulk-menu]').forEach(menu => { menu.style.display = 'none'; });
+            });
             document.body.appendChild(container);
         }
 
         if (this.selectedRecords.size > 0) {
             container.style.display = 'inline-flex';
             container.innerHTML = `
-                <button class="btn btn-accent" id="btn-create-route-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    ➕ Crear Ruta (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-secondary" id="btn-change-date-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    📅 Cambiar Fecha (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-primary" id="btn-assign-entrega-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    🚚 Asignar Entrega (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-primary" id="btn-assign-cobra-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    💰 Asignar Cobra (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-primary" id="btn-assign-encargado-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    👤 Asignar Encargado (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-teal" id="btn-mark-entregada-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center; background: #0d9488; color: #fff; border: none;">
-                    ✅ Entregada (${this.selectedRecords.size})
-                </button>
-                <button class="btn btn-danger" id="btn-delete-selected" style="padding: 0.7rem 1.2rem; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3); gap: 0.5rem; display: inline-flex; align-items: center;">
-                    🗑️ Eliminar (${this.selectedRecords.size})
-                </button>
+                <div style="display:flex;align-items:center;gap:7px;padding:0 5px;color:var(--text-primary);white-space:nowrap;">
+                    <span style="display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;background:var(--primary-500);color:#fff;font-weight:800;">${this.selectedRecords.size}</span>
+                    <span style="font-size:.82rem;font-weight:700;">seleccionados</span>
+                </div>
+                <span style="width:1px;height:28px;background:var(--border-color);"></span>
+                <button class="btn" data-bulk-action="route" title="Crear una ruta con los seleccionados" style="padding:.58rem .75rem;background:var(--primary-600);color:#fff;border:0;border-radius:9px;font-weight:700;">➜ Crear ruta</button>
+                <button class="btn" data-bulk-action="entregada" title="Marcar los seleccionados como entregados" style="padding:.58rem .75rem;background:#0d9488;color:#fff;border:0;border-radius:9px;font-weight:700;">✓ Marcar entregada</button>
+                <div style="position:relative;">
+                    <button class="btn" data-bulk-action="toggle-assign" title="Asignar responsables a los seleccionados" style="padding:.58rem .75rem;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:9px;font-weight:700;">👤 Asignar ▾</button>
+                    <div data-bulk-menu="assign" style="display:none;position:absolute;bottom:calc(100% + 10px);left:0;min-width:220px;padding:6px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow-lg);">
+                        <div style="padding:6px 9px 7px;font-size:.68rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;">Asignar a seleccionados</div>
+                        <button data-bulk-action="responsables" style="width:100%;padding:10px;text-align:left;background:var(--primary-50);color:var(--primary-700);border:0;border-radius:6px;cursor:pointer;font-weight:800;">👥 Entrega, cobra y encargado</button>
+                        <div style="padding:6px 9px 3px;font-size:.72rem;color:var(--text-secondary);">Configura los tres en una sola operación.</div>
+                    </div>
+                </div>
+                <div style="position:relative;">
+                    <button class="btn" data-bulk-action="toggle-more" title="Cambiar estado o fecha de los seleccionados" style="padding:.58rem .75rem;background:transparent;color:var(--text-primary);border:1px solid var(--border-color);border-radius:9px;font-weight:700;">⚙ Gestionar ▾</button>
+                    <div data-bulk-menu="more" style="display:none;position:absolute;bottom:calc(100% + 10px);right:0;min-width:185px;padding:6px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow-lg);">
+                        <div style="padding:6px 9px 7px;font-size:.68rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;">Cambios de estado</div>
+                        <button data-bulk-action="fecha" style="width:100%;padding:9px;text-align:left;background:transparent;color:var(--text-primary);border:0;border-radius:6px;cursor:pointer;">📅 Cambiar fecha</button>
+                        <button data-bulk-action="anular" style="width:100%;padding:9px;text-align:left;background:#fef2f2;color:#b91c1c;border:0;border-radius:6px;cursor:pointer;font-weight:700;">⊘ Anular</button>
+                        <button data-bulk-action="reactivar" style="width:100%;padding:9px;text-align:left;background:transparent;color:#047857;border:0;border-radius:6px;cursor:pointer;font-weight:700;">↻ Reactivar</button>
+                    </div>
+                </div>
+                <button class="btn" data-bulk-action="eliminar" title="Eliminar registros seleccionados" style="padding:.58rem .75rem;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:9px;font-weight:800;">🗑 Eliminar</button>
+                <button data-bulk-action="limpiar" title="Quitar selección" style="padding:.4rem .55rem;background:transparent;color:var(--text-secondary);border:0;cursor:pointer;font-size:1rem;">✕</button>
             `;
-            document.getElementById('btn-delete-selected').onclick = () => this.deleteSelectedRecords();
-            document.getElementById('btn-change-date-selected').onclick = () => this.changeDateSelectedRecords();
-            document.getElementById('btn-create-route-selected').onclick = () => this.createRouteFromSelection();
-            document.getElementById('btn-assign-entrega-selected').onclick = () => this.batchAssignField('entrega');
-            document.getElementById('btn-assign-cobra-selected').onclick = () => this.batchAssignField('cobra');
-            document.getElementById('btn-assign-encargado-selected').onclick = () => this.batchAssignField('encargado');
-            document.getElementById('btn-mark-entregada-selected').onclick = () => this.batchMarkEntregada();
         } else {
             container.style.display = 'none';
+        }
+    },
+
+    _selectedActiveRecords() {
+        return this.records.filter(record => this.selectedRecords.has(record.id) && record.anulado !== true);
+    },
+
+    _isOperationallyLocked(record) {
+        return !!(record && (record.rutaId || record.entregado === true || record.cobrado === true || Number(record.montoCobrado || 0) > 0 || record.estadoCobro === 'pagado' || record.estadoCobro === 'parcial'));
+    },
+
+    async _commitInChunks(ids, addOperation) {
+        const db = firebase.firestore();
+        for (let index = 0; index < ids.length; index += 400) {
+            const batch = db.batch();
+            ids.slice(index, index + 400).forEach(id => addOperation(batch, db.collection('interlogic').doc(id)));
+            await batch.commit();
+        }
+    },
+
+    async updateSelectedStatus(action) {
+        if (!window.permissions?.canEdit) {
+            showToast('No tienes permisos para editar registros', 'error');
+            return;
+        }
+        const selected = this.records.filter(record => this.selectedRecords.has(record.id));
+        const count = selected.length;
+        if (count === 0) return;
+        const anular = action === 'anular';
+        if (anular) {
+            const blocked = selected.filter(record => this._isOperationallyLocked(record));
+            if (blocked.length > 0) {
+                showToast(`${blocked.length} registro(s) no se pueden anular porque están en ruta, entregados o tienen cobros`, 'warning');
+                return;
+            }
+        }
+        const verb = anular ? 'anular' : 'reactivar';
+        const detail = anular
+            ? 'Los registros conservarán todos sus datos, pero dejarán de sumar en los totales.'
+            : 'Los registros volverán a sumar en los totales.';
+        if (!await showConfirm(`¿${anular ? 'Anular' : 'Reactivar'} ${count} registro(s)?`, detail)) return;
+
+        try {
+            const user = firebase.auth().currentUser;
+            const update = {
+                anulado: anular,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (anular) {
+                update.anuladoAt = firebase.firestore.FieldValue.serverTimestamp();
+                update.anuladoPor = user ? user.uid : null;
+            } else {
+                update.reactivadoAt = firebase.firestore.FieldValue.serverTimestamp();
+                update.reactivadoPor = user ? user.uid : null;
+            }
+            const ids = selected.map(record => record.id);
+            await this._commitInChunks(ids, (batch, ref) => batch.update(ref, update));
+
+            this.records.forEach(record => {
+                if (ids.includes(record.id)) record.anulado = anular;
+            });
+            this.selectedRecords.clear();
+            this.applyFilters();
+            showToast(`✓ ${count} registro(s) ${anular ? 'anulado(s)' : 'reactivado(s)'} correctamente`, 'success');
+        } catch (error) {
+            console.error(`Error al ${verb} registros:`, error);
+            showToast(`Error al ${verb} registros: ` + error.message, 'error');
         }
     },
 
@@ -1007,14 +1115,16 @@ const InterlogicCRUD = {
         }
         const count = this.selectedRecords.size;
         if (count === 0) return;
+        const blocked = this.records.filter(record => this.selectedRecords.has(record.id) && this._isOperationallyLocked(record));
+        if (blocked.length > 0) {
+            showToast(`${blocked.length} registro(s) no se pueden eliminar porque están en ruta, entregados o tienen cobros`, 'warning');
+            return;
+        }
         if (!await showConfirm(`¿Eliminar ${count} registro(s)?`, 'Esta acción no se puede deshacer.')) return;
 
         try {
-            const batch = firebase.firestore().batch();
-            for (const id of this.selectedRecords) {
-                batch.delete(firebase.firestore().collection('interlogic').doc(id));
-            }
-            await batch.commit();
+            const ids = [...this.selectedRecords];
+            await this._commitInChunks(ids, (batch, ref) => batch.delete(ref));
 
             this.records = this.records.filter(r => !this.selectedRecords.has(r.id));
             this.selectedRecords.clear();
@@ -1032,7 +1142,8 @@ const InterlogicCRUD = {
             showToast('No tienes permisos para editar registros', 'error');
             return;
         }
-        const count = this.selectedRecords.size;
+        const selected = this._selectedActiveRecords();
+        const count = selected.length;
         if (count === 0) return;
 
         const labels = { entrega: '🚚 Entrega', cobra: '💰 Cobra', encargado: '👤 Encargado' };
@@ -1079,20 +1190,17 @@ const InterlogicCRUD = {
             const btns = ['ba-dalse', 'ba-interlogistic', 'ba-xpress', 'ba-clear', 'ba-custom-btn'].map(id => document.getElementById(id));
             btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.6'; } });
 
-            const ids = [...self.selectedRecords];
+            const ids = selected.map(record => record.id);
             try {
-                const db = firebase.firestore();
-                const batch = db.batch();
-                ids.forEach(id => {
-                    batch.update(db.collection('interlogic').doc(id), {
+                await self._commitInChunks(ids, (batch, ref) => {
+                    batch.update(ref, {
                         [field]: value,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 });
-                await batch.commit();
 
                 self.records.forEach(r => {
-                    if (self.selectedRecords.has(r.id)) r[field] = value;
+                    if (ids.includes(r.id)) r[field] = value;
                 });
                 self.selectedRecords.clear();
                 self.applyFilters();
@@ -1116,12 +1224,94 @@ const InterlogicCRUD = {
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     },
 
+    batchAssignResponsibles() {
+        if (!window.permissions?.canEdit) {
+            showToast('No tienes permisos para editar registros', 'error');
+            return;
+        }
+        const selected = this._selectedActiveRecords();
+        const count = selected.length;
+        if (count === 0) return;
+        const fields = [
+            { key: 'entrega', label: '🚚 Entrega' },
+            { key: 'cobra', label: '💰 Cobra' },
+            { key: 'encargado', label: '👤 Encargado' }
+        ];
+        const inputs = fields.map(field => {
+            const options = Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field.key))));
+            return `
+                <div style="padding:0.8rem;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-secondary);">
+                    <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;font-weight:800;">
+                        <span>${field.label}</span>
+                        <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);"><input type="checkbox" id="bar-apply-${field.key}"> Actualizar</span>
+                    </label>
+                    <input type="text" id="bar-value-${field.key}" list="bar-list-${field.key}" placeholder="Escribe o selecciona..." style="width:100%;padding:0.65rem 0.75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);">
+                    <datalist id="bar-list-${field.key}">${options.map(value => '<option value="' + sanitizeHTML(value) + '">').join('')}</datalist>
+                </div>
+            `;
+        }).join('');
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:500px;">
+                <h2 style="margin-bottom:0.4rem;text-align:center;">👥 Asignar responsables</h2>
+                <p style="color:var(--text-secondary);margin-bottom:1rem;text-align:center;">Actualiza Entrega, Cobra y Encargado para <strong>${count} registro(s)</strong> en una sola operación.</p>
+                <div style="display:grid;gap:0.65rem;">${inputs}</div>
+                <p style="font-size:0.75rem;color:var(--text-secondary);margin:0.8rem 0;">Marca “Actualizar” únicamente en los campos que deseas cambiar. Si lo dejas vacío, se limpiará ese campo.</p>
+                <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
+                    <button id="bar-cancel" class="btn btn-secondary">Cancelar</button>
+                    <button id="bar-save" class="btn btn-primary">Guardar asignaciones</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        fields.forEach(field => {
+            const input = document.getElementById('bar-value-' + field.key);
+            const checkbox = document.getElementById('bar-apply-' + field.key);
+            input.addEventListener('input', () => { checkbox.checked = true; });
+        });
+        document.getElementById('bar-cancel').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        document.getElementById('bar-save').onclick = async () => {
+            const updates = {};
+            fields.forEach(field => {
+                if (document.getElementById('bar-apply-' + field.key).checked) {
+                    updates[field.key] = document.getElementById('bar-value-' + field.key).value.trim();
+                }
+            });
+            if (Object.keys(updates).length === 0) {
+                showToast('Marca al menos un campo para actualizar', 'warning');
+                return;
+            }
+            const saveBtn = document.getElementById('bar-save');
+            setButtonLoading(saveBtn, true);
+            try {
+                const update = { ...updates, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                const ids = selected.map(record => record.id);
+                await this._commitInChunks(ids, (batch, ref) => batch.update(ref, update));
+                this.records.forEach(record => {
+                    if (ids.includes(record.id)) Object.assign(record, updates);
+                });
+                const labels = fields.filter(field => Object.prototype.hasOwnProperty.call(updates, field.key)).map(field => field.label.replace(/^[^ ]+ /, ''));
+                this.selectedRecords.clear();
+                this.applyFilters();
+                modal.remove();
+                showToast('✓ Actualizado: ' + labels.join(', '), 'success');
+            } catch (error) {
+                showToast('Error al actualizar: ' + error.message, 'error');
+                setButtonLoading(saveBtn, false);
+            }
+        };
+    },
+
     batchMarkEntregada() {
         if (!window.permissions?.canEdit) {
             showToast('No tienes permisos para editar registros', 'error');
             return;
         }
-        const count = this.selectedRecords.size;
+        const selected = this._selectedActiveRecords();
+        const count = selected.length;
         if (count === 0) return;
 
         const modal = document.createElement('div');
@@ -1168,11 +1358,9 @@ const InterlogicCRUD = {
             const btns = ['mfp-efectivo', 'mfp-cheque', 'mfp-transferencia', 'mfp-abono', 'mfp-solo-entregada'].map(id => document.getElementById(id));
             btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.5'; } });
 
-            const ids = [...self.selectedRecords];
+            const ids = selected.map(record => record.id);
             try {
-                const db = firebase.firestore();
-                const batch = db.batch();
-                ids.forEach(id => {
+                await self._commitInChunks(ids, (batch, ref) => {
                     const update = {
                         entregado: true,
                         fechaEntrega: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1180,12 +1368,11 @@ const InterlogicCRUD = {
                     };
                     if (formaPago) update.formaPago = formaPago;
                     else update.formaPago = firebase.firestore.FieldValue.delete();
-                    batch.update(db.collection('interlogic').doc(id), update);
+                    batch.update(ref, update);
                 });
-                await batch.commit();
 
                 self.records.forEach(r => {
-                    if (self.selectedRecords.has(r.id)) {
+                    if (ids.includes(r.id)) {
                         r.entregado = true;
                         if (formaPago) r.formaPago = formaPago;
                         else delete r.formaPago;
@@ -1216,7 +1403,8 @@ const InterlogicCRUD = {
             showToast('No tienes permisos para editar registros', 'error');
             return;
         }
-        const count = this.selectedRecords.size;
+        const selected = this._selectedActiveRecords();
+        const count = selected.length;
         if (count === 0) return;
 
         const modal = document.createElement('div');
@@ -1254,17 +1442,16 @@ const InterlogicCRUD = {
                 const [y, m, d] = newDateVal.split('-').map(Number);
                 const newDate = firebase.firestore.Timestamp.fromDate(new Date(y, m - 1, d, 12, 0, 0));
 
-                const batch = firebase.firestore().batch();
-                for (const id of this.selectedRecords) {
-                    batch.update(firebase.firestore().collection('interlogic').doc(id), {
+                const ids = selected.map(record => record.id);
+                await this._commitInChunks(ids, (batch, ref) => {
+                    batch.update(ref, {
                         fecha: newDate,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                }
-                await batch.commit();
+                });
 
                 this.records.forEach(r => {
-                    if (this.selectedRecords.has(r.id)) {
+                    if (ids.includes(r.id)) {
                         r.fecha = newDate;
                     }
                 });
@@ -1342,7 +1529,7 @@ const InterlogicCRUD = {
             }
             var clienteLower = clienteActual.toLowerCase();
             var ccfRecords = self.records.filter(function(r) {
-                return (r.doc === 'CCF' || r.doc === 'FT') && (r.cliente || '').toLowerCase().includes(clienteLower);
+                return (r.doc === 'CCF' || r.doc === 'FT') && r.anulado !== true && (r.cliente || '').toLowerCase().includes(clienteLower);
             });
             if (ccfRecords.length === 0) {
                 mfNcInterlogicId.innerHTML = '<option value="">-- No hay CCF/FT para este cliente --</option>';
