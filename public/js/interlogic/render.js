@@ -24,6 +24,7 @@ const InterlogicRender = {
         const canDelete = window.permissions?.canDelete;
 
         contentArea.innerHTML = `
+            <div class="il-premium">
             <div class="module-header">
                 <div>
                     <h1>📊 Control Interlogic</h1>
@@ -316,6 +317,7 @@ const InterlogicRender = {
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
         `;
 

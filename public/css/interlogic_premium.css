@@ -1,0 +1,350 @@
+/* ===================================
+   Interlogic Premium UI Refinement
+   Scoped to .il-premium wrapper
+   =================================== */
+
+.il-premium {
+    --il-accent: hsl(262, 83%, 58%);
+    --il-accent-soft: hsl(262, 83%, 58%, 0.08);
+    --il-line: hsl(260, 20%, 90%);
+    --il-ink: hsl(260, 25%, 22%);
+    --il-ink-soft: hsl(260, 12%, 46%);
+}
+
+/* ---- Module header ---- */
+.il-premium .module-header h1 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--il-ink);
+}
+
+.il-premium .module-header p {
+    color: var(--il-ink-soft);
+    font-size: 0.9rem;
+}
+
+.il-premium .module-header input[type="date"] {
+    border: 1px solid var(--il-line) !important;
+    background: #fff;
+    border-radius: 10px;
+    font-size: 0.85rem !important;
+    color: var(--il-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.il-premium .module-header input[type="date"]:focus {
+    outline: none;
+    border-color: var(--il-accent) !important;
+    box-shadow: 0 0 0 3px var(--il-accent-soft);
+}
+
+/* ---- Buttons ---- */
+.il-premium .btn {
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.il-premium .btn-secondary {
+    background: #fff;
+    border: 1px solid var(--il-line);
+    color: var(--il-ink-soft);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.il-premium .btn-secondary:hover:not(.btn-disabled) {
+    border-color: hsl(262, 60%, 80%);
+    color: var(--il-accent);
+    background: hsl(262, 60%, 98%);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+}
+
+.il-premium .btn-primary {
+    background: linear-gradient(135deg, hsl(262, 83%, 60%) 0%, hsl(258, 75%, 52%) 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.il-premium .btn-primary:hover:not(.btn-disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Stat cards ---- */
+.il-premium .stat-card {
+    background: #fff;
+    border: 1px solid var(--il-line);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 8px 20px -8px rgba(15, 23, 42, 0.06);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 1.1rem 1.25rem;
+}
+
+.il-premium .stat-card::before {
+    height: 3px;
+    background: linear-gradient(90deg, hsl(262, 83%, 60%), hsl(262, 83%, 72%));
+    border-radius: 3px 3px 0 0;
+}
+
+.il-premium .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(124, 58, 237, 0.18);
+    border-color: hsl(262, 60%, 86%);
+}
+
+.il-premium .stat-card h3 {
+    color: var(--il-ink-soft);
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    font-size: 0.68rem;
+}
+
+.il-premium .stat-card p {
+    color: var(--il-ink);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    font-size: 1.4rem;
+}
+
+/* ---- Search bar ---- */
+.il-premium .search-container input,
+.il-premium input[placeholder*="Buscar"] {
+    border-radius: 10px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.il-premium .search-container input:focus,
+.il-premium input[placeholder*="Buscar"]:focus {
+    border-color: var(--il-accent);
+    box-shadow: 0 0 0 3px var(--il-accent-soft);
+    outline: none;
+}
+
+/* ---- Main table card ---- */
+.il-premium .card {
+    background: #fff;
+    border: 1px solid var(--il-line);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 12px 28px -12px rgba(15, 23, 42, 0.08);
+    padding: 1rem;
+}
+
+.il-premium .table-container {
+    border-radius: 12px;
+    border: 1px solid var(--il-line);
+    background: #fff;
+    box-shadow: none;
+}
+
+/* ---- Table head ---- */
+.il-premium .data-table th {
+    background: linear-gradient(180deg, hsl(262, 40%, 98%) 0%, hsl(262, 35%, 96%) 100%);
+    color: hsl(262, 25%, 38%);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid hsl(262, 30%, 86%);
+    padding: 0.65rem 0.55rem;
+}
+
+.il-premium .data-table th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.il-premium .data-table th:last-child {
+    border-top-right-radius: 12px;
+}
+
+/* ---- Table body ---- */
+.il-premium .data-table td {
+    border-bottom: 1px solid hsl(262, 15%, 93%);
+    color: hsl(260, 15%, 30%);
+    font-size: 0.83rem;
+}
+
+.il-premium .data-table tbody tr {
+    transition: background 0.12s ease;
+}
+
+.il-premium .data-table tbody tr:nth-child(even) {
+    background: hsl(262, 45%, 99%);
+}
+
+.il-premium .data-table tbody tr:hover {
+    background: hsl(262, 70%, 97%);
+}
+
+.il-premium .data-table tbody tr:active {
+    background: hsl(262, 60%, 95%);
+}
+
+/* Selected / anulado rows keep meaning but premium tone */
+.il-premium .data-table tbody tr[style*="background"] {
+    transition: background 0.12s ease;
+}
+
+/* ---- Table footer (totals) ---- */
+.il-premium .data-table tfoot {
+    background: linear-gradient(180deg, hsl(262, 45%, 96%) 0%, hsl(262, 40%, 94%) 100%);
+    border-top: 2px solid hsl(262, 40%, 82%);
+}
+
+.il-premium .data-table tfoot td {
+    color: hsl(262, 35%, 28%);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+}
+
+/* ---- Badges ---- */
+.il-premium .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.22rem 0.6rem;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* ---- Action icon buttons ---- */
+.il-premium .btn-icon {
+    border-radius: 8px;
+    opacity: 0.85;
+    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.il-premium .btn-icon:hover {
+    transform: translateY(-1px);
+    opacity: 1;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+}
+
+/* ---- Filter popups ---- */
+.il-premium .filter-popup {
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(15, 23, 42, 0.06);
+    border: 1px solid var(--il-line);
+}
+
+.il-premium .filter-popup-search {
+    border: 1px solid var(--il-line);
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.il-premium .filter-popup-search:focus {
+    border-color: var(--il-accent);
+    box-shadow: 0 0 0 3px var(--il-accent-soft);
+    outline: none;
+}
+
+.il-premium .filter-option-item {
+    border-radius: 8px;
+    transition: background 0.12s ease;
+}
+
+.il-premium .filter-option-item:hover {
+    background: hsl(262, 60%, 97%);
+}
+
+.il-premium .filter-header.filter-active .filter-trigger,
+.il-premium .filter-header.filter-active {
+    color: var(--il-accent);
+}
+
+/* ---- Scrollbar refinement ---- */
+.il-premium .table-container::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+.il-premium .table-container::-webkit-scrollbar-thumb {
+    background: hsl(262, 20%, 82%);
+    border-radius: 8px;
+    border: 2px solid #fff;
+}
+
+.il-premium .table-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(262, 25%, 70%);
+}
+
+/* ---- Pagination ---- */
+.il-premium #il-pagination-top button {
+    border-radius: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+/* ---- Dark theme ---- */
+[data-theme="dark"] .il-premium {
+    --il-line: hsl(260, 20%, 22%);
+    --il-ink: hsl(260, 25%, 90%);
+    --il-ink-soft: hsl(260, 12%, 62%);
+}
+
+[data-theme="dark"] .il-premium .btn-secondary {
+    background: hsl(260, 20%, 16%);
+    color: hsl(260, 15%, 75%);
+}
+
+[data-theme="dark"] .il-premium .btn-secondary:hover:not(.btn-disabled) {
+    background: hsl(262, 30%, 20%);
+    color: hsl(262, 60%, 75%);
+}
+
+[data-theme="dark"] .il-premium .stat-card {
+    background: hsl(260, 20%, 15%);
+}
+
+[data-theme="dark"] .il-premium .card,
+[data-theme="dark"] .il-premium .table-container {
+    background: hsl(260, 20%, 14%);
+    border-color: var(--il-line);
+}
+
+[data-theme="dark"] .il-premium .data-table th {
+    background: hsl(262, 25%, 17%);
+    color: hsl(262, 30%, 72%);
+    border-bottom-color: hsl(262, 25%, 26%);
+}
+
+[data-theme="dark"] .il-premium .data-table td {
+    border-bottom-color: hsl(260, 15%, 22%);
+    color: hsl(260, 15%, 82%);
+}
+
+[data-theme="dark"] .il-premium .data-table tbody tr:nth-child(even) {
+    background: hsl(260, 20%, 16%);
+}
+
+[data-theme="dark"] .il-premium .data-table tbody tr:hover {
+    background: hsl(262, 30%, 20%);
+}
+
+[data-theme="dark"] .il-premium .data-table tfoot {
+    background: hsl(262, 25%, 18%);
+    border-top-color: hsl(262, 30%, 30%);
+}
+
+[data-theme="dark"] .il-premium .data-table tfoot td {
+    color: hsl(262, 35%, 85%);
+}
+
+[data-theme="dark"] .il-premium .filter-popup {
+    background: hsl(260, 20%, 16%);
+    border-color: var(--il-line);
+}
+
+[data-theme="dark"] .il-premium .filter-option-item:hover {
+    background: hsl(262, 30%, 22%);
+}
+
+[data-theme="dark"] .il-premium .module-header input[type="date"] {
+    background: hsl(260, 20%, 16%);
+    color: hsl(260, 20%, 85%);
+}
+
+[data-theme="dark"] .il-premium .table-container::-webkit-scrollbar-thumb {
+    background: hsl(260, 20%, 32%);
+    border-color: hsl(260, 20%, 14%);
+}
