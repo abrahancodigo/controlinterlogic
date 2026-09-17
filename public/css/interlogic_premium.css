@@ -165,21 +165,19 @@
 }
 
 #il-data-table tbody tr {
-    transition: background 0.15s ease, box-shadow 0.15s ease;
+    transition: background 0.15s ease;
 }
 
 #il-data-table tbody tr:nth-child(even) {
-    background: hsl(262, 35%, 94%);
+    background: hsl(262, 35%, 95%);
 }
 
 #il-data-table tbody tr:hover {
     background: hsl(262, 45%, 92%);
-    box-shadow: 0 1px 4px rgba(100, 100, 120, 0.05);
 }
 
 #il-data-table tbody tr:active {
     background: hsl(262, 50%, 89%);
-    box-shadow: 0 1px 3px rgba(100, 100, 120, 0.04);
 }
 
 /* Selected / anulado rows keep meaning but premium tone */
