@@ -626,14 +626,14 @@ const InterlogicRender = {
         const lastShown = totalRows === 0 ? 0 : Math.min(startIdx + pageSize, totalRows);
         const prevPage = Math.max(1, this.currentPage - 1);
         const nextPage = Math.min(totalPages, this.currentPage + 1);
-        const pageBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
-        const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#fff;color:var(--text-primary);';
+        const pageBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#1f2937;';
+        const pageBtnDisabled = 'cursor:not-allowed;opacity:0.4;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#9ca3af;';
         const allBtnStyle = 'cursor:pointer;padding:0.35rem 0.65rem;font-size:0.8rem;font-weight:600;line-height:1;border:1px solid var(--border-color);border-radius:6px;background:#2563eb;color:#fff;';
 
         if (this.showAll) {
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${totalRows}</strong> de <strong>${totalRows}</strong> registros (sin paginación)</span>
+                    <span style="font-size: 0.8rem; color: #6b7280;">Mostrando <strong>${totalRows}</strong> de <strong>${totalRows}</strong> registros (sin paginación)</span>
                     <div style="display: flex; align-items: center; gap: 0.25rem;">
                         <button type="button" class="page-btn-all" data-mode="page" style="${allBtnStyle}">↩ Ver paginado</button>
                     </div>
@@ -643,11 +643,11 @@ const InterlogicRender = {
 
         return `
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">Mostrando <strong>${firstShown}–${lastShown}</strong> de <strong>${totalRows}</strong> registros</span>
+                <span style="font-size: 0.8rem; color: #6b7280;">Mostrando <strong>${firstShown}–${lastShown}</strong> de <strong>${totalRows}</strong> registros</span>
                 <div style="display: flex; align-items: center; gap: 0.25rem;">
                     <button type="button" class="page-btn" data-page="1" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">«</button>
                     <button type="button" class="page-btn" data-page="${prevPage}" ${this.currentPage <= 1 ? 'disabled' : ''} style="${this.currentPage <= 1 ? pageBtnDisabled : pageBtnStyle}">‹</button>
-                    <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0 0.25rem;">Página <strong>${this.currentPage}</strong> / ${totalPages}</span>
+                    <span style="font-size: 0.8rem; color: #6b7280; padding: 0 0.25rem;">Página <strong>${this.currentPage}</strong> / ${totalPages}</span>
                     <button type="button" class="page-btn" data-page="${nextPage}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">›</button>
                     <button type="button" class="page-btn" data-page="${totalPages}" ${this.currentPage >= totalPages ? 'disabled' : ''} style="${this.currentPage >= totalPages ? pageBtnDisabled : pageBtnStyle}">»</button>
                     <button type="button" class="page-btn-all" data-mode="all" style="${allBtnStyle}">📄 Ver todo</button>
@@ -702,7 +702,7 @@ const InterlogicRender = {
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
                 <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
-                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: var(--text-primary);">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
+                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: #6b7280;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Departamento">${sanitizeHTML(record.departamento || '')}</td>
                 <td data-label="Municipio">${sanitizeHTML(record.municipio || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>

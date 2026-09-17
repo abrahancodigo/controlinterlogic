@@ -140,12 +140,12 @@
 
 /* ---- Table head ---- */
 .il-premium .data-table th {
-    background: linear-gradient(180deg, hsl(262, 40%, 98%) 0%, hsl(262, 35%, 96%) 100%);
-    color: hsl(262, 25%, 38%);
+    background: linear-gradient(180deg, hsl(262, 35%, 95%) 0%, hsl(262, 30%, 93%) 100%);
+    color: hsl(262, 25%, 24%);
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.06em;
-    border-bottom: 1px solid hsl(262, 30%, 86%);
+    border-bottom: 2px solid hsl(262, 25%, 78%);
     padding: 0.65rem 0.55rem;
 }
 
@@ -159,8 +159,8 @@
 
 /* ---- Table body ---- */
 .il-premium .data-table td {
-    border-bottom: 1px solid hsl(262, 15%, 93%);
-    color: hsl(260, 15%, 30%);
+    border-bottom: 1px solid hsl(262, 15%, 88%);
+    color: hsl(260, 15%, 20%);
     font-size: 0.83rem;
 }
 
@@ -169,15 +169,15 @@
 }
 
 .il-premium .data-table tbody tr:nth-child(even) {
-    background: hsl(262, 45%, 99%);
+    background: hsl(262, 45%, 97%);
 }
 
 .il-premium .data-table tbody tr:hover {
-    background: hsl(262, 70%, 97%);
+    background: hsl(262, 65%, 94%);
 }
 
 .il-premium .data-table tbody tr:active {
-    background: hsl(262, 60%, 95%);
+    background: hsl(262, 60%, 91%);
 }
 
 /* Selected / anulado rows keep meaning but premium tone */
@@ -187,12 +187,12 @@
 
 /* ---- Table footer (totals) ---- */
 .il-premium .data-table tfoot {
-    background: linear-gradient(180deg, hsl(262, 45%, 96%) 0%, hsl(262, 40%, 94%) 100%);
-    border-top: 2px solid hsl(262, 40%, 82%);
+    background: linear-gradient(180deg, hsl(262, 40%, 93%) 0%, hsl(262, 35%, 90%) 100%);
+    border-top: 3px solid hsl(262, 35%, 72%);
 }
 
 .il-premium .data-table tfoot td {
-    color: hsl(262, 35%, 28%);
+    color: hsl(262, 35%, 20%);
     font-weight: 700;
     font-size: 0.85rem;
     letter-spacing: 0.01em;
