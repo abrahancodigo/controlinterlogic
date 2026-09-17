@@ -164,20 +164,22 @@
     font-size: 0.88rem;
 }
 
-#il-data-table tbody tr {
-    transition: background 0.15s ease;
+#il-data-table tbody tr,
+.il-premium .data-table tbody tr {
+    background: #fff;
 }
 
-#il-data-table tbody tr:nth-child(even) {
-    background: hsl(262, 35%, 95%);
+#il-data-table tbody tr:nth-child(even),
+.il-premium .data-table tbody tr:nth-child(even) {
+    background: #fff;
 }
 
 #il-data-table tbody tr:hover {
-    background: hsl(262, 45%, 92%);
+    background: hsl(262, 60%, 97%);
 }
 
 #il-data-table tbody tr:active {
-    background: hsl(262, 50%, 89%);
+    background: hsl(262, 60%, 95%);
 }
 
 /* Selected / anulado rows keep meaning but premium tone */
@@ -313,8 +315,9 @@
     color: hsl(260, 15%, 82%);
 }
 
-[data-theme="dark"] .il-premium .data-table tbody tr:nth-child(even) {
-    background: hsl(260, 20%, 16%);
+[data-theme="dark"] .il-premium .data-table tbody tr:nth-child(even),
+[data-theme="dark"] #il-data-table tbody tr:nth-child(even) {
+    background: hsl(260, 20%, 14%);
 }
 
 [data-theme="dark"] .il-premium .data-table tbody tr:hover {
