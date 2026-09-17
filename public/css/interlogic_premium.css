@@ -174,12 +174,12 @@
 
 .il-premium .data-table tbody tr:hover {
     background: hsl(262, 45%, 92%);
-    box-shadow: 0 1px 4px rgba(100, 100, 120, 0.08);
+    box-shadow: 0 1px 4px rgba(100, 100, 120, 0.05);
 }
 
 .il-premium .data-table tbody tr:active {
     background: hsl(262, 50%, 89%);
-    box-shadow: 0 1px 3px rgba(100, 100, 120, 0.06);
+    box-shadow: 0 1px 3px rgba(100, 100, 120, 0.04);
 }
 
 /* Selected / anulado rows keep meaning but premium tone */
