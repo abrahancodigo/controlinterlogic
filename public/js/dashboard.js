@@ -125,8 +125,8 @@ const Dashboard = {
         </div>
         <div class="dash-chart-card">
             <div class="dash-chart-header"><h3>Participación por Vendedor</h3><span class="dash-chart-total" id="dash-acum-chart-total"></span></div>
-            <div class="dash-chart-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
-                <div class="dash-acum-list-wrap" style="flex:1;min-width:260px;">
+            <div class="dash-chart-body" style="display:flex;align-items:stretch;gap:24px;flex-wrap:wrap;">
+                <div class="dash-acum-list-wrap" style="flex:0.6;min-width:220px;">
                     <div class="dash-acum-toolbar">
                         <button class="dash-acum-btn" id="dash-acum-select-all">Seleccionar Todos</button>
                         <button class="dash-acum-btn" id="dash-acum-deselect-all">Deseleccionar Todos</button>
@@ -137,7 +137,7 @@ const Dashboard = {
                     </div>
                     <div class="dash-acum-list" id="dash-acum-list"></div>
                 </div>
-                <div style="flex:1;min-width:280px;max-width:420px;" id="dash-acum-chart"></div>
+                <div style="flex:1.4;min-width:320px;max-width:546px;" id="dash-acum-chart"></div>
             </div>
         </div>
     </div>
@@ -296,13 +296,13 @@ const Dashboard = {
         if (floatPill) {
             floatPill.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
             if ('IntersectionObserver' in window) {
-                const kpiGrid = document.querySelector('.dash-kpi-grid');
+                const kpiGridEl = document.querySelector('.dash-kpi-grid');
                 if (kpiGrid) {
                     if (this._pillIO) this._pillIO.disconnect();
                     this._pillIO = new IntersectionObserver(entries => {
                         entries.forEach(en => floatPill.classList.toggle('show', !en.isIntersecting));
                     }, { rootMargin: '-80px 0px 0px 0px', threshold: 0 });
-                    this._pillIO.observe(kpiGrid);
+                    this._pillIO.observe(kpiGridEl);
                 }
             }
         }
@@ -577,7 +577,7 @@ const Dashboard = {
             dailyStats[dk].total += m;
             dailyStats[dk].totalCount++;
             if (isContado) { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
-            else { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
+            else if (isCredito) { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
             if (emp === 'DALSE') dailyStats[dk].dalse += m;
             if (emp === 'INCEDE') dailyStats[dk].incede += m;
         });
@@ -1063,7 +1063,7 @@ const Dashboard = {
         const acumEl = document.getElementById('dash-acum-chart');
         if (acumEl) {
             const acumOptions = {
-                chart: { type: 'pie', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
+                chart: { type: 'pie', fontFamily: 'Inter, sans-serif', height: 494, toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
                 series: [],
                 labels: [],
                 colors: ['#7c3aed','#8b5cf6','#6366f1','#9333ea','#3b82f6','#06b6d4','#10b981','#f59e0b','#ec4899','#84cc16','#f97316','#ef4444','#14b8a6','#d946ef','#fb923c'],
@@ -1820,8 +1820,8 @@ const Dashboard = {
         const formatDtInput = (d) => formatDateForInput(d);
 
         filtered.sort((a, b) => {
-            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
-            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
+            const fa = a.fecha && typeof a.fecha.toDate === 'function' ? a.fecha.toDate() : new Date(0);
+            const fb = b.fecha && typeof b.fecha.toDate === 'function' ? b.fecha.toDate() : new Date(0);
             return fb - fa;
         });
 
@@ -2042,20 +2042,21 @@ const Dashboard = {
             });
         });
 
+        function escHandler(e) {
+            if (e.key === 'Escape' && document.body.contains(modal)) {
+                closeModal();
+            }
+        }
         const closeModal = () => {
             backdrop.classList.remove('show');
             modal.classList.remove('show');
+            document.removeEventListener('keydown', escHandler);
             setTimeout(() => { backdrop.remove(); modal.remove(); }, 300);
         };
 
         modal.querySelector('.dash-detail-modal-close').addEventListener('click', closeModal);
         backdrop.addEventListener('click', closeModal);
-        document.addEventListener('keydown', function escHandler(e) {
-            if (e.key === 'Escape' && document.body.contains(modal)) {
-                closeModal();
-                document.removeEventListener('keydown', escHandler);
-            }
-        });
+        document.addEventListener('keydown', escHandler);
 
         modal.querySelector('.dash-export-excel-btn').addEventListener('click', () => {
             this.exportDetailToExcel(filtered, title);

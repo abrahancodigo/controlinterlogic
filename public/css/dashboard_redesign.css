@@ -1125,14 +1125,18 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
 }
+.dash-acum-list-wrap {
+    display: flex;
+    flex-direction: column;
+}
 .dash-acum-list {
     display: flex;
     flex-wrap: wrap;
+    align-content: flex-start;
     gap: 6px;
     margin-bottom: 14px;
-    max-height: 150px;
-    overflow-y: auto;
     padding: 2px;
+    flex: 1;
 }
 .dash-acum-chip {
     display: inline-flex;

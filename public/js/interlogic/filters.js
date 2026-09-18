@@ -21,7 +21,7 @@ const InterlogicFilters = {
             body += '<div style="margin-bottom:16px;"><div style="font-weight:700;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#8e8e93;margin-bottom:8px;">' + f.label + '</div><div class="m-filter-list">';
             f.options.forEach(v => {
                 const isActive = this.filters[f.key]?.includes(String(v));
-                body += '<label class="m-filter-item"><input type="checkbox" value="' + v + '" ' + (isActive ? 'checked' : '') + ' onchange="Interlogic.toggleMobileFilter(\'' + f.key + '\',\'' + String(v).replace(/'/g,"\\'") + '\', this.checked)"><span>' + (v || '(vacío)') + '</span></label>';
+                body += '<label class="m-filter-item"><input type="checkbox" value="' + v + '" ' + (isActive ? 'checked' : '') + ' data-filter-key="' + f.key + '" data-filter-value="' + String(v).replace(/"/g, '&quot;') + '"><span>' + (v || '(vacío)') + '</span></label>';
             });
             body += '</div></div>';
         });
@@ -29,6 +29,11 @@ const InterlogicFilters = {
         const sheet = document.createElement('div');
         sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Filtros</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body">' + body + '</div><div class="m-sheet-footer"><button class="btn" onclick="Interlogic.clearAllFilters();document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Limpiar filtros</button><button class="btn btn-primary" onclick="document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Aplicar</button></div></div>';
         document.body.appendChild(sheet);
+        sheet.querySelector('.m-sheet-body').addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.dataset.filterKey) {
+                Interlogic.toggleMobileFilter(e.target.dataset.filterKey, e.target.dataset.filterValue, e.target.checked);
+            }
+        });
     },
 
     toggleMobileFilter(field, value, checked) {
@@ -246,7 +251,14 @@ const InterlogicFilters = {
 
     applySorting() {
         const { field, direction } = this.currentSort;
-        if (!field || !direction) return;
+        if (!field || !direction) {
+            this.filteredRecords.sort((a, b) => {
+                const ca = a.createdAt && typeof a.createdAt.toDate === 'function' ? a.createdAt.toDate().getTime() : 0;
+                const cb = b.createdAt && typeof b.createdAt.toDate === 'function' ? b.createdAt.toDate().getTime() : 0;
+                return cb - ca;
+            });
+            return;
+        }
 
         this.filteredRecords.sort((a, b) => {
             let valA = a[field];

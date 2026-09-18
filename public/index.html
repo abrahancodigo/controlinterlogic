@@ -36,9 +36,9 @@
     </script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/styles.css?v=10">
+    <link rel="stylesheet" href="css/styles.css?v=12">
     <link rel="stylesheet" href="css/mobile.css">
-    <link rel="stylesheet" href="css/dashboard_redesign.css?v=33">
+    <link rel="stylesheet" href="css/dashboard_redesign.css?v=34">
     <link rel="stylesheet" href="css/dashboard_mobile_fix.css?v=19">
     <link rel="stylesheet" href="css/dashboard_visual.css?v=2">
     <link rel="stylesheet" href="css/operations_visual.css?v=9">
@@ -51,7 +51,10 @@
 
     <!-- Loading Screen (hidden by default, shown by JS if needed) -->
     <div id="loading-screen" class="loading-screen" style="display: none;">
-        <div class="loading-spinner"></div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"><div class="loading-progress-fill"></div></div>
+            <div class="loading-progress-pct">0%</div>
+        </div>
         <p>Cargando...</p>
     </div>
 
@@ -376,35 +379,35 @@
     <script defer src="js/theme.js"></script>
 
     <!-- Initialization Script (must load first) -->
-    <script src="js/init.js"></script>
+    <script src="js/init.js?v=2"></script>
 
     <!-- Application Scripts -->
-    <script defer src="js/utils.js?v=3"></script>
+    <script defer src="js/utils.js?v=5"></script>
     <script defer src="js/shared/components.js?v=1"></script>
-    <script defer src="js/dashboard.js?v=38"></script>
+    <script defer src="js/dashboard.js?v=42"></script>
     <script defer src="js/app.js?v=2"></script>
-    <script src="js/auth.js?v=2"></script>
-    <script defer src="js/users.js"></script>
-    <script defer src="js/settings.js"></script>
-    <script defer src="js/deliveries.js?v=2"></script>
+    <script src="js/auth.js?v=3"></script>
+    <script defer src="js/users.js?v=2"></script>
+    <script defer src="js/settings.js?v=1"></script>
+    <script defer src="js/deliveries.js?v=5"></script>
     <!-- Interlogic modular -->
-    <script defer src="js/interlogic/core.js?v=4"></script>
-    <script defer src="js/interlogic/render.js?v=16"></script>
-    <script defer src="js/interlogic/filters.js?v=1"></script>
-    <script defer src="js/interlogic/crud.js?v=13"></script>
-    <script defer src="js/interlogic/excel.js?v=5"></script>
+    <script defer src="js/interlogic/core.js?v=5"></script>
+    <script defer src="js/interlogic/render.js?v=17"></script>
+    <script defer src="js/interlogic/filters.js?v=3"></script>
+    <script defer src="js/interlogic/crud.js?v=17"></script>
+    <script defer src="js/interlogic/excel.js?v=6"></script>
     <script defer src="js/interlogic/routes.js?v=2"></script>
     <script defer src="js/interlogic/index.js"></script>
-    <script defer src="js/problemas.js"></script>
-    <script defer src="js/clientes.js?v=4"></script>
+    <script defer src="js/problemas.js?v=2"></script>
+    <script defer src="js/clientes.js?v=5"></script>
     <script defer src="js/liquidacion.js?v=21"></script>
-    <script defer src="js/kpi.js?v=2"></script>
-    <script defer src="js/asistencia.js?v=1"></script>
+    <script defer src="js/kpi.js?v=3"></script>
+    <script defer src="js/asistencia.js?v=2"></script>
     <!-- Flota modular -->
-    <script defer src="js/flota/core.js?v=1"></script>
-    <script defer src="js/flota/vehicles.js"></script>
+    <script defer src="js/flota/core.js?v=2"></script>
+    <script defer src="js/flota/vehicles.js?v=1"></script>
     <script defer src="js/flota/maintenance.js"></script>
-    <script defer src="js/flota/orders.js"></script>
+    <script defer src="js/flota/orders.js?v=1"></script>
     <script defer src="js/flota/index.js"></script>
 </body>
 
