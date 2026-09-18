@@ -1,6 +1,7 @@
-// Tope máximo de documentos descargados por consulta (consistente con MAX_RECORDS de Interlogic).
-// Evita descargas/costos explosivos al elegir rangos de fechas largos (meses atrás → hoy).
-const DASHBOARD_MAX_RECORDS = 2000;
+// Tope del listener en tiempo real (solo día actual). Cada doc = 1 lectura
+// Firestore + 1 lectura extra por usuario conectado por cada escritura.
+// Períodos históricos NO usan listener: se cargan con get() (cacheable, sin fan-out).
+const DASHBOARD_MAX_RECORDS = 800;
 
 const Dashboard = {
     records: [],
@@ -308,28 +309,47 @@ const Dashboard = {
     },
 
     /* ── Firestore subscriptions ── */
+    // Tiempo real estricto solo para el día actual (vista por defecto).
+    // Semana/mes/trimestre/personalizado → get() una sola vez: sin fan-out y
+    // cacheable gracias a la persistencia offline.
+    _isTodayPeriod() {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const i = new Date(this.fechaInicio); i.setHours(0, 0, 0, 0);
+        const f = new Date(this.fechaFin); f.setHours(0, 0, 0, 0);
+        return i.getTime() === today.getTime() && f.getTime() === today.getTime();
+    },
+
     subscribeToData() {
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         const requestKey = this._prevRequestKey = {};
         this.prevRecords = [];
 
-        this.unsubscribe = firebase.firestore().collection('interlogic')
+        const query = firebase.firestore().collection('interlogic')
             .where('fecha', '>=', this.fechaInicio)
             .where('fecha', '<=', this.fechaFin)
             .orderBy('fecha', 'desc')
-            .limit(DASHBOARD_MAX_RECORDS)
-            .onSnapshot(snapshot => {
-                if (this._prevRequestKey !== requestKey) return;
-                this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
-                this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
-                const warnEl = document.getElementById('dash-truncated-warn');
-                if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
-                this.computeAndRender();
-                this.updateDeltas();
-            }, err => {
-                console.error('[Dashboard] Firestore error:', err);
-                showToast('Error al cargar datos', 'error');
-            });
+            .limit(DASHBOARD_MAX_RECORDS);
+
+        const handleSnap = (snapshot) => {
+            if (this._prevRequestKey !== requestKey) return;
+            this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
+            this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
+            const warnEl = document.getElementById('dash-truncated-warn');
+            if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
+            this.computeAndRender();
+            this.updateDeltas();
+        };
+
+        const onError = (err) => {
+            console.error('[Dashboard] Firestore error:', err);
+            showToast('Error al cargar datos', 'error');
+        };
+
+        if (this._isTodayPeriod()) {
+            this.unsubscribe = query.onSnapshot(handleSnap, onError);
+        } else {
+            query.get().then(handleSnap).catch(onError);
+        }
         this.fetchPrevPeriod();
     },
 

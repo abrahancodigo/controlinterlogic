@@ -2,16 +2,37 @@
 // Interlogic - CRUD Module (Create, Read, Update, Delete)
 // ===================================
 
-// Tope máximo de documentos descargados por consulta.
-// Reduce costo (cada doc = 1 lectura Firestore), red y render.
-const MAX_RECORDS = 2000;
+// Tope del listener en tiempo real (solo día actual). Cada doc = 1 lectura Firestore
+// y 1 lectura extra por usuario conectado cuando alguien escribe.
+// Rangos históricos NO usan listener: se cargan con get() bajo demanda (loadFullRange).
+const RT_MAX_RECORDS = 800;
 
 const InterlogicCRUD = {
+    // Tiempo real estricto solo para el día actual (listener pequeño y barato).
+    // Cualquier rango histórico (meses atrás) se carga una sola vez con get()
+    // vía loadFullRange(): mismo resultado, sin fan-out de lecturas.
+    _isTodayRange() {
+        const today = getLocalDateString();
+        return this.filters.startDate === today && this.filters.endDate === today;
+    },
+
     async loadRecords(useDateRange = false) {
         if (this._loadingRecords) return;
         this._loadingRecords = true;
         if (this.unsubscribe) {
             this.unsubscribe();
+            this.unsubscribe = null;
+        }
+
+        // Recarga de vista actual: si hay fechas definidas, usar el rango (no el fallback de 90 días).
+        if (!useDateRange && this.filters.startDate && this.filters.endDate) {
+            useDateRange = true;
+        }
+
+        // Rango histórico → carga completa por get() (una sola lectura, luego cacheada).
+        if (useDateRange && !this._isTodayRange()) {
+            this._loadingRecords = false;
+            return this.loadFullRange();
         }
 
         const db = firebase.firestore();
@@ -29,7 +50,7 @@ const InterlogicCRUD = {
                 .where('fecha', '>=', startTs)
                 .where('fecha', '<=', endTs)
                 .orderBy('fecha', 'desc')
-                .limit(MAX_RECORDS);
+                .limit(RT_MAX_RECORDS);
         } else {
             const ninetyDaysAgo = new Date();
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -39,7 +60,7 @@ const InterlogicCRUD = {
             query = db.collection('interlogic')
                 .where('createdAt', '>=', startTs)
                 .orderBy('createdAt', 'desc')
-                .limit(MAX_RECORDS);
+                .limit(RT_MAX_RECORDS);
         }
 
         try {
@@ -48,7 +69,7 @@ const InterlogicCRUD = {
                     id: doc.id,
                     ...doc.data()
                 }));
-                this._truncated = snapshot.size >= MAX_RECORDS;
+                this._truncated = snapshot.size >= RT_MAX_RECORDS;
                 this._fullMode = false;
 
                 this.applyFilters();
@@ -119,6 +140,17 @@ const InterlogicCRUD = {
     async reloadListener(useDateRange = false) {
         this._loadingRecords = false;
         this._fullMode = false;
+        // El tiempo real solo existe sobre el día actual: si el rango es histórico,
+        // "Volver a tiempo real" reincia las fechas a hoy antes de suscribirse.
+        if (useDateRange && !this._isTodayRange()) {
+            const today = getLocalDateString();
+            this.filters.startDate = today;
+            this.filters.endDate = today;
+            const sEl = document.getElementById('filter-start-date');
+            const eEl = document.getElementById('filter-end-date');
+            if (sEl) sEl.value = today;
+            if (eEl) eEl.value = today;
+        }
         await this.loadRecords(useDateRange);
     },
 

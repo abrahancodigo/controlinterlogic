@@ -1,3 +1,5 @@
+const LIQ_RT_LIMIT = 800;
+
 const Liquidacion = {
     routes: [],
     repartidores: [],
@@ -32,6 +34,9 @@ const Liquidacion = {
         this.routeDels = [];
         this.doneRecords = [];
         this.dayDels = [];
+        this._todayRecords = [];
+        this._historyRecords = [];
+        this._historyLoading = false;
         this.selectedRouteId = 'all';
         this.dayFilter = null;
         this.filters = { search: '', estado: 'todos' };
@@ -222,20 +227,63 @@ const Liquidacion = {
             this._renderRouteBar();
             this._renderStats();
         }, () => {});
+
+        // --- Frente operativo de HOY (tiempo real, listener pequeño) ---
+        // Solo registros creados hoy: nuevas guías, entregas y cobros del día
+        // llegan en vivo. El histórico (hasta 180 días) se carga por get() una
+        // sola vez (cacheable, sin fan-out de lecturas).
         if (this.unsub.queue) this.unsub.queue();
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayTs = firebase.firestore.Timestamp.fromDate(todayStart);
+        this.unsub.queue = db.collection('interlogic')
+            .where('createdAt', '>=', todayTs)
+            .orderBy('createdAt', 'desc')
+            .limit(LIQ_RT_LIMIT)
+            .onSnapshot(snap => {
+                this._todayRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                this._mergeRecords();
+            }, () => {});
+
+        this._fetchHistory();
+        this._subscribeRouteDels();
+    },
+
+    // Carga ONE-TIME del histórico (get() + cursores). Mismo shape de query que
+    // antes (una sola desigualdad sobre createdAt), no requiere índices nuevos.
+    async _fetchHistory() {
+        if (this._historyLoading) return;
+        this._historyLoading = true;
+        const db = firebase.firestore();
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 180);
         cutoff.setHours(0, 0, 0, 0);
         const startTs = firebase.firestore.Timestamp.fromDate(cutoff);
-        this.unsub.queue = db.collection('interlogic').where('createdAt', '>=', startTs).orderBy('createdAt', 'desc').limit(3000).onSnapshot(snap => {
-            const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const valid = all.filter(r => r.doc !== 'NC' && r.anulado !== true);
-            this.queue = valid.filter(r => r.entregado !== true || this._pendiente(r) > 0);
-            this.doneRecords = valid.filter(r => r.entregado === true && this._pendiente(r) <= 0);
-            this._renderStats();
-            this._renderList();
-        }, () => {});
-        this._subscribeRouteDels();
+        const baseQuery = db.collection('interlogic')
+            .where('createdAt', '>=', startTs)
+            .orderBy('createdAt', 'desc');
+        try {
+            this._historyRecords = await fetchAllChunked(baseQuery, { chunkSize: 1000, maxRecords: 5000 });
+        } catch (e) {
+            console.error('[Liquidacion] error cargando histórico:', e);
+            this._historyRecords = [];
+        }
+        this._historyLoading = false;
+        this._mergeRecords();
+    },
+
+    // Mezcla histórico (get) + hoy (live, gana en conflictos) y reparte en
+    // queue/doneRecords. Misma lógica de siempre, sin cambiar los consumers.
+    _mergeRecords() {
+        const map = new Map();
+        (this._historyRecords || []).forEach(r => map.set(r.id, r));
+        (this._todayRecords || []).forEach(r => map.set(r.id, r));
+        const all = Array.from(map.values());
+        const valid = all.filter(r => r.doc !== 'NC' && r.anulado !== true);
+        this.queue = valid.filter(r => r.entregado !== true || this._pendiente(r) > 0);
+        this.doneRecords = valid.filter(r => r.entregado === true && this._pendiente(r) <= 0);
+        this._renderStats();
+        this._renderList();
     },
 
     _subscribeRouteDels() {
