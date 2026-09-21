@@ -115,12 +115,6 @@ const InterlogicExcel = {
                 sums.bultos += Number(self.signedAmount(r, 'bultos')) || 0;
                 sums.costoEnvio += Number(self.signedAmount(r, 'costoEnvio')) || 0;
             });
-            var totLabel = sheet.getCell(tot, 1);
-            totLabel.value = 'TOTALES (' + this.filteredRecords.length + ' registros)';
-            totLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
-            totLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-            totLabel.alignment = center;
-            totLabel.border = border;
             if (totalCols > 1) sheet.mergeCells(tot, 1, tot, Math.min(2, totalCols));
             cols.forEach(function(c, i) {
                 var cell = sheet.getCell(tot, i + 1);
@@ -133,6 +127,12 @@ const InterlogicExcel = {
                     cell.numFmt = c.key === 'bultos' ? '#,##0' : moneyFmt;
                 }
             });
+            var totLabel = sheet.getCell(tot, 1);
+            totLabel.value = 'TOTALES (' + this.filteredRecords.length + ' registros)';
+            totLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
+            totLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+            totLabel.alignment = center;
+            totLabel.border = border;
             sheet.getRow(tot).height = 18;
             sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
             sheet.pageMargins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
@@ -413,7 +413,7 @@ const InterlogicExcel = {
 
             try {
                 const db = firebase.firestore();
-                const uid = firebase.auth().currentUser.uid;
+                const uid = firebase.auth().currentUser?.uid || null;
 
                 const useCustomDate = document.getElementById('import-use-custom-date').checked;
                 const customDateVal = document.getElementById('import-custom-date').value;

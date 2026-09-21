@@ -32,6 +32,7 @@ const KpiEvaluation = {
 
         const canCreate = window.permissions?.canCreate;
         const canDelete = window.permissions?.canDelete;
+        this._tableListenerAdded = false;
 
         contentArea.innerHTML = `
             <div class="module-header">
@@ -387,7 +388,7 @@ const KpiEvaluation = {
                     showToast('✓ Evaluación actualizada', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = firebase.auth().currentUser.uid;
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
                     await db.collection('kpiEvaluations').add(data);
                     showToast('✓ Evaluación creada', 'success');
                 }
@@ -483,6 +484,7 @@ const KpiEvaluation = {
         const contentArea = document.getElementById('content-area');
         this.isMobile = true;
         const canCreate = window.permissions?.canCreate;
+        this._mobileCardsListenerAdded = false;
 
         contentArea.innerHTML = `
             <div style="padding:0 0 8px 0;">

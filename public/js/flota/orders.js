@@ -214,6 +214,7 @@ const FlotaOrders = {
     printOT(orden) {
         const vehiculo = this.vehiculos.find(v => v.id === orden.vehiculoId);
         const win = window.open('', '_blank');
+        if (!win) { showToast('No se pudo abrir la ventana. Permite popups.', 'error'); return; }
         win.document.write(`<html><head><title>OT ${orden.numero || ''}</title><style>
             body{font-family:Arial,sans-serif;padding:2rem;font-size:12px;}
             h1{font-size:18px;border-bottom:2px solid #333;padding-bottom:0.5rem;}
@@ -227,7 +228,7 @@ const FlotaOrders = {
         <div class="section">
             <table>
                 <tr><th>Fecha Creacion</th><td>${orden.fechaCreacion && orden.fechaCreacion.toDate ? orden.fechaCreacion.toDate().toLocaleDateString('es-ES') : '-'}</td><th>Estado</th><td>${orden.estado || '-'}</td></tr>
-                <tr><th>Vehiculo</th><td>${vehiculo ? vehiculo.nombre : '-'}</td><th>Prioridad</th><td>${orden.prioridad || '-'}</td></tr>
+                <tr><th>Vehiculo</th><td>${vehiculo ? this.sanitize(vehiculo.nombre) : '-'}</td><th>Prioridad</th><td>${orden.prioridad || '-'}</td></tr>
                 <tr><th>Fecha Inicio</th><td>${orden.fechaInicio && orden.fechaInicio.toDate ? orden.fechaInicio.toDate().toLocaleDateString('es-ES') : '-'}</td><th>Fecha Fin Est.</th><td>${orden.fechaFinEstimada && orden.fechaFinEstimada.toDate ? orden.fechaFinEstimada.toDate().toLocaleDateString('es-ES') : '-'}</td></tr>
                 <tr><th>Costo Estimado</th><td colspan="3">$${(orden.costoEstimado || 0).toFixed(2)}</td></tr>
             </table>

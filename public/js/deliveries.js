@@ -121,13 +121,18 @@ const Deliveries = {
                 <div class="card-body">
                     <div id="deliveries-list-container">
                         <div style="text-align: center; padding: 2rem;">
-                            <div class="loading-spinner" style="margin: 0 auto;"></div>
+                            <div class="loading-progress" style="margin: 0 auto;"><div class="loading-progress-bar"><div class="loading-progress-fill"></div></div><div class="loading-progress-pct">0%</div></div>
                             <p>Cargando entregas...</p>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+
+        if (window.animateProgressPct) {
+            var pctEl = contentArea.querySelector('.loading-progress-pct');
+            if (pctEl) window.animateProgressPct(pctEl);
+        }
 
         // Only setup form handlers if user has create permissions
         if (canCreate) {
@@ -371,7 +376,7 @@ const Deliveries = {
                 ...doc.data()
             }));
 
-            if (this.isMobile) {
+            if (window.innerWidth <= 768) {
                 this.renderMobileCards();
             } else {
                 this.renderDeliveriesList();
@@ -1119,7 +1124,7 @@ const Deliveries = {
         list.innerHTML = this.deliveries.map(d => {
             const folio = d.folio || d.id.substring(0,8).toUpperCase();
             const actions = [
-                { icon: '👁️', onclick: `onclick="Deliveries.showMobileView('${d.id}')""`, title: 'Ver' }
+                { icon: '👁️', onclick: `onclick="Deliveries.showMobileView('${d.id}')"`, title: 'Ver' }
             ];
             if (canEdit) actions.push({ icon: '✏️', onclick: `onclick="Deliveries.showMobileForm('${d.id}')"`, title: 'Editar' });
             if (canDelete) actions.push({ icon: '🗑️', onclick: `onclick="Deliveries.deleteDelivery('${d.id}')"`, title: 'Eliminar', class: 'delete' });

@@ -162,7 +162,7 @@ function showToast(message, type = 'info', duration = 4000) {
 
     toast.innerHTML = `
         <span class="toast-icon">${icons[type] || icons.info}</span>
-        <span class="toast-message">${message}</span>
+        <span class="toast-message">${sanitizeHTML(message)}</span>
     `;
 
     container.appendChild(toast);
@@ -234,8 +234,8 @@ function showConfirm(title, message = '') {
         modal.innerHTML = `
             <div class="modal-content modal-confirm">
                 <div class="icon">❓</div>
-                <h2 style="margin-bottom: 0.5rem;">${title}</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 2rem;">${message}</p>
+                <h2 style="margin-bottom: 0.5rem;">${sanitizeHTML(title)}</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">${sanitizeHTML(message)}</p>
                 <div style="display: flex; gap: 1rem; justify-content: center;">
                     <button class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
                     <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
@@ -296,7 +296,9 @@ async function isAdmin() {
  */
 function dataURLtoBlob(dataURL) {
     const parts = dataURL.split(',');
-    const mime = parts[0].match(/:(.*?);/)[1];
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    if (!mimeMatch) throw new Error('Invalid data URL format');
+    const mime = mimeMatch[1];
     const bstr = atob(parts[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
@@ -331,6 +333,7 @@ function printElement(elementId) {
     if (!element) return;
 
     const printWindow = window.open('', '', 'height=600,width=800');
+    if (!printWindow) { showToast('No se pudo abrir la ventana de impresión. Permite popups.', 'error'); return; }
     printWindow.document.write('<html><head><title>Imprimir</title>');
     printWindow.document.write('<link rel="stylesheet" href="css/styles.css">');
     printWindow.document.write('</head><body>');
@@ -398,7 +401,7 @@ async function fetchAllChunked(baseQuery, options = {}) {
 /**
  * Overlay de progreso para cargas de rango completo.
  */
-function showFullLoadOverlay(visible, text) {
+function showFullLoadOverlay(visible, text, pct) {
     let el = document.getElementById('full-load-overlay');
     if (visible) {
         if (!el) {
@@ -406,18 +409,21 @@ function showFullLoadOverlay(visible, text) {
             el.id = 'full-load-overlay';
             el.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.55);backdrop-filter:blur(2px);';
             el.innerHTML = '<div style="background:var(--card-bg,#fff);color:var(--text-primary,#0f172a);border-radius:14px;padding:1.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:0.75rem;box-shadow:0 20px 50px rgba(0,0,0,0.3);min-width:270px;">' +
-                '<div style="width:34px;height:34px;border:3px solid rgba(37,99,235,0.25);border-top-color:#2563eb;border-radius:50%;animation:fl-spin 0.8s linear infinite;"></div>' +
+                '<div style="width:200px;"><div style="width:100%;height:5px;background:rgba(37,99,235,0.15);border-radius:999px;overflow:hidden;"><div id="full-load-fill" style="height:100%;border-radius:999px;background:#2563eb;width:0%;transition:width 0.4s ease;"></div></div><div id="full-load-pct" style="font-size:0.75rem;font-weight:700;color:#64748b;text-align:center;margin-top:0.4rem;font-variant-numeric:tabular-nums;">0%</div></div>' +
                 '<div id="full-load-text" style="font-size:0.9rem;font-weight:600;text-align:center;">Descargando…</div>' +
                 '<div style="font-size:0.72rem;color:#64748b;text-align:center;">Esto descarga todos los registros del rango<br>(1 lectura de Firestore por registro)</div>' +
                 '</div>';
-            const styleTag = document.createElement('style');
-            styleTag.textContent = '@keyframes fl-spin { to { transform: rotate(360deg); } }';
-            document.head.appendChild(styleTag);
             document.body.appendChild(el);
         }
         el.style.display = 'flex';
         const t = document.getElementById('full-load-text');
         if (t && text) t.textContent = text;
+        if (typeof pct === 'number') {
+            const fill = document.getElementById('full-load-fill');
+            const pctEl = document.getElementById('full-load-pct');
+            if (fill) fill.style.width = Math.min(pct, 100) + '%';
+            if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+        }
     } else if (el) {
         el.style.display = 'none';
     }

@@ -18,6 +18,7 @@ const Problemas = {
         }
         const contentArea = document.getElementById('content-area');
         const canCreate = window.permissions?.canCreate;
+        this._desktopListenerAdded = false;
 
         contentArea.innerHTML = `
             <div class="module-header">
@@ -33,7 +34,7 @@ const Problemas = {
 
             <div id="problemas-timeline" class="problemas-timeline">
                 <div class="problemas-loading">
-                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"><div class="loading-progress-bar"><div class="loading-progress-fill"></div></div><div class="loading-progress-pct">0%</div></div>
                     <p>Cargando problemas...</p>
                 </div>
             </div>
@@ -42,6 +43,11 @@ const Problemas = {
         document.getElementById('btn-add-problema').addEventListener('click', () => {
             if (canCreate) this.showForm();
         });
+
+        if (window.animateProgressPct) {
+            var pctEl = document.querySelector('.problemas-loading .loading-progress-pct');
+            if (pctEl) window.animateProgressPct(pctEl);
+        }
 
         await this.loadProblemas();
 
@@ -94,6 +100,7 @@ const Problemas = {
         const contentArea = document.getElementById('content-area');
         const canCreate = window.permissions?.canCreate;
         this.isMobile = true;
+        this._mobileListenerAdded = false;
 
         contentArea.innerHTML = `
             <div style="padding:0 0 8px 0;">
@@ -105,7 +112,7 @@ const Problemas = {
             </div>
             <div id="mprob-list" class="m-data-list">
                 <div style="text-align:center;padding:40px;color:#8e8e93;">
-                    <div class="spinner-ring" style="margin:0 auto 12px;"></div>
+                    <div class="spinner-ring" style="margin:0 auto 12px;width:160px;"><div class="loading-progress-bar"><div class="loading-progress-fill"></div></div><div class="loading-progress-pct">0%</div></div>
                     <p>Cargando problemas...</p>
                 </div>
             </div>
@@ -114,6 +121,11 @@ const Problemas = {
         document.getElementById('mprob-btn-add').addEventListener('click', () => {
             if (canCreate) this.showForm();
         });
+
+        if (window.animateProgressPct) {
+            var pctEl = document.querySelector('#mprob-list .loading-progress-pct');
+            if (pctEl) window.animateProgressPct(pctEl);
+        }
 
         await this.loadProblemas();
 
@@ -174,7 +186,7 @@ const Problemas = {
                     </div>
                     <h3>¡Todo en orden!</h3>
                     <p>No hay problemas registrados. Cuando ocurra alguna incidencia, regístrala aquí.</p>
-                    ${canCreate ? '<button class="btn btn-primary btn-lg" style="margin-top: 1.5rem;" class="problemas-empty-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar Primer Problema</button>' : ''}
+                    ${canCreate ? '<button class="btn btn-primary btn-lg problemas-empty-btn" style="margin-top: 1.5rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar Primer Problema</button>' : ''}
                 </div>
             `;
             return;
@@ -298,7 +310,8 @@ const Problemas = {
                 '</div>' +
                 (observacion ? '<div style="font-size:0.8rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#fef2f2;border-radius:10px;">' + sanitizeHTML(observacion.length > 120 ? observacion.substring(0, 120) + '...' : observacion) + '</div>' : '') +
                 (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;">' + record.imagenes.slice(0, 3).map(function(url) {
-                    return '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + sanitizeHTML(url) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>';
+                    const safeUrl = /^https?:\/\//i.test(url) ? url : '';
+                    return safeUrl ? '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + sanitizeHTML(safeUrl) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>' : '';
                 }).join('') + (imgCount > 3 ? '<div style="width:60px;height:60px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#8e8e93;flex-shrink:0;">+' + (imgCount - 3) + '</div>' : '') + '</div>' : '') +
                 (canDelete ? '<div class="m-card-actions">' +
                     '<button class="m-card-action delete btn-delete-mprob" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' +
@@ -683,6 +696,7 @@ const Problemas = {
             html += `<div class="preview-card preview-new"><img src="${objectUrl}" alt="Nueva"><button type="button" class="preview-remove btn-remove-selected" data-index="${idx}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><span class="preview-badge">NUEVA</span></div>`;
         });
 
+        this._previewListenerAdded = false;
         container.innerHTML = html;
 
         // Event delegation for preview removal

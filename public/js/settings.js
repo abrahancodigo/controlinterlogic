@@ -2,6 +2,12 @@
 const Settings = {
     settings: null,
 
+    _sanitizeUrl(url) {
+        if (!url) return '';
+        if (url.startsWith('data:image/')) return url;
+        try { const u = new URL(url); return u.href; } catch (e) { return ''; }
+    },
+
     async init() {
         await this.loadSettings();
         this.render();
@@ -39,7 +45,7 @@ const Settings = {
         if (sidebarHeader && this.settings) {
             if (this.settings.logo1) {
                 sidebarHeader.innerHTML = `
-                    <img src="${this.settings.logo1}" alt="Logo" style="max-height: 40px; max-width: 100px; object-fit: contain;">
+                    <img src="${this._sanitizeUrl(this.settings.logo1)}" alt="Logo" style="max-height: 40px; max-width: 100px; object-fit: contain;">
                     <span style="display: block; margin-top: 5px;">${sanitizeHTML(this.settings.companyName)}</span>
                 `;
             } else {
@@ -75,7 +81,7 @@ const Settings = {
                                 <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Principal</label>
                                 <div class="logo-upload-area" id="logo1-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
                                     ${this.settings?.logo1
-                ? `<img src="${this.settings.logo1}" alt="Logo 1" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
+                ? `<img src="${this._sanitizeUrl(this.settings.logo1)}" alt="Logo 1" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
                 : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 1</p>'
             }
                                     <input type="file" id="logo1-input" accept="image/*" style="display: none;">
@@ -87,7 +93,7 @@ const Settings = {
                                 <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Secundario (Impresión)</label>
                                 <div class="logo-upload-area" id="logo2-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
                                     ${this.settings?.logo2
-                ? `<img src="${this.settings.logo2}" alt="Logo 2" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
+                ? `<img src="${this._sanitizeUrl(this.settings.logo2)}" alt="Logo 2" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
                 : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 2</p>'
             }
                                     <input type="file" id="logo2-input" accept="image/*" style="display: none;">
@@ -236,6 +242,7 @@ const Settings = {
                 showToast(`Logo ${logoNumber} cargado. Guarda para aplicar cambios.`, 'info');
             };
             reader.readAsDataURL(file);
+            reader.onerror = () => { showToast('Error al leer el archivo', 'error'); };
         } catch (error) {
             console.error('Error uploading logo:', error);
             showToast('Error al cargar el logo', 'error');

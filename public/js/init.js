@@ -4,6 +4,44 @@
 
     console.log('🚀 Starting Dalse initialization...');
 
+    window.animateProgressPct = function (el, duration) {
+        if (!el) return;
+        duration = duration || 2500;
+        var start = performance.now();
+        var curve = function (t) {
+            if (t < 0.15) return t / 0.15 * 0.12;
+            if (t < 0.40) return 0.12 + (t - 0.15) / 0.25 * 0.33;
+            if (t < 0.65) return 0.45 + (t - 0.40) / 0.25 * 0.27;
+            if (t < 0.85) return 0.72 + (t - 0.65) / 0.20 * 0.18;
+            return 0.90 + (t - 0.85) / 0.15 * 0.10;
+        };
+        function tick(now) {
+            var elapsed = now - start;
+            var t = Math.min(elapsed / duration, 1);
+            var pct = Math.round(curve(t) * 100);
+            el.textContent = pct + '%';
+            if (t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    };
+
+    // Auto-start percentage counter when loading-screen becomes visible
+    document.addEventListener('DOMContentLoaded', function () {
+        var ls = document.getElementById('loading-screen');
+        if (!ls) return;
+        var pctEl = ls.querySelector('.loading-progress-pct');
+        if (!pctEl) return;
+        if (ls.style.display !== 'none') {
+            window.animateProgressPct(pctEl);
+        } else {
+            new MutationObserver(function () {
+                if (ls.style.display !== 'none') {
+                    window.animateProgressPct(pctEl);
+                }
+            }).observe(ls, { attributes: true, attributeFilter: ['style'] });
+        }
+    });
+
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initApp);
@@ -79,15 +117,21 @@
     function showError(message) {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
-            loadingScreen.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: white;">
-                    <h2 style="font-size: 2rem; margin-bottom: 1rem;">❌ Error</h2>
-                    <p style="margin-bottom: 1.5rem;">${message}</p>
-                    <button onclick="location.reload()" style="padding: 0.75rem 1.5rem; background: white; color: #6366f1; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                        Recargar Página
-                    </button>
-                </div>
-            `;
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'text-align: center; padding: 2rem; color: white;';
+            const h2 = document.createElement('h2');
+            h2.style.cssText = 'font-size: 2rem; margin-bottom: 1rem;';
+            h2.textContent = '❌ Error';
+            const p = document.createElement('p');
+            p.style.cssText = 'margin-bottom: 1.5rem;';
+            p.textContent = message;
+            const btn = document.createElement('button');
+            btn.style.cssText = 'padding: 0.75rem 1.5rem; background: white; color: #6366f1; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; font-weight: 600;';
+            btn.textContent = 'Recargar Página';
+            btn.onclick = () => location.reload();
+            wrap.append(h2, p, btn);
+            loadingScreen.innerHTML = '';
+            loadingScreen.appendChild(wrap);
         }
     }
 

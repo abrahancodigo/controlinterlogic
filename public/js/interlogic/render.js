@@ -312,7 +312,7 @@ const InterlogicRender = {
                         </thead>
                         <tbody id="interlogic-table-body">
                             <tr>
-                                <td colspan="20" style="text-align: center; padding: 1rem;">Cargando registros...</td>
+                                <td colspan="21" style="text-align: center; padding: 1rem;">Cargando registros...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -442,6 +442,14 @@ const InterlogicRender = {
                     if (id) this.duplicateRecord(id);
                     return;
                 }
+
+                const editableCell = e.target.closest('.il-editable-cell');
+                if (editableCell) {
+                    const id = editableCell.getAttribute('data-record-id');
+                    const field = editableCell.getAttribute('data-field');
+                    if (id && field) this.editCellField(id, field, editableCell);
+                    return;
+                }
             });
             this.eventDelegationSetup = true;
         }
@@ -502,6 +510,22 @@ const InterlogicRender = {
         document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
         document.getElementById('m-btn-pdf').addEventListener('click', () => this._exportIlPdf());
         document.getElementById('m-btn-filter').addEventListener('click', () => this.showMobileFilters());
+
+        if (!this._mobileDelegationSetup) {
+            this._mobileDelegationSetup = true;
+            contentArea.addEventListener('click', (e) => {
+                const mEditBtn = e.target.closest('.m-btn-edit');
+                if (mEditBtn) { const id = mEditBtn.getAttribute('data-record-id'); if (id) this.showMobileForm(id); return; }
+                const mDupBtn = e.target.closest('.m-btn-duplicate');
+                if (mDupBtn) { const id = mDupBtn.getAttribute('data-record-id'); if (id) this.duplicateRecord(id); return; }
+                const mDelBtn = e.target.closest('.m-btn-delete');
+                if (mDelBtn) { const id = mDelBtn.getAttribute('data-record-id'); if (id) this.deleteRecord(id); return; }
+                const mEditable = e.target.closest('.m-editable-cell');
+                if (mEditable) { e.stopPropagation(); const id = mEditable.getAttribute('data-record-id'); const field = mEditable.getAttribute('data-field'); if (id && field) this.editCellField(id, field, mEditable); return; }
+                const mCard = e.target.closest('.m-data-card');
+                if (mCard) { const id = mCard.getAttribute('data-record-id'); if (id) this.showMobileDetail(id); return; }
+            });
+        }
     },
 
     renderMobileCards() {
@@ -526,7 +550,7 @@ const InterlogicRender = {
             list.innerHTML = pageRecords.map(function(r) {
                 var empresaBadge = r.doc === 'NC' ? 'nc' : (r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : ''));
                 var idJs = r.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" onclick="Interlogic.showMobileDetail(\'' + idJs + '\')" style="' + (r.anulado === true ? 'border-left:4px solid #dc2626;color:#dc2626;background:#fef2f2;' : '') + '">';
+                var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" data-record-id="' + r.id + '" style="' + (r.anulado === true ? 'border-left:4px solid #dc2626;color:#dc2626;background:#fef2f2;' : '') + '">';
                 html += '<div class="m-card-header"><span class="m-card-title">#' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span>';
                 if (r.doc === 'NC') html += '<span class="m-card-badge badge-nc">NC</span>';
                 else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + sanitizeHTML(r.empresa || '') + '</span>';
@@ -535,11 +559,11 @@ const InterlogicRender = {
                 html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money" style="' + (r.doc === 'NC' ? 'color:#ef4444;font-weight:700;' : '') + '">' + formatCurrency(r.venta || 0) + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
                 html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
-                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'entrega\', this)" style="cursor: pointer;">';
+                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="entrega" style="cursor: pointer;">';
                 html += '<span class="m-card-label">🚚 Entrega</span><span class="m-card-value">' + sanitizeHTML(r.entrega || '—') + '</span></div>';
-                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'cobra\', this)" style="cursor: pointer;">';
+                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="cobra" style="cursor: pointer;">';
                 html += '<span class="m-card-label">💰 Cobra</span><span class="m-card-value">' + sanitizeHTML(r.cobra || '—') + '</span></div>';
-                html += '<div class="m-card-row" onclick="event.stopPropagation(); Interlogic.editCellField(\'' + idJs + '\', \'encargado\', this)" style="cursor: pointer;"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
+                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="encargado" style="cursor: pointer;"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
                 if (r.formaPago) {
                     var fpColors = { Efectivo: { bg: '#f0fdf4', fg: '#166534', icon: '💵' }, Cheque: { bg: '#eff6ff', fg: '#1e40af', icon: '🏦' }, Transferencia: { bg: '#faf5ff', fg: '#6b21a8', icon: '📱' }, Abono: { bg: '#fff7ed', fg: '#9a3412', icon: '📝' } };
                     var fp = fpColors[r.formaPago] || { bg: '#f3f4f6', fg: '#374151', icon: '💳' };
@@ -548,8 +572,8 @@ const InterlogicRender = {
                 html += '</div>';
                 if (canEdit || canDelete) {
                     html += '<div class="m-card-actions" onclick="event.stopPropagation()">';
-                    if (canEdit) html += '<button class="m-card-action" onclick="Interlogic.showMobileForm(\'' + idJs + '\')" title="Editar">✏️</button><button class="m-card-action" onclick="Interlogic.duplicateRecord(\'' + idJs + '\')" title="Duplicar">📋</button>';
-                    if (canDelete) html += '<button class="m-card-action delete" onclick="Interlogic.deleteRecord(\'' + idJs + '\')" title="Eliminar">🗑️</button>';
+                    if (canEdit) html += '<button class="m-card-action m-btn-edit" data-record-id="' + r.id + '" title="Editar">✏️</button><button class="m-card-action m-btn-duplicate" data-record-id="' + r.id + '" title="Duplicar">📋</button>';
+                    if (canDelete) html += '<button class="m-card-action delete m-btn-delete" data-record-id="' + r.id + '" title="Eliminar">🗑️</button>';
                     html += '</div>';
                 }
                 html += '</div>';
@@ -672,7 +696,7 @@ const InterlogicRender = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="20" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
+                    <td colspan="21" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
                 </tr>
             `;
             const tfoot = document.getElementById('interlogic-table-footer');
@@ -713,13 +737,13 @@ const InterlogicRender = {
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
                 <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
                 <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
-                <td data-label="Entrega" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'entrega', this)" title="Clic para cambiar">
+                <td data-label="Entrega" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="entrega" title="Clic para cambiar">
                     <span class="badge ${record.entrega === 'DALSE' ? 'badge-primary' : (record.entrega === 'INTERLOGISTIC' ? 'badge-accent' : (record.entrega === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.entrega || '—')}</span>
                 </td>
-                <td data-label="Cobra" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'cobra', this)" title="Clic para cambiar">
+                <td data-label="Cobra" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="cobra" title="Clic para cambiar">
                     <span class="badge ${record.cobra === 'DALSE' ? 'badge-primary' : (record.cobra === 'INTERLOGISTIC' ? 'badge-accent' : (record.cobra === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.cobra || '—')}</span>
                 </td>
-                <td data-label="Encargado" style="cursor: pointer;" onclick="Interlogic.editCellField('${record.id}', 'encargado', this)" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
+                <td data-label="Encargado" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="encargado" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
                 <td data-label="Forma Pago">
                     ${record.formaPago ? '<span class="badge ' + (record.formaPago === 'Efectivo' ? 'badge-success' : record.formaPago === 'Cheque' ? 'badge-primary' : record.formaPago === 'Transferencia' ? 'badge-purple' : 'badge-warning') + '">' + (record.formaPago === 'Efectivo' ? '💵 ' : record.formaPago === 'Cheque' ? '🏦 ' : record.formaPago === 'Transferencia' ? '📱 ' : '📝 ') + sanitizeHTML(record.formaPago) + '</span>' : '<span class="badge badge-ghost">—</span>'}
                 </td>
@@ -758,8 +782,8 @@ const InterlogicRender = {
         if (topPagEl) topPagEl.innerHTML = this._paginationBarHTML();
 
         const truncNotice = this._truncated
-            ? '<tr><td colspan="20" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
-            : (this._fullMode ? '<tr><td colspan="20" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
+            ? '<tr><td colspan="21" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
+            : (this._fullMode ? '<tr><td colspan="21" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
 
         tfoot.innerHTML = `
             ${truncNotice}
@@ -773,9 +797,9 @@ const InterlogicRender = {
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
-            ${this._truncated ? '<tr><td colspan="20" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
+            ${this._truncated ? '<tr><td colspan="21" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
-                <td colspan="20" style="padding: 0.5rem 0;">
+                <td colspan="21" style="padding: 0.5rem 0;">
                     ${this._paginationBarHTML()}
                 </td>
             </tr>

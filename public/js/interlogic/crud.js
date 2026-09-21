@@ -111,13 +111,14 @@ const InterlogicCRUD = {
             .where('fecha', '<=', endTs)
             .orderBy('fecha', 'desc');
 
-        showFullLoadOverlay(true, 'Descargando registros del rango…');
+        showFullLoadOverlay(true, 'Descargando registros del rango…', 0);
 
         try {
             const all = await fetchAllChunked(baseQuery, {
                 chunkSize: 2000,
                 onProgress: (total, maybeMore) => {
-                    showFullLoadOverlay(true, `Descargados ${total.toLocaleString()} registros…`);
+                    const est = maybeMore ? Math.min(total / 50, 95) : 100;
+                    showFullLoadOverlay(true, `Descargados ${total.toLocaleString()} registros…`, est);
                 }
             });
 
@@ -140,17 +141,6 @@ const InterlogicCRUD = {
     async reloadListener(useDateRange = false) {
         this._loadingRecords = false;
         this._fullMode = false;
-        // El tiempo real solo existe sobre el día actual: si el rango es histórico,
-        // "Volver a tiempo real" reincia las fechas a hoy antes de suscribirse.
-        if (useDateRange && !this._isTodayRange()) {
-            const today = getLocalDateString();
-            this.filters.startDate = today;
-            this.filters.endDate = today;
-            const sEl = document.getElementById('filter-start-date');
-            const eEl = document.getElementById('filter-end-date');
-            if (sEl) sEl.value = today;
-            if (eEl) eEl.value = today;
-        }
         await this.loadRecords(useDateRange);
     },
 
@@ -759,11 +749,11 @@ const InterlogicCRUD = {
                         afectaSaldo: ncAfectaVal === 'si',
                         estado: 'activa',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        createdBy: firebase.auth().currentUser.uid
+                        createdBy: firebase.auth().currentUser?.uid || null
                     };
 
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = firebase.auth().currentUser.uid;
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
 
                     if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
                         var batch = db.batch();
@@ -804,7 +794,7 @@ const InterlogicCRUD = {
                     showToast('✓ Registro actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = firebase.auth().currentUser.uid;
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
                     await db.collection('interlogic').add(data);
                     showToast('✓ Registro creado', 'success');
 
@@ -1027,6 +1017,7 @@ const InterlogicCRUD = {
                 if (action === 'anular') this.updateSelectedStatus('anular');
                 if (action === 'reactivar') this.updateSelectedStatus('reactivar');
                 if (action === 'eliminar') this.deleteSelectedRecords();
+                if (action === 'liberar') this.liberarSelectedRecords();
                 if (action === 'limpiar') {
                     this.selectedRecords.clear();
                     this.applyFilters();
@@ -1063,6 +1054,7 @@ const InterlogicCRUD = {
                         <button data-bulk-action="fecha" style="width:100%;padding:9px;text-align:left;background:transparent;color:var(--text-primary);border:0;border-radius:6px;cursor:pointer;">📅 Cambiar fecha</button>
                         <button data-bulk-action="anular" style="width:100%;padding:9px;text-align:left;background:#fef2f2;color:#b91c1c;border:0;border-radius:6px;cursor:pointer;font-weight:700;">⊘ Anular</button>
                         <button data-bulk-action="reactivar" style="width:100%;padding:9px;text-align:left;background:transparent;color:#047857;border:0;border-radius:6px;cursor:pointer;font-weight:700;">↻ Reactivar</button>
+                        <button data-bulk-action="liberar" style="width:100%;padding:9px;text-align:left;background:transparent;color:#7c3aed;border:0;border-radius:6px;cursor:pointer;font-weight:700;">🔓 Liberar bloqueo</button>
                     </div>
                 </div>
                 <button class="btn" data-bulk-action="eliminar" title="Eliminar registros seleccionados" style="padding:.58rem .75rem;background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:9px;font-weight:800;">🗑 Eliminar</button>
@@ -1166,6 +1158,58 @@ const InterlogicCRUD = {
         } catch (error) {
             console.error('❌ Error bulk deleting:', error);
             showToast('Error al eliminar: ' + error.message, 'error');
+        }
+    },
+
+    async liberarSelectedRecords() {
+        if (!window.permissions?.canEdit) {
+            showToast('No tienes permisos para editar registros', 'error');
+            return;
+        }
+        const selected = this.records.filter(record => this.selectedRecords.has(record.id));
+        const count = selected.length;
+        if (count === 0) return;
+        const locked = selected.filter(record => this._isOperationallyLocked(record));
+        if (locked.length === 0) {
+            showToast('Los registros seleccionados no tienen ningún bloqueo', 'info');
+            return;
+        }
+        if (!await showConfirm(`¿Liberar ${locked.length} registro(s)?`, 'Se quitará la ruta, las marcas de entregado/cobrado y los montos de cobro. Luego podrás eliminarlos o anularlos.')) return;
+        try {
+            const db = firebase.firestore();
+            const ids = locked.map(record => record.id);
+            await this._commitInChunks(ids, (batch, ref) => batch.update(ref, {
+                rutaId: firebase.firestore.FieldValue.delete(),
+                entregado: false,
+                fechaEntrega: firebase.firestore.FieldValue.delete(),
+                formaPago: firebase.firestore.FieldValue.delete(),
+                cobrado: false,
+                montoCobrado: 0,
+                montoPendiente: 0,
+                estadoCobro: 'pendiente',
+                fechaCobro: firebase.firestore.FieldValue.delete(),
+                metodoPago: firebase.firestore.FieldValue.delete(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }));
+            this.records.forEach(record => {
+                if (!ids.includes(record.id)) return;
+                delete record.rutaId;
+                record.entregado = false;
+                delete record.fechaEntrega;
+                delete record.formaPago;
+                record.cobrado = false;
+                record.montoCobrado = 0;
+                record.montoPendiente = 0;
+                record.estadoCobro = 'pendiente';
+                delete record.fechaCobro;
+                delete record.metodoPago;
+            });
+            this.selectedRecords.clear();
+            this.applyFilters();
+            showToast(`✓ ${locked.length} registro(s) liberado(s). Ya puedes eliminarlos o anularlos.`, 'success');
+        } catch (error) {
+            console.error('❌ Error liberando registros:', error);
+            showToast('Error al liberar: ' + error.message, 'error');
         }
     },
 
@@ -1516,7 +1560,7 @@ const InterlogicCRUD = {
         var self = this;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="Factura"' + (record?.doc === 'Factura' ? ' selected' : '') + '>Factura</option><option value="Ticket"' + (record?.doc === 'Ticket' ? ' selected' : '') + '>Ticket</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:0.8rem;font-weight:600;margin-top:8px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + sanitizeHTML(record?.direccion || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + sanitizeHTML(record?.vendedor || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" id="mf-venta" step="0.01" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.entrega === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.cobra === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="2">' + sanitizeHTML(record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn btn-primary" id="mf-submit" style="flex:1;">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="FT"' + (record?.doc === 'FT' ? ' selected' : '') + '>FT</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:0.8rem;font-weight:600;margin-top:8px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + sanitizeHTML(record?.direccion || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Teléfono (WhatsApp)</label><input type="text" id="mf-telefono" value="' + sanitizeHTML(record?.telefono || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + sanitizeHTML(record?.vendedor || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" id="mf-venta" step="0.01" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.entrega === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.cobra === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="2">' + sanitizeHTML(record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn btn-primary" id="mf-submit" style="flex:1;">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         if (record && record.cliente) {
@@ -1622,6 +1666,7 @@ const InterlogicCRUD = {
                 docNum: document.getElementById('mf-docNum').value,
                 cliente: document.getElementById('mf-cliente').value,
                 direccion: document.getElementById('mf-direccion').value,
+                telefono: document.getElementById('mf-telefono')?.value?.trim() || '',
                 zona: document.getElementById('mf-departamento')?.value || '',
                 departamento: document.getElementById('mf-departamento')?.value || '',
                 municipio: document.getElementById('mf-municipio')?.value || '',
@@ -1659,11 +1704,11 @@ const InterlogicCRUD = {
                         afectaSaldo: ncAfectaVal === 'si',
                         estado: 'activa',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        createdBy: firebase.auth().currentUser.uid
+                        createdBy: firebase.auth().currentUser?.uid || null
                     };
 
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = firebase.auth().currentUser.uid;
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
 
                     if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
                         var db = firebase.firestore();
@@ -1703,6 +1748,7 @@ const InterlogicCRUD = {
                     showToast('Registro actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
                     await firebase.firestore().collection('interlogic').add(data);
                     showToast('Registro creado', 'success');
                 }

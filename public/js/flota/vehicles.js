@@ -432,7 +432,7 @@ const FlotaVehicles = {
                     await db.collection('proveedores').doc(proveedor.id).update(data);
                     showToast('Taller actualizado', 'success');
                 } else {
-                    data.createdAt = new Date().toISOString();
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await db.collection('proveedores').add(data);
                     showToast('Taller creado', 'success');
                 }

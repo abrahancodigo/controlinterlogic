@@ -151,8 +151,11 @@ const Auth = {
             if (registryData.passwordHash) {
                 passwordValid = registryData.passwordHash === inputHash;
             } else if (registryData.password) {
-                console.warn('[SECURITY] Legacy plaintext password detected for user:', username);
+                console.warn('[SECURITY] Legacy plaintext password detected for user:', username, '- Rehashing...');
                 passwordValid = registryData.password === password;
+                if (passwordValid) {
+                    try { await userRegistryRef.update({ passwordHash: inputHash, password: firebase.firestore.FieldValue.delete() }); } catch (e) { console.warn('Could not migrate password hash:', e); }
+                }
             }
 
             if (!passwordValid) {
@@ -254,10 +257,12 @@ const Auth = {
             window.currentUserData = userData;
             this.updateUserUI(userData);
 
-            document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('loading-screen').style.pointerEvents = 'none';
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
+            const loadingScreen = document.getElementById('loading-screen');
+            const loginScreen = document.getElementById('login-screen');
+            const appEl = document.getElementById('app');
+            if (loadingScreen) { loadingScreen.style.display = 'none'; loadingScreen.style.pointerEvents = 'none'; }
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (appEl) appEl.style.display = 'flex';
 
             if (window.Settings && window.Settings.loadSettings) {
                 await window.Settings.loadSettings();
@@ -277,10 +282,8 @@ const Auth = {
         if (window.Deliveries) { window.Deliveries.userIsAdmin = false; window.Deliveries.deliveries = []; }
         if (window.App) { window.App.currentModule = null; }
 
-        document.querySelectorAll('[style*="position: fixed"]').forEach(modal => {
-            if (modal.id !== 'loading-screen' && modal.id !== 'login-screen' && modal.id !== 'app') {
-                modal.remove();
-            }
+        document.querySelectorAll('.modal-backdrop, .dash-detail-backdrop, .dash-detail-modal, #toast-container, #full-load-overlay').forEach(modal => {
+            modal.remove();
         });
 
         const loginForm = document.getElementById('login-form');
@@ -291,10 +294,12 @@ const Auth = {
             if (errorEl) { errorEl.textContent = ''; errorEl.classList.remove('shake'); }
         }
 
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('loading-screen').style.pointerEvents = 'none';
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('app').style.display = 'none';
+        const loadingScreen = document.getElementById('loading-screen');
+        const loginScreen = document.getElementById('login-screen');
+        const appEl = document.getElementById('app');
+        if (loadingScreen) { loadingScreen.style.display = 'none'; loadingScreen.style.pointerEvents = 'none'; }
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (appEl) appEl.style.display = 'none';
     },
 
     updateUserUI(userData) {
@@ -352,12 +357,20 @@ const Auth = {
 // ===================================
 
 async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    if (crypto.subtle && crypto.subtle.digest) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    let hash = 0;
+    for (let i = 0; i < password.length; i++) {
+        const chr = password.charCodeAt(i);
+        hash = ((hash << 5) - hash) + chr;
+        hash |= 0;
+    }
+    return 'legacy_' + Math.abs(hash).toString(36);
 }
 
 function initAuthWhenReady() {

@@ -29,13 +29,18 @@ const Users = {
                 <div class="card-body" style="${isMobile ? 'padding:0;' : ''}">
                     <div id="users-table-container">
                         <div style="text-align: center; padding: 2rem;">
-                            <div class="loading-spinner" style="margin: 0 auto;"></div>
+                            <div class="loading-progress" style="margin: 0 auto;"><div class="loading-progress-bar"><div class="loading-progress-fill"></div></div><div class="loading-progress-pct">0%</div></div>
                             <p>Cargando usuarios...</p>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+
+        if (window.animateProgressPct) {
+            var pctEl = document.querySelector('#users-table-container .loading-progress-pct');
+            if (pctEl) window.animateProgressPct(pctEl);
+        }
 
         await this.loadUsers();
 
@@ -99,9 +104,9 @@ const Users = {
                     '<div class="m-card-row"><span class="m-card-label">Registro</span><span class="m-card-value" style="font-size:0.75rem;">' + (user.createdAt ? formatDate(user.createdAt) : 'N/A') + '</span></div>' +
                     '</div>' +
                     (user.id !== currentUserId ? '<div class="m-card-actions" onclick="event.stopPropagation()" style="justify-content:flex-start;">' +
-                        '<button class="m-card-action" onclick="Users.toggleRole(\'' + user.id + '\',\'' + user.role + '\')" title="Cambiar Rol" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔄 Rol</button>' +
-                        '<button class="m-card-action" onclick="Users.toggleActive(\'' + user.id + '\',' + (user.active !== false) + ')" title="' + (user.active !== false ? 'Desactivar' : 'Activar') + '" style="background:' + (user.active !== false ? '#fef2f2' : '#d1fae5') + ';color:' + (user.active !== false ? '#ef4444' : '#10b981') + ';">' + (user.active !== false ? '🚫' : '✅') + '</button>' +
-                        '<button class="m-card-action delete" onclick="Users.deleteUser(\'' + user.id + '\',\'' + (user.username || '') + '\')" title="Eliminar">🗑️</button>' +
+                        '<button class="m-card-action" data-action="toggle-role" data-uid="' + sanitizeHTML(user.id) + '" data-role="' + sanitizeHTML(user.role) + '" title="Cambiar Rol" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔄 Rol</button>' +
+                        '<button class="m-card-action" data-action="toggle-active" data-uid="' + sanitizeHTML(user.id) + '" data-active="' + (user.active !== false) + '" title="' + (user.active !== false ? 'Desactivar' : 'Activar') + '" style="background:' + (user.active !== false ? '#fef2f2' : '#d1fae5') + ';color:' + (user.active !== false ? '#ef4444' : '#10b981') + ';">' + (user.active !== false ? '🚫' : '✅') + '</button>' +
+                        '<button class="m-card-action delete" data-action="delete-user" data-uid="' + sanitizeHTML(user.id) + '" data-username="' + sanitizeHTML(user.username || '') + '" title="Eliminar">🗑️</button>' +
                     '</div>' : '<div style="font-size:0.75rem;color:var(--m-text-secondary);text-align:center;padding-top:8px;border-top:0.5px solid var(--m-separator);">Eres tú</div>') +
                 '</div>';
             }).join('') + '</div>';
@@ -146,19 +151,19 @@ const Users = {
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                             <button 
                                                 class="btn btn-sm btn-secondary" 
-                                                onclick="Users.toggleRole('${user.id}', '${user.role}')"
+                                                data-action="toggle-role" data-uid="${sanitizeHTML(user.id)}" data-role="${sanitizeHTML(user.role)}"
                                             >
                                                 Cambiar Rol
                                             </button>
                                             <button 
                                                 class="btn btn-sm ${user.active !== false ? 'btn-danger' : 'btn-success'}" 
-                                                onclick="Users.toggleActive('${user.id}', ${user.active !== false})"
+                                                data-action="toggle-active" data-uid="${sanitizeHTML(user.id)}" data-active="${user.active !== false}"
                                             >
                                                 ${user.active !== false ? 'Desactivar' : 'Activar'}
                                             </button>
                                             <button 
                                                 class="btn btn-sm btn-danger" 
-                                                onclick="Users.deleteUser('${user.id}', '${user.username || ''}')"
+                                                data-action="delete-user" data-uid="${sanitizeHTML(user.id)}" data-username="${sanitizeHTML(user.username || '')}"
                                                 title="Eliminar usuario permanentemente"
                                             >
                                                 🗑️
@@ -174,6 +179,19 @@ const Users = {
         `;
 
         container.innerHTML = tableHTML;
+
+        if (!container.dataset.actionsBound) {
+            container.dataset.actionsBound = '1';
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const uid = btn.dataset.uid;
+                if (action === 'toggle-role') Users.toggleRole(uid, btn.dataset.role);
+                else if (action === 'toggle-active') Users.toggleActive(uid, btn.dataset.active === 'true');
+                else if (action === 'delete-user') Users.deleteUser(uid, btn.dataset.username);
+            });
+        }
     },
 
     // Toggle user role (cycles through User -> Editor -> Admin)
@@ -405,15 +423,4 @@ Users.showAddUserForm = function () {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 };
 
-// ===================================
-// Password Hashing Helper
-// ===================================
 
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}

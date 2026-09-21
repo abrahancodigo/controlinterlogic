@@ -154,7 +154,7 @@ const Clientes = {
         .orderBy('nombre', 'asc')
         .limit(3000)
         .get()
-        .then(snapshot => {
+        .then(async snapshot => {
           this.records = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -179,12 +179,14 @@ const Clientes = {
               return (d && !z) || (!d && z);
             });
             if (toFix.length > 0) {
-              const batch = db.batch();
-              toFix.forEach(r => {
-                const val = r.departamento || r.zona || '';
-                batch.update(db.collection('clientes').doc(r.id), { departamento: val, zona: val });
-              });
-              batch.commit().catch(() => {});
+              for (let i = 0; i < toFix.length; i += 400) {
+                const chunk = db.batch();
+                toFix.slice(i, i + 400).forEach(r => {
+                  const val = r.departamento || r.zona || '';
+                  chunk.update(db.collection('clientes').doc(r.id), { departamento: val, zona: val });
+                });
+                await chunk.commit().catch(() => {});
+              }
             }
           }
 
@@ -479,7 +481,7 @@ const Clientes = {
                     showToast('✓ Cliente actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = firebase.auth().currentUser.uid;
+                    data.createdBy = firebase.auth().currentUser?.uid || null;
                     const docRef = await db.collection('clientes').add(data);
                     this.records.push({ id: docRef.id, ...data });
                     this.applyFilters();

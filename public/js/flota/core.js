@@ -14,6 +14,12 @@ const FlotaCore = {
     unsubscribeProveedores: null,
     selectedVehiculoId: null,
 
+    _sanitizeUrl(url) {
+        if (!url) return '';
+        if (url.startsWith('data:image/')) return url;
+        try { const u = new URL(url); return u.href; } catch (e) { return ''; }
+    },
+
     async loadData() {
         const db = firebase.firestore();
         return new Promise((resolve) => {
@@ -105,9 +111,10 @@ const FlotaCore = {
         for (let i = 0; i < 4; i++) {
             const url = urls[i];
             if (url) {
-                html += `<div class="fv-slot fv-slot-existing" data-url="${url}">
+                const safeUrl = this._sanitizeUrl(url);
+                html += `<div class="fv-slot fv-slot-existing" data-url="${safeUrl}">
                     <div style="position:relative;">
-                        <img src="${url}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;">
+                        <img src="${safeUrl}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;">
                         <button type="button" class="fv-slot-remove" style="position:absolute;top:2px;right:2px;width:22px;height:22px;background:#ef4444;color:white;border:none;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;">×</button>
                         <span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;margin-top:2px;">${i + 1}</span>
                     </div>
@@ -125,10 +132,10 @@ const FlotaCore = {
         const urls = [];
         if (fotosArray && Array.isArray(fotosArray)) {
             fotosArray.forEach((url, i) => {
-                if (url) urls.push(`<div style="position:relative;"><img src="${url}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;margin-top:2px;">${i + 1}</span></div>`);
+                if (url) urls.push(`<div style="position:relative;"><img src="${this._sanitizeUrl(url)}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;margin-top:2px;">${i + 1}</span></div>`);
             });
         } else if (legacySingleFoto) {
-            urls.push(`<div style="position:relative;"><img src="${legacySingleFoto}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;margin-top:2px;">1</span></div>`);
+            urls.push(`<div style="position:relative;"><img src="${this._sanitizeUrl(legacySingleFoto)}" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;margin-top:2px;">1</span></div>`);
         }
         if (urls.length === 0) {
             return '<span style="font-size:0.75rem;color:#8e8e93;">Sin fotos</span>';
@@ -139,7 +146,7 @@ const FlotaCore = {
     showImageModal(url) {
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10001;cursor:pointer;';
-        overlay.innerHTML = `<img src="${url}" style="max-width:90vw;max-height:90vh;border-radius:8px;">`;
+        overlay.innerHTML = `<img src="${this._sanitizeUrl(url)}" style="max-width:90vw;max-height:90vh;border-radius:8px;">`;
         overlay.addEventListener('click', () => overlay.remove());
         document.body.appendChild(overlay);
     },

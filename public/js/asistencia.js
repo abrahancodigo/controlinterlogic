@@ -118,11 +118,11 @@ const Asistencia = {
                 employees: empList,
                 byEmployee: this.byEmployee
             }, { merge:true });
+            this.dirty = false;
         } catch(e) {
             console.error('Error saving:', e);
             if (typeof showToast === 'function') showToast('Error al guardar','error');
         }
-        this.dirty = false;
     },
 
     markDirty() {

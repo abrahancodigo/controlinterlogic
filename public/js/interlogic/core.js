@@ -74,7 +74,7 @@ const InterlogicCore = {
         try {
             const saved = localStorage.getItem('il_hidden_cols');
             if (saved) return JSON.parse(saved);
-        } catch (e) {}
+        } catch (e) { console.warn('localStorage parse error:', e); }
         return ['guia', 'fecha', 'municipio', 'bultos', 'cobrador', 'costoEnvio', 'costoPorcentaje', 'observations', 'formaPago'];
     })(),
 
