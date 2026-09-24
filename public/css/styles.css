@@ -7449,6 +7449,78 @@ tbody tr:hover {
     border-color: var(--border-color) !important;
 }
 
+[data-theme="dark"] [style*="background:#f8fafc"],
+[data-theme="dark"] [style*="background: #f8fafc"],
+[data-theme="dark"] [style*="background:#f9f9fb"],
+[data-theme="dark"] [style*="background: #f9f9fb"],
+[data-theme="dark"] [style*="background:#f5f5f5"],
+[data-theme="dark"] [style*="background:#f3f4f6"],
+[data-theme="dark"] [style*="background:#f2f2f7"],
+[data-theme="dark"] [style*="background:#f0f0f0"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="background:#f0fdf4"],
+[data-theme="dark"] [style*="background: #f0fdf4"],
+[data-theme="dark"] [style*="background:#dcfce7"] {
+    background: #12372e !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="background:#fffbeb"],
+[data-theme="dark"] [style*="background: #fffbeb"],
+[data-theme="dark"] [style*="background:#fff7ed"],
+[data-theme="dark"] [style*="background:#fef3c7"] {
+    background: #3b2a18 !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="background:#fee2e2"],
+[data-theme="dark"] [style*="background:#fef2f2"],
+[data-theme="dark"] [style*="background:#eff6ff"],
+[data-theme="dark"] [style*="background:#faf5ff"] {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color:#1a1a1a"],
+[data-theme="dark"] [style*="color: #1a1a1a"],
+[data-theme="dark"] [style*="color:#1f2937"] {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] [style*="color:#555"],
+[data-theme="dark"] [style*="color: #555"],
+[data-theme="dark"] [style*="color:#6b7280"],
+[data-theme="dark"] [style*="color: #6b7280"],
+[data-theme="dark"] [style*="color:#888"],
+[data-theme="dark"] [style*="color:#8e8e93"] {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] [style*="color:#7c3aed"],
+[data-theme="dark"] [style*="color:#6d28d9"],
+[data-theme="dark"] [style*="color:#6b21a8"],
+[data-theme="dark"] [style*="color:#4338ca"],
+[data-theme="dark"] [style*="color:#6366f1"] {
+    color: #c4b5fd !important;
+}
+
+[data-theme="dark"] [style*="color:#1e40af"] { color: #93c5fd !important; }
+[data-theme="dark"] [style*="color:#047857"],
+[data-theme="dark"] [style*="color:#10b981"],
+[data-theme="dark"] [style*="color:#16a34a"],
+[data-theme="dark"] [style*="color:#166534"],
+[data-theme="dark"] [style*="color:#22c55e"] { color: #6ee7b7 !important; }
+[data-theme="dark"] [style*="color:#b45309"],
+[data-theme="dark"] [style*="color:#92400e"],
+[data-theme="dark"] [style*="color:#9a3412"] { color: #fcd34d !important; }
+[data-theme="dark"] [style*="color:#991b1b"],
+[data-theme="dark"] [style*="color:#b91c1c"],
+[data-theme="dark"] [style*="color:#dc2626"],
+[data-theme="dark"] [style*="color:#ef4444"] { color: #fca5a5 !important; }
+
 /* ===================================
    Dashboard Module Ã¢â‚¬â€ Premium Redesign v2
    =================================== */
@@ -9659,3 +9731,16 @@ tbody tr:hover {
         font-size: 16px;
     }
 }
+
+[data-theme="dark"] .dash-mini-icon.green,
+[data-theme="dark"] .dash-proyeccion-dias.futuro { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+[data-theme="dark"] .dash-mini-icon.orange,
+[data-theme="dark"] .dash-flota-dias.alerta { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+[data-theme="dark"] .dash-mini-icon.blue { background: rgba(59, 130, 246, 0.18); color: #93c5fd; }
+[data-theme="dark"] .dash-mini-icon.pink { background: rgba(236, 72, 153, 0.18); color: #f9a8d4; }
+[data-theme="dark"] .dash-mini-icon.red,
+[data-theme="dark"] .dash-flota-dias.critico,
+[data-theme="dark"] .dash-proyeccion-dias.proximo { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+[data-theme="dark"] .dash-mini-icon.cyan { background: rgba(6, 182, 212, 0.18); color: #67e8f9; }
+[data-theme="dark"] .dash-mini-icon.purple { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+[data-theme="dark"] #il-data-table .filter-trigger { color: #c4b5fd; }

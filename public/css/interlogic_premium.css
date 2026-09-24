@@ -315,14 +315,32 @@
     color: hsl(260, 15%, 82%);
 }
 
+[data-theme="dark"] .il-premium .data-table tbody tr,
+[data-theme="dark"] #il-data-table tbody tr {
+    background: hsl(260, 20%, 17%);
+}
+
 [data-theme="dark"] .il-premium .data-table tbody tr:nth-child(even),
 [data-theme="dark"] #il-data-table tbody tr:nth-child(even) {
     background: hsl(260, 20%, 14%);
 }
 
-[data-theme="dark"] .il-premium .data-table tbody tr:hover {
-    background: hsl(262, 30%, 20%);
+[data-theme="dark"] .il-premium .data-table tbody tr:hover,
+[data-theme="dark"] #il-data-table tbody tr:hover {
+    background: hsl(262, 30%, 22%);
     box-shadow: none;
+}
+
+[data-theme="dark"] #il-data-table tbody tr:active {
+    background: hsl(262, 30%, 25%);
+}
+
+[data-theme="dark"] #il-data-table tbody tr[style*="background: #dcfce7"] {
+    background: #12372e !important;
+}
+
+[data-theme="dark"] #il-data-table tbody tr[style*="background: #fef2f2"] {
+    background: #3b252b !important;
 }
 
 [data-theme="dark"] .il-premium .data-table tfoot {
