@@ -158,7 +158,9 @@ test('Las dependencias mantienen su orden y el arranque espera DOMContentLoaded'
     const html = read('public/index.html');
     const head = execFileSync('git', ['show', 'HEAD:public/index.html'], { cwd: root, encoding: 'utf8' });
     const sources = text => [...text.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1].replace(/\?v=\d+$/, ''));
-    assert.deepEqual(sources(html), sources(head));
+    const actualSources = sources(html);
+    assert.ok(actualSources.indexOf('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js') > actualSources.indexOf('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js'));
+    assert.deepEqual(actualSources.filter(src => src !== 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js'), sources(head));
     for (const [tag, src] of html.matchAll(/<script[^>]+src="([^"]+)"[^>]*>/g)) {
         if (/^js\/(init|auth)\.js/.test(src)) assert.doesNotMatch(tag, /\bdefer\b/);
         else assert.match(tag, /\bdefer\b/);

@@ -487,6 +487,7 @@ const Deliveries = {
     viewImage(deliveryId) {
         const delivery = this.deliveries.find(d => d.id === deliveryId);
         if (!delivery || !delivery.imageUrl) return;
+        const imageUrl = sanitizeHTML(delivery.imageUrl).replace(/"/g, '&quot;');
 
         this.closeAllModals();
         const modal = document.createElement('div');
@@ -520,7 +521,7 @@ const Deliveries = {
                 z-index: 10;
             ">✕</button>
             <div style="max-width: 90vw; max-height: 90vh; text-align: center;">
-                <img src="${delivery.imageUrl}" style="max-width: 100%; max-height: 85vh; border-radius: 0.5rem;" alt="Imagen de entrega ${sanitizeHTML(delivery.folio || '')}">
+                <img src="${imageUrl}" style="max-width: 100%; max-height: 85vh; border-radius: 0.5rem;" alt="Imagen de entrega ${sanitizeHTML(delivery.folio || '')}">
                 <p style="color: white; margin-top: 1rem; font-size: 1.1rem;">
                     📦 Entrega: <strong>${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</strong>
                 </p>
@@ -634,6 +635,7 @@ const Deliveries = {
 
         const delivery = this.deliveries.find(d => d.id === deliveryId);
         if (!delivery) return;
+        const safeAttribute = value => sanitizeHTML(value).replace(/"/g, '&quot;');
 
         // Format date for input
         let dateValue = '';
@@ -666,7 +668,7 @@ const Deliveries = {
                 <form id="edit-delivery-form">
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label for="edit-folio"><strong>Folio</strong></label>
-                        <input type="text" id="edit-folio" value="${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
+                        <input type="text" id="edit-folio" value="${safeAttribute(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 1rem;">
@@ -676,17 +678,17 @@ const Deliveries = {
                     
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label for="edit-cliente"><strong>Cliente *</strong></label>
-                        <input type="text" id="edit-cliente" value="${sanitizeHTML(delivery.cliente)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
+                        <input type="text" id="edit-cliente" value="${safeAttribute(delivery.cliente)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label for="edit-tienda"><strong>Tienda *</strong></label>
-                        <input type="text" id="edit-tienda" value="${sanitizeHTML(delivery.tienda)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
+                        <input type="text" id="edit-tienda" value="${safeAttribute(delivery.tienda)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 1rem;">
                         <label for="edit-tipo-mueble"><strong>Tipo de Mueble *</strong></label>
-                        <input type="text" id="edit-tipo-mueble" value="${sanitizeHTML(delivery.tipoMueble)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
+                        <input type="text" id="edit-tipo-mueble" value="${safeAttribute(delivery.tipoMueble)}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.5rem;">
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 1.5rem;">
@@ -697,7 +699,7 @@ const Deliveries = {
                     <div class="form-group" style="margin-bottom: 1.5rem; border-top: 1px solid #eee; padding-top: 1rem;">
                         <label><strong>Imagen</strong></label>
                         <div id="image-preview-container" style="${delivery.imageUrl ? '' : 'display: none;'} margin-bottom: 0.5rem; text-align: center;">
-                            <img id="current-image-preview" src="${delivery.imageUrl || ''}" style="max-height: 100px; border-radius: 0.25rem;">
+                            <img id="current-image-preview" src="${safeAttribute(delivery.imageUrl || '')}" style="max-height: 100px; border-radius: 0.25rem;">
                             <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
                                 <span style="font-size: 0.8rem; color: #666;">Imagen actual</span>
                                 <button type="button" id="btn-delete-image" class="btn btn-sm btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">
@@ -874,11 +876,12 @@ const Deliveries = {
         const companyName = settings.companyName || 'DALSE';
         // Use logo2 for print, fallback to logo1 if logo2 not set
         const printLogo = settings.logo2 || settings.logo1 || '';
+        const safeLogoUrl = sanitizeHTML(printLogo).replace(/"/g, '&quot;');
 
         // Build logo HTML with onload handling
         let logoHTML = '';
         if (printLogo) {
-            logoHTML = `<img id="print-logo-img" src="${printLogo}" alt="Logo" style="max-height: 60px; max-width: 150px; object-fit: contain;">`;
+            logoHTML = `<img id="print-logo-img" src="${safeLogoUrl}" alt="Logo" style="max-height: 60px; max-width: 150px; object-fit: contain;">`;
         }
 
         printArea.innerHTML = `

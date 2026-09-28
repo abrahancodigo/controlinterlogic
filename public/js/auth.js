@@ -135,75 +135,16 @@ const Auth = {
                 return;
             }
 
-            const userRegistryRef = firebase.firestore().collection('user_registry').doc(username);
-            const userRegistryDoc = await userRegistryRef.get();
-
-            if (!userRegistryDoc.exists) {
-                authShowError(errorEl, 'Usuario o contraseña incorrectos');
-                authResetBtn(submitBtn);
-                return;
-            }
-
-            const registryData = userRegistryDoc.data();
-
-            const inputHash = await hashPassword(password);
-            let passwordValid = false;
-            if (registryData.passwordHash) {
-                passwordValid = registryData.passwordHash === inputHash;
-            } else if (registryData.password) {
-                console.warn('[SECURITY] Legacy plaintext password detected for user:', username, '- Rehashing...');
-                passwordValid = registryData.password === password;
-                if (passwordValid) {
-                    try { await userRegistryRef.update({ passwordHash: inputHash, password: firebase.firestore.FieldValue.delete() }); } catch (e) { console.warn('Could not migrate password hash:', e); }
-                }
-            }
-
-            if (!passwordValid) {
-                authShowError(errorEl, 'Usuario o contraseña incorrectos');
-                authResetBtn(submitBtn);
-                return;
-            }
-
-            const internalEmail = registryData.internalEmail || `${username}@dalse.local`;
-
-            try {
-                await firebase.auth().signInWithEmailAndPassword(internalEmail, password);
-            } catch (firebaseError) {
-                if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/invalid-credential') {
-                    try {
-                        const userCredential = await firebase.auth().createUserWithEmailAndPassword(internalEmail, password);
-                        await userCredential.user.updateProfile({ displayName: registryData.displayName });
-
-                        const existingUserSnap = await firebase.firestore().collection('users')
-                            .where('email', '==', internalEmail).limit(1).get();
-                        if (!existingUserSnap.empty) {
-                            await firebase.firestore().collection('users').doc(existingUserSnap.docs[0].id).set({
-                                uid: userCredential.user.uid, email: internalEmail,
-                                username, displayName: registryData.displayName,
-                                role: registryData.role,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
-                            }, { merge: true });
-                        } else {
-                            await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
-                                uid: userCredential.user.uid, email: internalEmail,
-                                username, displayName: registryData.displayName,
-                                role: registryData.role,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
-                            });
-                        }
-                        return;
-                    } catch (regError) {
-                        authShowError(errorEl, 'Error al activar la cuenta.');
-                        authResetBtn(submitBtn);
-                        return;
-                    }
-                } else {
-                    authShowError(errorEl, this.getErrorMessage(firebaseError.code));
-                    authResetBtn(submitBtn);
-                }
-            }
+            const authenticate = firebase.functions().httpsCallable('authenticateUsername');
+            const result = await authenticate({ username, password });
+            await firebase.auth().signInWithCustomToken(result.data.customToken);
         } catch (error) {
-            authShowError(errorEl, 'Error de conexión.');
+            const message = error.code === 'functions/unauthenticated'
+                ? 'Usuario o contraseña incorrectos.'
+                : error.code === 'functions/resource-exhausted'
+                    ? 'Demasiados intentos. Intenta más tarde.'
+                    : 'Error de conexión.';
+            authShowError(errorEl, message);
             authResetBtn(submitBtn);
         }
     },
@@ -211,42 +152,13 @@ const Auth = {
     async handleUserLogin(user) {
         try {
             const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
-
-            let hasAdmin = false;
-            try {
-                const configDoc = await firebase.firestore().collection('config').doc('system').get();
-                hasAdmin = configDoc.exists && configDoc.data()?.hasAdmin === true;
-            } catch (e) {}
-
             if (!userDoc.exists) {
-                const newRole = hasAdmin ? 'user' : 'admin';
-                await firebase.firestore().collection('users').doc(user.uid).set({
-                    uid: user.uid, email: user.email,
-                    displayName: user.displayName || user.email,
-                    role: newRole, createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
-                });
-                if (newRole === 'admin') {
-                    await firebase.firestore().collection('config').doc('system').set({
-                        hasAdmin: true, adminSetAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                }
-            } else {
-                const existingData = userDoc.data();
-                const role = (existingData.role || 'user').toLowerCase();
-                if (!hasAdmin) {
-                    if (role !== 'admin') {
-                        await firebase.firestore().collection('users').doc(user.uid).update({ role: 'admin' });
-                    }
-                    await firebase.firestore().collection('config').doc('system').set({
-                        hasAdmin: true, adminSetAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                }
+                await this.logout();
+                showToast('No existe un perfil autorizado para esta cuenta.', 'error');
+                return;
             }
 
-            const updatedUserDoc = await firebase.firestore().collection('users').doc(user.uid).get();
-            const userData = updatedUserDoc.exists ? updatedUserDoc.data() : {
-                displayName: user.displayName || user.email, role: 'user'
-            };
+            const userData = userDoc.data();
 
             if (userData.active === false) {
                 showToast('Tu cuenta ha sido desactivada.', 'error');

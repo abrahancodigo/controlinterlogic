@@ -155,6 +155,10 @@ const InterlogicCRUD = {
         }
 
         const record = recordId ? this.records.find(r => r.id === recordId) : null;
+        if (recordId && !record) {
+            showToast('No se encontró el registro para editar', 'error');
+            return;
+        }
         if (record && record.anulado === true) {
             showToast('Reactiva el registro antes de editarlo', 'warning');
             return;
@@ -180,6 +184,11 @@ const InterlogicCRUD = {
             if (prefill && prefill[field]) return prefill[field];
             return '';
         };
+        const responsibleOptions = field => Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field)))).filter(Boolean);
+        const entregaOptions = responsibleOptions('entrega');
+        const cobraOptions = responsibleOptions('cobra');
+        const customEntrega = !!val('entrega') && !entregaOptions.includes(val('entrega'));
+        const customCobra = !!val('cobra') && !cobraOptions.includes(val('cobra'));
 
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
@@ -305,18 +314,22 @@ const InterlogicCRUD = {
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
                                 <div class="form-group">
-                                    <label>Entrega</label>
-                                    <input type="text" id="il-entrega" list="entregas-list" placeholder="Quién entrega..." value="${sanitizeHTML(val('entrega')).replace(/"/g, '&quot;')}">
-                                    <datalist id="entregas-list">
-                                        ${Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues('entrega')))).map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('')}
-                                    </datalist>
+                                    <label for="il-entrega">Entrega</label>
+                                    <select id="il-entrega" data-custom-input="il-entrega-custom">
+                                        <option value="" ${!val('entrega') ? 'selected' : ''}>Seleccionar...</option>
+                                        ${entregaOptions.map(e => `<option value="${sanitizeHTML(e).replace(/"/g, '&quot;')}" ${val('entrega') === e ? 'selected' : ''}>${sanitizeHTML(e)}</option>`).join('')}
+                                        <option value="" data-custom ${customEntrega ? 'selected' : ''}>Otro (escribir)</option>
+                                    </select>
+                                    <input type="text" id="il-entrega-custom" aria-label="Otro responsable de entrega" placeholder="Escribe quién entrega..." value="${customEntrega ? sanitizeHTML(val('entrega')).replace(/"/g, '&quot;') : ''}" style="${customEntrega ? '' : 'display: none;'} margin-top: 0.5rem;">
                                 </div>
                                 <div class="form-group">
-                                    <label>Cobra</label>
-                                    <input type="text" id="il-cobra" list="cobras-list" placeholder="Quién cobra..." value="${sanitizeHTML(val('cobra')).replace(/"/g, '&quot;')}">
-                                    <datalist id="cobras-list">
-                                        ${Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues('cobra')))).map(function(e) { return '<option value="' + sanitizeHTML(e) + '">'; }).join('')}
-                                    </datalist>
+                                    <label for="il-cobra">Cobra</label>
+                                    <select id="il-cobra" data-custom-input="il-cobra-custom">
+                                        <option value="" ${!val('cobra') ? 'selected' : ''}>Seleccionar...</option>
+                                        ${cobraOptions.map(e => `<option value="${sanitizeHTML(e).replace(/"/g, '&quot;')}" ${val('cobra') === e ? 'selected' : ''}>${sanitizeHTML(e)}</option>`).join('')}
+                                        <option value="" data-custom ${customCobra ? 'selected' : ''}>Otro (escribir)</option>
+                                    </select>
+                                    <input type="text" id="il-cobra-custom" aria-label="Otro responsable de cobro" placeholder="Escribe quién cobra..." value="${customCobra ? sanitizeHTML(val('cobra')).replace(/"/g, '&quot;') : ''}" style="${customCobra ? '' : 'display: none;'} margin-top: 0.5rem;">
                                 </div>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
@@ -379,6 +392,18 @@ const InterlogicCRUD = {
         document.body.appendChild(modal);
 
         var self = this;
+
+        modal.addEventListener('change', function(e) {
+            var select = e.target.closest('select[data-custom-input]');
+            if (!select) return;
+            var input = modal.querySelector('#' + select.dataset.customInput);
+            if (input) input.style.display = select.selectedOptions[0]?.hasAttribute('data-custom') ? '' : 'none';
+        });
+
+        const responsibleValue = field => {
+            const select = modal.querySelector('#il-' + field);
+            return (select.selectedOptions[0]?.hasAttribute('data-custom') ? modal.querySelector('#il-' + field + '-custom').value : select.value).trim();
+        };
 
         if (record && record.cliente) {
             var clientName = record.cliente.toLowerCase().trim();
@@ -671,6 +696,7 @@ const InterlogicCRUD = {
         document.getElementById('interlogic-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const saveBtn = document.getElementById('btn-il-save');
+            if (saveBtn.disabled) return;
             setButtonLoading(saveBtn, true);
 
             try {
@@ -708,8 +734,8 @@ const InterlogicCRUD = {
                     costoEnvio: costoEnvio,
                     costoPorcentaje: costoPorcentaje,
                     observations: document.getElementById('il-observations').value.trim() || '',
-                    entrega: document.getElementById('il-entrega').value.trim() || '',
-                    cobra: document.getElementById('il-cobra').value.trim() || '',
+                    entrega: responsibleValue('entrega'),
+                    cobra: responsibleValue('cobra'),
                     encargado: document.getElementById('il-encargado').value.trim() || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
@@ -1555,12 +1581,24 @@ const InterlogicCRUD = {
     },
 
     showMobileForm(id) {
+        if (id && !window.permissions?.canEdit || !id && !window.permissions?.canCreate) {
+            showToast('No tienes permisos para guardar registros', 'error');
+            return;
+        }
         var record = id ? (this.filteredRecords.find(function(x) { return x.id === id; }) || this.records.find(function(x) { return x.id === id; })) : null;
+        if (id && !record) {
+            showToast('No se encontró el registro para editar', 'error');
+            return;
+        }
+        if (record && record.anulado === true) {
+            showToast('Reactiva el registro antes de editarlo', 'warning');
+            return;
+        }
         var isEdit = !!record;
         var self = this;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="FT"' + (record?.doc === 'FT' ? ' selected' : '') + '>FT</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:0.8rem;font-weight:600;margin-top:8px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + sanitizeHTML(record?.direccion || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Teléfono (WhatsApp)</label><input type="text" id="mf-telefono" value="' + sanitizeHTML(record?.telefono || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + sanitizeHTML(record?.vendedor || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" id="mf-venta" step="0.01" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.entrega === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.cobra === 'XPRESS' ? ' selected' : '') + '>XPRESS</option></select></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="2">' + sanitizeHTML(record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn btn-primary" id="mf-submit" style="flex:1;">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="FT"' + (record?.doc === 'FT' ? ' selected' : '') + '>FT</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:0.8rem;font-weight:600;margin-top:8px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + sanitizeHTML(record?.direccion || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Teléfono (WhatsApp)</label><input type="text" id="mf-telefono" value="' + sanitizeHTML(record?.telefono || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + sanitizeHTML(record?.vendedor || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" id="mf-venta" step="0.01" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.entrega === 'XPRESS' ? ' selected' : '') + '>XPRESS</option>' + (record?.entrega && !['DALSE', 'INTERLOGISTIC', 'XPRESS'].includes(record.entrega) ? '<option selected value="' + sanitizeHTML(record.entrega).replace(/"/g, '&quot;') + '">' + sanitizeHTML(record.entrega) + '</option>' : '') + '</select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.cobra === 'XPRESS' ? ' selected' : '') + '>XPRESS</option>' + (record?.cobra && !['DALSE', 'INTERLOGISTIC', 'XPRESS'].includes(record.cobra) ? '<option selected value="' + sanitizeHTML(record.cobra).replace(/"/g, '&quot;') + '">' + sanitizeHTML(record.cobra) + '</option>' : '') + '</select></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="2">' + sanitizeHTML(record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn btn-primary" id="mf-submit" style="flex:1;">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
         document.body.appendChild(sheet);
 
         if (record && record.cliente) {
@@ -1648,6 +1686,7 @@ const InterlogicCRUD = {
 
         document.getElementById('mf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mf-submit');
+            if (btn.disabled) return;
             btn.disabled = true;
             btn.textContent = 'Guardando...';
 
@@ -1667,27 +1706,22 @@ const InterlogicCRUD = {
                 cliente: document.getElementById('mf-cliente').value,
                 direccion: document.getElementById('mf-direccion').value,
                 telefono: document.getElementById('mf-telefono')?.value?.trim() || '',
-                zona: document.getElementById('mf-departamento')?.value || '',
-                departamento: document.getElementById('mf-departamento')?.value || '',
-                municipio: document.getElementById('mf-municipio')?.value || '',
                 vendedor: document.getElementById('mf-vendedor').value,
-                condicionPago: document.getElementById('mf-condicionPago')?.value || '',
-                cobrador: document.getElementById('mf-cobrador')?.value || '',
                 venta: parseFloat(document.getElementById('mf-venta').value) || 0,
                 bultos: parseInt(document.getElementById('mf-bultos').value) || 0,
-                costoEnvio: parseFloat(document.getElementById('mf-costoEnvio')?.value) || 0,
-                costoPorcentaje: parseFloat(document.getElementById('mf-costoPorcentaje')?.value) || 0,
                 observations: document.getElementById('mf-observations').value,
                 entrega: document.getElementById('mf-entrega').value || '',
                 cobra: document.getElementById('mf-cobra').value || '',
-                encargado: document.getElementById('mf-encargado') ? document.getElementById('mf-encargado').value : '',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+
+            data.costoEnvio = data.bultos * 1.85;
+            data.costoPorcentaje = data.venta > 0 ? (data.costoEnvio / data.venta) * 100 : 0;
 
             try {
                 var isNC = data.doc === 'NC';
 
-                if (isNC) {
+                if (isNC && !isEdit) {
                     var ncAfectaVal = document.getElementById('mf-nc-afectaSaldo') ? document.getElementById('mf-nc-afectaSaldo').value : 'no';
                     var ncInterlogicIdVal = document.getElementById('mf-nc-interlogicId') ? document.getElementById('mf-nc-interlogicId').value : '';
 

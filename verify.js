@@ -56,7 +56,7 @@ function listJs(dir, out) {
 function syntaxCheck(files) {
   for (const f of files) {
     try {
-      execFileSync(process.execPath, ['--check', f], { stdio: 'pipe' });
+      execFileSync(process.execPath, ['--check', f], { stdio: 'pipe', windowsHide: true });
     } catch (e) {
       const stderr = (e.stderr || '').toString();
       const firstLine = stderr.split('\n').find(Boolean) || e.message;
@@ -104,6 +104,7 @@ function bumpCheck() {
     modified = execFileSync('git', ['diff', '--name-only', 'HEAD'], {
       cwd: ROOT,
       stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
     })
       .toString()
       .trim()
@@ -126,6 +127,7 @@ function bumpCheck() {
     headIdx = execFileSync('git', ['show', 'HEAD:public/index.html'], {
       cwd: ROOT,
       stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
     }).toString();
   } catch {
     return;

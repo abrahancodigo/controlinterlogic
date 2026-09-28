@@ -340,6 +340,7 @@ const Clientes = {
     // Show create/edit form
     showForm(recordId = null) {
         const record = recordId ? this.records.find(r => r.id === recordId) : null;
+        const safeAttribute = value => sanitizeHTML(value).replace(/"/g, '&quot;');
 
         if (recordId && !window.permissions?.canEdit) {
             showToast('No tienes permisos para editar', 'error');
@@ -371,7 +372,7 @@ const Clientes = {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
                         <div class="form-group">
                             <label>📱 Teléfono</label>
-                            <input type="text" id="cl-telefono" placeholder="Ej: 50370000000" value="${record?.telefono || ''}">
+                            <input type="text" id="cl-telefono" placeholder="Ej: 50370000000" value="${safeAttribute(record?.telefono || '')}">
                         </div>
                         <div class="form-group">
                             <label>Departamento</label>
