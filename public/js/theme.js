@@ -38,16 +38,6 @@ const ThemeManager = {
             }
         }
 
-        // Inyectar la UI del toggle cuando el DOM este listo
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.renderToggle());
-        } else {
-            this.renderToggle();
-        }
-
-        // Escuchar login/logout para (re)renderizar el toggle segun el sidebar
-        document.addEventListener('dalse:auth-changed', () => this.renderToggle());
-
         console.log(`[Theme] init -> mode=${this.mode}, effective=${this.effective}`);
     },
 
@@ -83,8 +73,6 @@ const ThemeManager = {
         if (persist) {
             try { localStorage.setItem(this.STORAGE_KEY, mode); } catch (e) { /* sin storage */ }
         }
-        // Actualizar la UI del toggle si ya existe
-        this._updateToggleUI();
         console.log(`[Theme] applied mode=${mode}, effective=${effective}`);
     },
 
@@ -96,7 +84,6 @@ const ThemeManager = {
         if (root.getAttribute('data-theme') !== effective) {
             root.setAttribute('data-theme', effective);
             this.effective = effective;
-            this._updateToggleUI();
         }
     },
 
@@ -115,68 +102,6 @@ const ThemeManager = {
     set(mode) {
         if (!this.VALID_MODES.includes(mode)) return;
         this._apply(mode);
-    },
-
-    /** Inyecta la fila del toggle dentro del sidebar-footer (entre user-info y logout) */
-    renderToggle() {
-        const footer = document.querySelector('.sidebar-footer');
-        if (!footer) return; // todavia no esta el DOM (login screen)
-
-        // Evitar duplicar
-        if (document.getElementById('theme-toggle-row')) return;
-
-        const row = document.createElement('div');
-        row.id = 'theme-toggle-row';
-        row.className = 'theme-toggle-row';
-        row.setAttribute('role', 'group');
-        row.setAttribute('aria-label', 'Selector de tema');
-        const icons = {
-            light: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
-            dark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
-            auto: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`
-        };
-        row.innerHTML = `
-            <button type="button" class="theme-opt" data-mode="light" title="Tema claro" aria-label="Tema claro">
-                <span class="theme-opt-icon">${icons.light}</span>
-                <span class="theme-opt-label">Claro</span>
-            </button>
-            <button type="button" class="theme-opt" data-mode="dark" title="Tema oscuro" aria-label="Tema oscuro">
-                <span class="theme-opt-icon">${icons.dark}</span>
-                <span class="theme-opt-label">Oscuro</span>
-            </button>
-            <button type="button" class="theme-opt" data-mode="auto" title="Seguir al sistema" aria-label="Seguir al sistema">
-                <span class="theme-opt-icon">${icons.auto}</span>
-                <span class="theme-opt-label">Auto</span>
-            </button>
-        `;
-        // Insertar antes del boton de logout
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn && logoutBtn.parentNode === footer) {
-            footer.insertBefore(row, logoutBtn);
-        } else {
-            footer.appendChild(row);
-        }
-
-        // Listeners
-        row.addEventListener('click', (e) => {
-            const btn = e.target.closest('.theme-opt');
-            if (!btn) return;
-            const mode = btn.getAttribute('data-mode');
-            if (mode) this.set(mode);
-        });
-
-        this._updateToggleUI();
-    },
-
-    /** Marca el boton activo segun this.mode */
-    _updateToggleUI() {
-        const row = document.getElementById('theme-toggle-row');
-        if (!row) return;
-        row.querySelectorAll('.theme-opt').forEach((btn) => {
-            const isActive = btn.getAttribute('data-mode') === this.mode;
-            btn.classList.toggle('active', isActive);
-            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-        });
     }
 };
 

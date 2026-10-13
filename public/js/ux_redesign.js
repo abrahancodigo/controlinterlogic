@@ -103,9 +103,7 @@ try { localStorage.setItem('ux-compact', on ? '1' : '0'); } catch (err) {}
 return;
 }
 if (e.target.closest('#ux-theme-btn') && window.ThemeManager) {
-const order = ['light','dark','auto'];
-const next = order[(order.indexOf(window.ThemeManager.mode) + 1) % order.length];
-window.ThemeManager.set(next);
+window.ThemeManager.set(window.ThemeManager.effective === 'dark' ? 'light' : 'dark');
 }
 });
 document.addEventListener('focusin', (e) => {
