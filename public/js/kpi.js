@@ -35,12 +35,11 @@ const KpiEvaluation = {
         this._tableListenerAdded = false;
 
         contentArea.innerHTML = `
-            <div class="module-header">
-                <div>
-                    <h1>📋 Evaluación KPI</h1>
-                    <p>Evaluación de desempeño del personal</p>
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            ${SharedComponents.renderModuleHeader({
+                icon: 'kpi',
+                title: 'Evaluación KPI',
+                subtitle: 'Evaluación de desempeño del personal',
+                actions: `
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         <label for="kpi-filter-start" style="margin-bottom: 0; white-space: nowrap; font-size: 0.85rem;">📅 Desde:</label>
                         <input type="date" id="kpi-filter-start" value="${this.filters.startDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
@@ -53,8 +52,8 @@ const KpiEvaluation = {
                     <button id="btn-add-kpi" class="btn btn-primary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
                         ➕ Nueva Evaluación
                     </button>
-                </div>
-            </div>
+                `
+            })}
 
             ${SharedComponents.renderStatsGrid([
                 { label: 'EVALUACIONES', id: 'kpi-stat-total', tag: 'small' },
@@ -192,8 +191,8 @@ const KpiEvaluation = {
             return `
                 <tr>
                     <td style="white-space: nowrap; font-size: 0.85rem;">${record.fecha ? formatDate(record.fecha, false) : ''}</td>
-                    <td><strong style="color: #1a1a1a; font-size: 0.95rem;">${index + 1}. ${sanitizeHTML(record.empleado || '')}</strong></td>
-                    <td style="font-size: 0.8rem; color: #555; font-weight: 500;">${sanitizeHTML(record.cargo || '')}</td>
+                    <td><strong style="color: var(--text-primary); font-size: 0.95rem;">${index + 1}. ${sanitizeHTML(record.empleado || '')}</strong></td>
+                    <td style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">${sanitizeHTML(record.cargo || '')}</td>
                     ${scores.map(score => {
                 const colors = getColor(score);
                 return `
@@ -204,14 +203,14 @@ const KpiEvaluation = {
                             </div>
                         </td>`;
             }).join('')}
-                    <td style="text-align: center; font-weight: 900; min-width: 130px; background: #f8fafc; border-left: 2px solid #e2e8f0;">
+                    <td style="text-align: center; font-weight: 900; min-width: 130px; background: var(--bg-secondary); border-left: 2px solid var(--border-color);">
                         <div style="color: ${avgColors.main}; font-size: 1.3rem; margin-bottom: 5px; font-family: 'Inter', sans-serif;">${avg.toFixed(1)}</div>
-                        <div style="width: 90%; margin: 0 auto; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+                        <div style="width: 90%; margin: 0 auto; height: 12px; background: var(--bg-tertiary); border-radius: 6px; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
                             <div style="width: ${avg * 10}%; height: 100%; background: ${avgColors.main}; box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);"></div>
                         </div>
                     </td>
-                    <td style="max-width: 250px; white-space: normal; font-size: 0.85rem; color: #1a1a1a; line-height: 1.5; padding: 0.75rem;">${sanitizeHTML(record.observaciones || '')}</td>
-                    <td class="actions-cell" style="background: #fff;">
+                    <td style="max-width: 250px; white-space: normal; font-size: 0.85rem; color: var(--text-primary); line-height: 1.5; padding: 0.75rem;">${sanitizeHTML(record.observaciones || '')}</td>
+                    <td class="actions-cell" style="background: var(--bg-primary);">
                         <div style="display: flex; gap: 0.4rem; justify-content: center;">
                             <button class="btn-icon btn-secondary btn-edit-kpi ${!canEdit ? 'btn-disabled' : ''}" 
                                     data-id="${record.id}" ${!canEdit ? 'disabled' : ''} title="Editar">✏️</button>
@@ -492,8 +491,8 @@ const KpiEvaluation = {
                 <p style="font-size:0.78rem;color:var(--m-text-secondary);">Desempeño del personal</p>
             </div>
             <div style="display:flex;gap:8px;margin-bottom:10px;">
-                <input type="date" id="mkpi-start" value="${this.filters.startDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
-                <input type="date" id="mkpi-end" value="${this.filters.endDate}" style="flex:1;padding:10px;border:1px solid #e5e5ea;border-radius:12px;font-size:0.85rem;background:white;min-height:42px;font-family:var(--font-family);">
+                <input type="date" id="mkpi-start" value="${this.filters.startDate}" style="flex:1;padding:10px;border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;background:var(--bg-primary);min-height:42px;font-family:var(--font-family);">
+                <input type="date" id="mkpi-end" value="${this.filters.endDate}" style="flex:1;padding:10px;border:1px solid var(--border-color);border-radius:12px;font-size:0.85rem;background:var(--bg-primary);min-height:42px;font-family:var(--font-family);">
             </div>
             <div class="m-stats-row" id="mkpi-stats">
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Evaluaciones</div><div class="m-stat-chip-value" id="mkpi-total">0</div></div>
@@ -506,7 +505,7 @@ const KpiEvaluation = {
                 <button class="btn" id="mkpi-btn-export" style="border-radius:20px;">📥 Excel</button>
             </div>
             <div class="m-data-list" id="mkpi-data-list">
-                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando evaluaciones...</div>
+                <div style="text-align:center;padding:40px;color:var(--text-tertiary);">Cargando evaluaciones...</div>
             </div>
         `;
 
@@ -546,10 +545,10 @@ const KpiEvaluation = {
                 return '<div class="m-data-card">' +
                     '<div class="m-card-header"><span class="m-card-title">#' + (index + 1) + ' ' + sanitizeHTML(record.empleado || '') + '</span>' +
                     '<span class="m-card-badge" style="background:' + avgColor + '15;color:' + avgColor + ';">' + record._avg.toFixed(1) + '</span></div>' +
-                    '<div style="margin-bottom:10px;font-size:0.75rem;color:#8e8e93;">' + sanitizeHTML(record.cargo || '') + '</div>' +
+                    '<div style="margin-bottom:10px;font-size:0.75rem;color:var(--text-tertiary);">' + sanitizeHTML(record.cargo || '') + '</div>' +
                     '<div class="m-card-rows"><div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (record.fecha ? formatDateShort(record.fecha) : '-') + '</span></div></div>' +
                     '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">' + scoresHtml + '</div>' +
-                    (record.observaciones ? '<div style="font-size:0.78rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#f9f9fb;border-radius:10px;">' + sanitizeHTML(record.observaciones) + '</div>' : '') +
+                    (record.observaciones ? '<div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;padding:8px 10px;background:var(--bg-secondary);border-radius:10px;">' + sanitizeHTML(record.observaciones) + '</div>' : '') +
                     ((canEdit || canDelete) ? '<div class="m-card-actions">' +
                         (canEdit ? '<button class="m-card-action btn-edit-mkpi" data-id="' + sanitizeHTML(record.id) + '" title="Editar">✏️</button>' : '') +
                         (canDelete ? '<button class="m-card-action delete btn-delete-mkpi" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' : '') +

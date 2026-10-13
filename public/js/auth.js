@@ -232,6 +232,14 @@ const Auth = {
             canCreate: role === 'admin' || role === 'editor',
             canEdit: role === 'admin', canDelete: role === 'admin'
         };
+        // Privilegios granulares por usuario (catálogo en utils.js)
+        const priv = userData.privileges || {};
+        const cat = window.PRIVILEGES || [];
+        cat.forEach(p => {
+            window.permissions[p.key] = role === 'admin'
+                ? true
+                : (typeof priv[p.key] === 'boolean' ? priv[p.key] : p.def);
+        });
 
         document.querySelectorAll('.admin-only').forEach(el => {
             if (el.getAttribute('data-module') !== 'users') {

@@ -475,3 +475,14 @@ const MobileModalBack = {
 };
 
 MobileModalBack.init();
+
+// ===================================
+// Catálogo de privilegios granulares por usuario
+// - def: valor por defecto (true = habilitado para todos salvo que se quite).
+// - auth.js fusiona role + userData.privileges en window.permissions.
+// - users.js usa esta lista para renderizar el editor de privilegios.
+// ===================================
+window.PRIVILEGES = [
+    { key: 'manageMetas', label: 'Metas y comisiones (Dashboard)', def: true },
+    { key: 'exportData', label: 'Exportar datos (Excel / PDF)', def: true }
+];

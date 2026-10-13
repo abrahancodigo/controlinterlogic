@@ -12,15 +12,12 @@ const Users = {
         this.isMobile = isMobile;
 
         contentArea.innerHTML = `
-            <div class="content-header" style="${isMobile ? 'padding:0;' : ''}">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; ${isMobile ? 'flex-direction:column;align-items:stretch;gap:0.5rem;' : ''}">
-                    <div>
-                        <h1 style="${isMobile ? 'font-size:1.35rem;font-weight:800;' : ''}">Gestión de Usuarios</h1>
-                        <p style="${isMobile ? 'font-size:0.78rem;color:var(--m-text-secondary);' : ''}">Administra usuarios y sus roles</p>
-                    </div>
-                    <button class="btn btn-primary" id="btn-add-user" style="${isMobile ? 'min-height:44px;border-radius:10px;width:100%;font-size:0.9rem;' : ''}">➕ Nuevo Usuario</button>
-                </div>
-            </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'users',
+                title: 'Gestión de Usuarios',
+                subtitle: 'Administra usuarios y sus roles',
+                actions: `<button class="btn btn-primary" id="btn-add-user">➕ Nuevo Usuario</button>`
+            })}
             
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);' : ''}">
                 <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
@@ -105,6 +102,7 @@ const Users = {
                     '</div>' +
                     (user.id !== currentUserId ? '<div class="m-card-actions" onclick="event.stopPropagation()" style="justify-content:flex-start;">' +
                         '<button class="m-card-action" data-action="toggle-role" data-uid="' + sanitizeHTML(user.id) + '" data-role="' + sanitizeHTML(user.role) + '" title="Cambiar Rol" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔄 Rol</button>' +
+                        '<button class="m-card-action" data-action="privileges" data-uid="' + sanitizeHTML(user.id) + '" title="Privilegios" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔑</button>' +
                         '<button class="m-card-action" data-action="toggle-active" data-uid="' + sanitizeHTML(user.id) + '" data-active="' + (user.active !== false) + '" title="' + (user.active !== false ? 'Desactivar' : 'Activar') + '" style="background:' + (user.active !== false ? '#fef2f2' : '#d1fae5') + ';color:' + (user.active !== false ? '#ef4444' : '#10b981') + ';">' + (user.active !== false ? '🚫' : '✅') + '</button>' +
                         '<button class="m-card-action delete" data-action="delete-user" data-uid="' + sanitizeHTML(user.id) + '" data-username="' + sanitizeHTML(user.username || '') + '" title="Eliminar">🗑️</button>' +
                     '</div>' : '<div style="font-size:0.75rem;color:var(--m-text-secondary);text-align:center;padding-top:8px;border-top:0.5px solid var(--m-separator);">Eres tú</div>') +
@@ -149,11 +147,18 @@ const Users = {
                                 <td>
                                     ${user.id !== currentUserId ? `
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <button 
-                                                class="btn btn-sm btn-secondary" 
+                                            <button
+                                                class="btn btn-sm btn-secondary"
                                                 data-action="toggle-role" data-uid="${sanitizeHTML(user.id)}" data-role="${sanitizeHTML(user.role)}"
                                             >
                                                 Cambiar Rol
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-secondary"
+                                                data-action="privileges" data-uid="${sanitizeHTML(user.id)}"
+                                                title="Privilegios del usuario"
+                                            >
+                                                🔑 Privilegios
                                             </button>
                                             <button 
                                                 class="btn btn-sm ${user.active !== false ? 'btn-danger' : 'btn-success'}" 
@@ -190,6 +195,7 @@ const Users = {
                 if (action === 'toggle-role') Users.toggleRole(uid, btn.dataset.role);
                 else if (action === 'toggle-active') Users.toggleActive(uid, btn.dataset.active === 'true');
                 else if (action === 'delete-user') Users.deleteUser(uid, btn.dataset.username);
+                else if (action === 'privileges') Users.showPrivilegesModal(uid);
             });
         }
     },
@@ -242,6 +248,52 @@ const Users = {
             }
         };
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    },
+
+    showPrivilegesModal(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return;
+        const cat = window.PRIVILEGES || [];
+        const priv = user.privileges || {};
+        const isAdminUser = user.role === 'admin';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 520px;">
+                <h2 style="margin-bottom: 0.5rem;">🔑 Privilegios</h2>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Usuario: <strong>${sanitizeHTML(user.displayName || user.email || user.id)}</strong></p>
+                <p style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:1rem;">Activa o desactiva cada privilegio. Un Administrador siempre tendrá todo activo.</p>
+                <div>
+                    ${cat.map(p => `
+                        <label style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0;border-bottom:1px solid var(--border-color);font-size:0.9rem;color:var(--text-primary);cursor:${isAdminUser ? 'not-allowed' : 'pointer'};">
+                            <input type="checkbox" data-priv="${sanitizeHTML(p.key)}" ${isAdminUser ? 'checked disabled' : (typeof priv[p.key] === 'boolean' ? (priv[p.key] ? 'checked' : '') : (p.def ? 'checked' : ''))} style="width:18px;height:18px;accent-color:var(--brand);">
+                            <span>${sanitizeHTML(p.label)}</span>
+                        </label>`).join('') || '<p style="color:var(--text-tertiary);">No hay privilegios definidos.</p>'}
+                </div>
+                <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
+                    <button class="btn btn-secondary" id="priv-cancel">Cancelar</button>
+                    <button class="btn btn-primary" id="priv-save">Guardar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        const close = () => modal.remove();
+        modal.addEventListener('click', e => { if (e.target === modal) close(); });
+        modal.querySelector('#priv-cancel').onclick = close;
+        modal.querySelector('#priv-save').onclick = async () => {
+            const values = {};
+            modal.querySelectorAll('[data-priv]').forEach(cb => { values[cb.dataset.priv] = cb.checked; });
+            try {
+                await firebase.firestore().collection('users').doc(userId).update({ privileges: values });
+                showToast('Privilegios actualizados', 'success');
+                await this.loadUsers();
+                close();
+            } catch (error) {
+                console.error('Error updating privileges:', error);
+                showToast('Error al actualizar privilegios: ' + error.message, 'error');
+            }
+        };
     },
 
     // Toggle user active status

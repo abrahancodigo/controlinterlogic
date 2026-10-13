@@ -23,23 +23,31 @@ Orden de carga (lo importante):
 
 ```
 CDNs:        apexcharts, exceljs, xlsx, html2pdf
-Firebase:    app / auth / firestore / storage (compat 10.7.1)
-Nucleo:      theme.js  ->  init.js  ->  utils.js  ->  dashboard.js  ->  app.js
+Firebase:    app / auth / firestore / storage / functions (compat 10.7.1)
+Nucleo:      theme.js  ->  init.js  ->  utils.js  ->  shared/components.js
+             ->  dashboard.js  ->  app.js
              auth.js  ->  users.js  ->  settings.js  ->  deliveries.js
 Interlogic:  interlogic/core.js -> render.js -> filters.js -> crud.js
              -> excel.js -> routes.js -> index.js
-Otros:       problemas.js, clientes.js, liquidacion.js, entregas.js,
-             repartidores.js, kpi.js, asistencia.js
-Cobranza:    cobranza/core.js -> dashboard.js -> alerts.js -> gestiones.js
-             -> adjustments.js -> index.js
+Otros:       problemas.js, clientes.js, liquidacion.js, kpi.js, asistencia.js
 Flota:       flota/core.js -> vehicles.js -> maintenance.js -> orders.js -> index.js
 ```
+
+Modulos del nav (`data-module`): dashboard, interlogic, problemas, clientes,
+flota, liquidacion, deliveries, kpi, asistencia, settings, users.
+
+Notas:
+- `js/signature-pad.js` existe en disco pero **no se carga** en `index.html`.
+  No lo agregues al HTML sin peticion explicita.
+- No existe el modulo `cobranza/`: se elimino en `96bd1ae` (2026-09-09), junto
+  con `entregas.js` y `repartidores.js`. `firestore.rules` todavia declara sus
+  colecciones (`cobros`, `gestiones`, `ajustes`) aunque no hay interfaz que las use.
 
 - Cada modulo se inicializa cuando el usuario abre su seccion (no todo de una vez).
 - `core.js` de cada subcarpeta es la base del modulo: **no lo cambies salvo que sea
   estrictamente necesario**, porque los demas archivos del modulo dependen de el.
 - Patrones en uso: objetos literales tipo `const X = { ... }` con metodos (p. ej.
-  `InterlogicRender`, `Clientes`, `Cobranza`), delegacion de eventos en un contenedor
+  `InterlogicRender`, `Clientes`, `Flota`), delegacion de eventos en un contenedor
   padre (no listeners individuales por boton), y cache-busting con `?v=N` en `index.html`.
 
 ## Prohibido tocar sin aprobacion explicita
@@ -51,7 +59,7 @@ lo pida explicitamente, y aun asi confirma el alcance antes:
 - `firebase.json`, `.firebaserc`, `storage.rules` - config de despliegue.
 - `.env` - secretos. Nunca lo leas, lo imprimas ni lo commitees.
 - `public/js/auth.js` y `public/js/init.js` - autenticacion y arranque.
-- `public/js/interlogic/core.js`, `public/js/cobranza/core.js`, `public/js/flota/core.js`
+- `public/js/interlogic/core.js`, `public/js/flota/core.js`
   - nucleo de cada modulo.
 - `opencode.json` - configuracion de las AIs (incluye API keys).
 - Scripts historicos en la raiz: `fix_*.js`, `fix_*.py`, `apply_*.js`, `add_*.js`,
@@ -95,7 +103,8 @@ node verify.js
 ```
 
 Que hace `verify.js` (sin dependencias, solo Node nativo):
-1. `node --check` sobre los 36 `.js` de `public/js/` -> errores de sintaxis.
+1. `node --check` sobre los 28 `.js` de `public/js/` (los que se cargan en
+   `index.html`; `signature-pad.js` esta en disco pero no se carga) -> sintaxis.
 2. Detecta funciones globales declaradas en mas de un archivo (colision de scope).
 3. Verifica que si se edito un JS/CSS, su `?v=N` en `index.html` haya subido.
 
@@ -112,7 +121,7 @@ Es el comportamiento esperado: editaste `render.js` pero todavia no subiste `?v=
 
 - `InterlogicRender._renderTableNow()` en `public/js/interlogic/render.js` - render de
   la tabla principal; usa delegacion de eventos en `contentArea` (render.js ~411).
-- `Clientes`, `Cobranza`, `Flota` - modulos con la misma estructura (objeto literal + metodos).
+- `Clientes`, `Flota`, `Interlogic` - modulos con la misma estructura (objeto literal + metodos).
 - `public/index.html` lineas ~370-430 - orden de carga de todos los scripts.
 - `firestore.rules` - reglas de seguridad (prohibido tocar sin aprobacion).
 

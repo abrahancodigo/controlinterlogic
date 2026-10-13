@@ -89,7 +89,7 @@
 #sidebar .nav-icon,
 #sidebar .nav-icon svg,
 #sidebar .user-info {
-    transition: none !important;
+    transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 
 #content-area[data-visual-module="interlogic"] > .card,
@@ -97,7 +97,7 @@
 #content-area[data-visual-module="interlogic"] .m-data-card,
 #il-data-table,
 #il-data-table * {
-    transition: none !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 #content-area[data-visual-module="interlogic"] > .card:hover,

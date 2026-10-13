@@ -22,6 +22,7 @@ requirements.txt
 .backup-css/
 backup-css/
 backup-css-v2/
+.visual-backups/
 public/js/interlogic.js.check
 $null
 nul

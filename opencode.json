@@ -1,82 +1,99 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "nara-router": {
-      "name": "Nara Router",
+    "xkiro": {
+      "name": "XKiro",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "baseURL": "https://router.bynara.id/v1",
-        "apiKey": "sk-nry-CpkqX0crPjwqJIHjw7QdWLoYSdP1--q6cXMoiGUHQaI"
+        "baseURL": "https://api.xkiro.com/v1",
+        "apiKey": "sk-xt-e224cbc3bfdab30be05a3e7068db8a25554b99e0834fb541"
       },
       "models": {
-        "agnes-2.0-flash": {
-          "name": "Agnes 2.0 Flash"
+        "qwen/qwen3.6-max-preview:free": {
+          "name": "Qwen 3.6 Max Preview (free)"
+            },
+            "qwen/qwen3.8-max": {
+              "name": "Qwen 3.8 Max"
+            }
+       }
+    },
+    "commandcode": {
+      "name": "CommandCode",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://api.commandcode.ai/provider/v1",
+        "apiKey": "user_2wxHYwGrJpuvgqyseN2vEEiR7pQ2GXmMovzBrDe4HD1X2zv9nG36rd7RMDwCtzw79Yk5MtUE9QzZSszHTNZ1v2M3"
+      },
+      "models": {
+        "deepseek/deepseek-v4-flash": {
+          "name": "DeepSeek V4 Flash"
         },
-        "agnes-2.5-flash": {
-          "name": "Agnes 2.5 Flash"
+        "deepseek/deepseek-v4-pro": {
+          "name": "DeepSeek V4 Pro"
         },
-        "agnes-2.5-pro": {
-          "name": "Agnes 2.5 Pro"
+        "deepseek/deepseek-v4-flash-fast": {
+          "name": "DeepSeek V4 Flash Fast"
         },
-        "grok-4.5-free": {
-          "name": "Grok 4.5 Free"
+        "deepseek/deepseek-v4.1-flash": {
+          "name": "DeepSeek V4.1 Flash"
         },
-        "laguna-s-2.1": {
-          "name": "Laguna S 2.1"
+        "Qwen/Qwen3.8-Max": {
+          "name": "Qwen 3.8 Max"
         },
-        "ling-3.0-flash-free": {
-          "name": "Ling 3.0 Flash Free"
+        "Qwen/Qwen3.7-Max": {
+          "name": "Qwen 3.7 Max"
         },
-        "longcat-2.0-free": {
-          "name": "LongCat 2.0 Free"
+        "Qwen/Qwen3.7-Flash": {
+          "name": "Qwen 3.7 Flash"
         },
-        "mistral-large": {
-          "name": "Mistral Large"
+        "gpt-5.5": {
+          "name": "GPT-5.5"
         },
-        "mistral-medium-3-5": {
-          "name": "Mistral Medium 3.5"
+        "gpt-5.4": {
+          "name": "GPT-5.4"
         },
-        "nemotron-3-ultra": {
-          "name": "Nemotron 3 Ultra"
+        "gpt-5.4-mini": {
+          "name": "GPT-5.4 Mini"
         },
-        "stepfun-3.7-flash": {
-          "name": "StepFun 3.7 Flash"
+        "google/gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash"
         },
-        "tencent-hy3-free": {
-          "name": "Tencent Hy3 Free"
+        "google/gemini-3.6-flash": {
+          "name": "Gemini 3.6 Flash"
+        },
+        "xai/grok-4.6": {
+          "name": "Grok 4.6"
+        },
+        "moonshotai/Kimi-K3": {
+          "name": "Kimi K3"
+        },
+        "xiaomi/mimo-v2.5-pro": {
+          "name": "MiMo V2.5 Pro"
+        },
+        "xiaomi/mimo-v2.5": {
+          "name": "MiMo V2.5"
+        },
+        "meta/muse-spark-1.3": {
+          "name": "Muse Spark 1.3"
+        },
+        "meta/muse-spark-1.3-contributor": {
+          "name": "Muse Spark 1.3 Contributor"
+        },
+        "meta/muse-spark-1.2-contributor": {
+          "name": "Muse Spark 1.2 Contributor"
         }
       }
     },
-    "openrouter": {
+    "atria": {
+      "name": "Atria ASI",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://api.atria-asi.ai/v1",
+        "apiKey": "{env:ATRIA_API_KEY}"
+      },
       "models": {
-        "qwen/qwen3-coder:free": {
-          "name": "Qwen 3 Coder (free)"
-        },
-        "meta-llama/llama-3.3-70b-instruct:free": {
-          "name": "Llama 3.3 70B (free)"
-        },
-        "nousresearch/hermes-3-llama-3.1-405b:free": {
-          "name": "Hermes 3 405B (free)"
-        }
-      }
-    },
-    "groq": {
-      "models": {
-        "llama-3.3-70b-versatile": {
-          "name": "Llama 3.3 70B"
-        },
-        "qwen/qwen3.6-27b": {
-          "name": "Qwen 3.6 27B"
-        },
-        "openai/gpt-oss-120b": {
-          "name": "GPT-OSS 120B"
-        }
-      }
-    },
-    "nvidia": {
-      "models": {
-        "nvidia/nemotron-3-super-120b-a12b": {
-          "name": "Nemotron 3 Super 120B"
+        "Atria-Dawn-Preview": {
+          "name": "Atria Dawn Preview (256K, code + research)"
         }
       }
     }

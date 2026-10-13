@@ -107,10 +107,11 @@ const Deliveries = {
         `;
 
         contentArea.innerHTML = `
-            <div class="content-header">
-                <h1>📋 Entrega de Muebles</h1>
-                <p>Registra y gestiona las entregas de muebles</p>
-            </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'deliveries',
+                title: 'Entrega de Muebles',
+                subtitle: 'Registra y gestiona las entregas de muebles'
+            })}
             
             ${formHTML}
             

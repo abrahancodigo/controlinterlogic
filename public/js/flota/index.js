@@ -21,18 +21,17 @@ const FlotaApp = {
     async renderDesktop() {
         const contentArea = document.getElementById('content-area');
         contentArea.innerHTML = `
-            <div class="module-header">
-                <div>
-                    <h1>Flota y Mantenimiento</h1>
-                    <p>Gestion de vehiculos, mantenimientos, ordenes de trabajo y talleres</p>
-                </div>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            ${SharedComponents.renderModuleHeader({
+                icon: 'flota',
+                title: 'Flota y Mantenimiento',
+                subtitle: 'Gestion de vehiculos, mantenimientos, ordenes de trabajo y talleres',
+                actions: `
                     <button class="btn ${this.currentView==='vehiculos'?'btn-primary':'btn-secondary'}" id="fl-tab-vehiculos">Vehiculos</button>
                     <button class="btn ${this.currentView==='mantenimiento'?'btn-primary':'btn-secondary'}" id="fl-tab-mantenimiento">Mantenimiento</button>
                     <button class="btn ${this.currentView==='ordenes'?'btn-primary':'btn-secondary'}" id="fl-tab-ordenes">Ordenes de Trabajo</button>
                     <button class="btn ${this.currentView==='talleres'?'btn-primary':'btn-secondary'}" id="fl-tab-talleres">Talleres</button>
-                </div>
-            </div>
+                `
+            })}
             <div id="flota-content">
                 <div style="text-align:center;padding:2rem;">Cargando datos...</div>
             </div>

@@ -26,12 +26,11 @@ const InterlogicRender = {
 
         contentArea.innerHTML = `
             <div class="il-premium">
-            <div class="module-header">
-                <div>
-                    <h1>📊 Control Interlogic</h1>
-                    <p>Gestión automatizada de registros de despacho</p>
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            ${SharedComponents.renderModuleHeader({
+                icon: 'interlogic',
+                title: 'Control Interlogic',
+                subtitle: 'Gestión automatizada de registros de despacho',
+                actions: `
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         <label for="filter-start-date" style="margin-bottom: 0; white-space: nowrap; font-size: 0.85rem;">📅 Desde:</label>
                         <input type="date" id="filter-start-date" value="${this.filters.startDate}" style="padding: 0.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: var(--radius-md); min-height: 44px;">
@@ -73,8 +72,8 @@ const InterlogicRender = {
                     <button id="btn-add-record" class="btn btn-primary ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
                         ➕ Nuevo Registro
                     </button>
-                </div>
-            </div>
+                `
+            })}
 
             ${SharedComponents.renderStatsGrid([
                 { label: 'Total Venta', id: 'stat-total-venta' },
@@ -312,9 +311,11 @@ const InterlogicRender = {
                             </tr>
                         </thead>
                         <tbody id="interlogic-table-body">
-                            <tr>
-                                <td colspan="21" style="text-align: center; padding: 1rem;">Cargando registros...</td>
-                            </tr>
+                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 98%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 92%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 96%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 88%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 94%;"></span></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -741,7 +742,13 @@ const InterlogicRender = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="21" style="text-align: center; padding: 1rem;">No hay registros disponibles que coincidan con los filtros.</td>
+                    <td colspan="21" style="padding: 0;">
+                        <div class="ux-empty">
+                            <span class="ux-empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+                            <span class="ux-empty-title">Sin registros</span>
+                            <span class="ux-empty-text">No hay registros disponibles que coincidan con los filtros aplicados.</span>
+                        </div>
+                    </td>
                 </tr>
             `;
             const tfoot = document.getElementById('interlogic-table-footer');

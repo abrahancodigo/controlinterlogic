@@ -24,10 +24,11 @@ const Clientes = {
         if (!content) return;
 
         content.innerHTML = `
-            <div class="content-header">
-                <h1>👥 Gestión de Clientes</h1>
-                <p>Directorio de clientes registrados</p>
-            </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'clientes',
+                title: 'Gestión de Clientes',
+                subtitle: 'Directorio de clientes registrados'
+            })}
 
             ${SharedComponents.renderStatsGrid([
                 { label: 'Total Clientes', id: 'stat-total-clientes' },

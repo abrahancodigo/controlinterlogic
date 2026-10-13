@@ -12,6 +12,16 @@ const Dashboard = {
     charts: {},
     chartInit: false,
     themeObserver: null,
+    dimFilters: { vendedor: '', empresa: '', zona: '', municipio: '', cliente: '', condicion: '' },
+    metas: {},
+    comisiones: {},
+    _configLoaded: false,
+    _agg: null,
+    _riesgo: null,
+    _trendKey: null,
+    _trendMonths: null,
+    _metaMonthKey: '',
+    _metaMonthKeySel: '',
 
     init() {
         const today = new Date();
@@ -97,12 +107,14 @@ const Dashboard = {
                 </div>
             </div>
 
+            <div class="dash-filters" id="dash-filters"></div>
+
             <div id="dash-insights" class="dash-insights" aria-live="polite"></div>
 
     <div class="dash-kpi-grid" id="dash-kpi-grid"></div>
 
     <div id="dash-truncated-warn" style="display:none;margin:0 0 16px;padding:10px 14px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;color:#b45309;font-size:0.85rem;font-weight:600;">
-        ⚠️ El rango seleccionado tiene más de 2,000 registros: los totales mostrados corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver datos completos.
+        ⚠️ El día supera los 800 registros: estos totales muestran solo los 800 más recientes. Elige un rango de fechas (o “Personalizado”) para cargar el día completo.
     </div>
 
     <button type="button" class="mobile-analysis-toggle" data-home-action="analysis" aria-expanded="false" aria-controls="mobile-sales-analysis">Ver análisis de ventas <span aria-hidden="true">↗</span></button>
@@ -115,6 +127,10 @@ const Dashboard = {
         <button class="dash-tab" role="tab" data-tab="entregador">Entregador</button>
         <button class="dash-tab" role="tab" data-tab="matriz">Matriz</button>
         <button class="dash-tab" role="tab" data-tab="dia">Por día</button>
+        <button class="dash-tab" role="tab" data-tab="tendencia">Tendencia</button>
+        <button class="dash-tab" role="tab" data-tab="cliente">Cliente</button>
+        <button class="dash-tab" role="tab" data-tab="empresa">Empresa</button>
+        <button class="dash-tab" role="tab" data-tab="municipio">Municipio</button>
     </div>
 
     <div class="dash-tabpanels">
@@ -127,6 +143,15 @@ const Dashboard = {
         <div class="dash-chart-card">
             <div class="dash-chart-header"><h3>Dalse vs Incede</h3><span class="dash-chart-total" id="dash-incede-chart-total"></span></div>
             <div class="dash-chart-body" id="dash-incede-chart"></div>
+        </div>
+    </div>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
+            <h2 class="dash-section-title">Detalle completo del periodo</h2>
+            <span class="dash-section-badge" id="dash-resumen-count"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="resumen">📥 Excel (detalle)</button>
         </div>
     </div>
     </div>
@@ -161,6 +186,8 @@ const Dashboard = {
             <h2 class="dash-section-title">Ranking de Vendedores</h2>
             <span class="dash-section-badge" id="dash-vendedor-resumen"></span>
             <span style="flex:1;"></span>
+            <button class="dash-acum-btn" id="dash-metas-btn" style="display:none;">🎯 Metas</button>
+            <button class="dash-acum-btn dash-export-tab" data-export="vendedor">📥 Excel</button>
             <button class="dash-acum-btn" id="dash-vendedor-toggle">Ver todos</button>
         </div>
         <div id="dash-vendedor-content">
@@ -182,6 +209,7 @@ const Dashboard = {
             <h2 class="dash-section-title">Ranking de Departamentos</h2>
             <span class="dash-section-badge" id="dash-zona-resumen"></span>
             <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="zona">📥 Excel</button>
             <button class="dash-acum-btn" id="dash-zona-toggle">Ver todos</button>
         </div>
         <div id="dash-zona-content">
@@ -202,6 +230,7 @@ const Dashboard = {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             <h2 class="dash-section-title">Ranking de Entregadores</h2>
             <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="carrier">📥 Excel</button>
             <button class="dash-acum-btn" id="dash-carrier-toggle">Ver todos</button>
         </div>
         <div class="dash-carrier-grid" id="dash-carrier-stats"></div>
@@ -235,8 +264,80 @@ const Dashboard = {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             <h2 class="dash-section-title">Detalle por Día</h2>
             <span class="dash-section-badge" id="dash-dia-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="dia">📥 Excel</button>
         </div>
         <div class="dash-day-grid" id="dash-day-cards"></div>
+    </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="tendencia" hidden>
+    <div class="dash-charts-row" style="margin-top:16px;">
+        <div class="dash-chart-card dash-chart-full">
+            <div class="dash-chart-header"><h3>Evolución mensual (últimos 6 meses)</h3><span class="dash-chart-total" id="dash-trend-total"></span></div>
+            <div class="dash-chart-body" id="dash-trend-chart"></div>
+        </div>
+    </div>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            <h2 class="dash-section-title">Resumen mensual</h2>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="tendencia">📥 Excel</button>
+        </div>
+        <div id="dash-trend-table"></div>
+    </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="cliente" hidden>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            <h2 class="dash-section-title">Top Clientes</h2>
+            <span class="dash-section-badge" id="dash-cliente-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="cliente">📥 Excel</button>
+            <button class="dash-acum-btn" id="dash-cliente-toggle">Ver todos</button>
+        </div>
+        <div id="dash-cliente-content">
+            <div class="dash-zona-grid" id="dash-cliente-grid"></div>
+        </div>
+    </div>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <h2 class="dash-section-title">Clientes en riesgo</h2>
+            <span class="dash-section-badge" id="dash-riesgo-resumen"></span>
+        </div>
+        <div id="dash-riesgo-content" class="dash-riesgo-grid"></div>
+    </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="empresa" hidden>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+            <h2 class="dash-section-title">Ventas por Empresa</h2>
+            <span class="dash-section-badge" id="dash-empresa-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="empresa">📥 Excel</button>
+            <button class="dash-acum-btn" id="dash-empresa-toggle">Ver todos</button>
+        </div>
+        <div id="dash-empresa-content">
+            <div class="dash-zona-grid" id="dash-empresa-grid"></div>
+        </div>
+    </div>
+    </div>
+    <div class="dash-tabpanel" data-panel="municipio" hidden>
+    <div class="dash-section" style="margin-top:16px;">
+        <div class="dash-section-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <h2 class="dash-section-title">Ventas por Municipio</h2>
+            <span class="dash-section-badge" id="dash-municipio-resumen"></span>
+            <span style="flex:1;"></span>
+            <button class="dash-acum-btn dash-export-tab" data-export="municipio">📥 Excel</button>
+            <button class="dash-acum-btn" id="dash-municipio-toggle">Ver todos</button>
+        </div>
+        <div id="dash-municipio-content">
+            <div class="dash-zona-grid" id="dash-municipio-grid"></div>
+        </div>
     </div>
     </div>
     </div>
@@ -256,6 +357,8 @@ const Dashboard = {
         await this.initCharts();
         if (this._renderToken !== renderToken) return;
         this.setupEvents();
+        this._renderDimFilters();
+        this._loadDashboardConfig();
         document.querySelector('.dash')?.classList.add('dash-ready');
         this.subscribeToData();
     },
@@ -296,6 +399,23 @@ const Dashboard = {
         const exportBtn = document.getElementById('dash-export-btn');
         if (exportBtn) {
             exportBtn.addEventListener('click', () => this.exportDashboard());
+        }
+
+        /* ── Export por pestaña + botón Metas ── */
+        const dashRoot = document.querySelector('.dash');
+        if (dashRoot && !dashRoot.dataset.exportBound) {
+            dashRoot.dataset.exportBound = '1';
+            dashRoot.addEventListener('click', e => {
+                const exp = e.target.closest('.dash-export-tab');
+                if (exp) { this._exportTab(exp.dataset.export); return; }
+                if (e.target.closest('#dash-metas-btn')) { this.showMetasModal(); }
+            });
+        }
+        const perm = window.permissions || {};
+        const metasBtn = document.getElementById('dash-metas-btn');
+        if (metasBtn && perm.manageMetas !== false) metasBtn.style.display = '';
+        if (perm.exportData === false) {
+            document.querySelectorAll('.dash-export-tab, #dash-export-btn').forEach(b => { b.style.display = 'none'; });
         }
 
         /* ── KPI cards dinámicas ── */
@@ -379,19 +499,20 @@ const Dashboard = {
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         const requestKey = this._prevRequestKey = {};
         this.prevRecords = [];
+        this._trendKey = null;
 
-        const query = firebase.firestore().collection('interlogic')
+        const baseQuery = firebase.firestore().collection('interlogic')
             .where('fecha', '>=', this.fechaInicio)
             .where('fecha', '<=', this.fechaFin)
-            .orderBy('fecha', 'desc')
-            .limit(DASHBOARD_MAX_RECORDS);
+            .orderBy('fecha', 'desc');
 
-        const handleSnap = (snapshot) => {
+        const finish = (docs, truncated) => {
             if (this._prevRequestKey !== requestKey) return;
-            this.records = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
-            this._truncated = snapshot.size >= DASHBOARD_MAX_RECORDS;
+            this.records = docs.filter(r => r.anulado !== true);
+            this._truncated = truncated;
             const warnEl = document.getElementById('dash-truncated-warn');
             if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
+            this._populateDimFilters();
             this.computeAndRender();
             this.updateDeltas();
         };
@@ -402,9 +523,14 @@ const Dashboard = {
         };
 
         if (this._isTodayPeriod()) {
-            this.unsubscribe = query.onSnapshot(handleSnap, onError);
+            const rtQuery = baseQuery.limit(DASHBOARD_MAX_RECORDS);
+            this.unsubscribe = rtQuery.onSnapshot(snap => {
+                finish(snap.docs.map(d => ({ id: d.id, ...d.data() })), snap.size >= DASHBOARD_MAX_RECORDS);
+            }, onError);
         } else {
-            query.get().then(handleSnap).catch(onError);
+            fetchAllChunked(baseQuery, { chunkSize: 2000 })
+                .then(all => finish(all, false))
+                .catch(onError);
         }
         this.fetchPrevPeriod();
     },
@@ -412,15 +538,16 @@ const Dashboard = {
     fetchPrevPeriod() {
         const requestKey = this._prevRequestKey;
         const prev = this.getPrevPeriod(this.fechaInicio, this.fechaFin);
-        firebase.firestore().collection('interlogic')
-            .where('fecha', '>=', prev.inicio)
-            .where('fecha', '<=', prev.fin)
-            .orderBy('fecha', 'desc')
-            .limit(DASHBOARD_MAX_RECORDS)
-            .get()
-            .then(snapshot => {
+        fetchAllChunked(
+            firebase.firestore().collection('interlogic')
+                .where('fecha', '>=', prev.inicio)
+                .where('fecha', '<=', prev.fin)
+                .orderBy('fecha', 'desc'),
+            { chunkSize: 2000 }
+        )
+            .then(all => {
                 if (this._prevRequestKey !== requestKey) return;
-                this.prevRecords = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
+                this.prevRecords = all.filter(r => r.anulado !== true);
                 this.computeAndRender();
                 this.updateDeltas();
             })
@@ -529,6 +656,7 @@ const Dashboard = {
                 t.setAttribute('aria-selected', 'true');
                 const name = t.dataset.tab;
                 panels.forEach(p => { p.hidden = p.dataset.panel !== name; });
+                if (name === 'tendencia') this._loadMonthlyTrend();
                 requestAnimationFrame(() => this._resizeCharts());
             });
             t.addEventListener('keydown', e => {
@@ -549,10 +677,10 @@ const Dashboard = {
         });
     },
 
-    _rankState: { vendedor: false, zona: false, carrier: false },
+    _rankState: { vendedor: false, zona: false, carrier: false, cliente: false, empresa: false, municipio: false },
 
     _setupRankToggles() {
-        const map = [['dash-vendedor-toggle', 'vendedor'], ['dash-zona-toggle', 'zona'], ['dash-carrier-toggle', 'carrier']];
+        const map = [['dash-vendedor-toggle', 'vendedor'], ['dash-zona-toggle', 'zona'], ['dash-carrier-toggle', 'carrier'], ['dash-cliente-toggle', 'cliente'], ['dash-empresa-toggle', 'empresa'], ['dash-municipio-toggle', 'municipio']];
         map.forEach(([id, key]) => {
             const btn = document.getElementById(id);
             if (!btn || btn.dataset.bound) return;
@@ -581,13 +709,16 @@ const Dashboard = {
         if (deliveredEl) deliveredEl.textContent = String(delivered);
         const scope = document.getElementById('home-scope');
         if (scope) scope.textContent = (this._truncated ? 'Conteo parcial · ' : '') + 'Período: ' + this.formatDateShort(this.fechaInicio) + ' — ' + this.formatDateShort(this.fechaFin);
-        const records = this.records;
+        const records = this._activeRecords = this._applyDimFilters(this.records);
         let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0, incede: 0, incedeCount: 0 };
         const carrierStats = {};
         const dailyStats = {};
         const vendedorStats = {};
         const zonaStats = {};
         const matriz = {};
+        const clienteStats = {};
+        const empresaStats = {};
+        const municipioStats = {};
 
         records.forEach(r => {
             const m = signedAmount(r, 'venta');
@@ -636,6 +767,22 @@ const Dashboard = {
             if (isContado) matriz[vendedor][zona].contado += m;
             else if (isCredito) matriz[vendedor][zona].credito += m;
 
+            /* Cliente / Empresa / Municipio */
+            const cli = (r.cliente || 'Sin cliente').trim() || 'Sin cliente';
+            if (!clienteStats[cli]) clienteStats[cli] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            clienteStats[cli].monto += m; clienteStats[cli].count++;
+            if (isContado) clienteStats[cli].contado += m; else if (isCredito) clienteStats[cli].credito += m;
+
+            const empN = (r.empresa || 'Sin empresa').trim() || 'Sin empresa';
+            if (!empresaStats[empN]) empresaStats[empN] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            empresaStats[empN].monto += m; empresaStats[empN].count++;
+            if (isContado) empresaStats[empN].contado += m; else if (isCredito) empresaStats[empN].credito += m;
+
+            const mun = (r.municipio || 'Sin municipio').trim() || 'Sin municipio';
+            if (!municipioStats[mun]) municipioStats[mun] = { monto: 0, count: 0, contado: 0, credito: 0 };
+            municipioStats[mun].monto += m; municipioStats[mun].count++;
+            if (isContado) municipioStats[mun].contado += m; else if (isCredito) municipioStats[mun].credito += m;
+
             if (!dailyStats[dk]) dailyStats[dk] = {
                 label: dl, total: 0, totalCount: 0,
                 contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, incede: 0
@@ -668,13 +815,22 @@ const Dashboard = {
         this.updateCarrierStats(carrierStats, stats.total);
         this.updateVendedorStats(vendedorStats, stats.total);
         this.updateZonaStats(zonaStats, stats.total);
+        this._renderDimCards('dash-cliente-grid', 'dash-cliente-resumen', clienteStats, stats.total, 'cliente');
+        this._renderDimCards('dash-empresa-grid', 'dash-empresa-resumen', empresaStats, stats.total, 'empresa');
+        this._renderDimCards('dash-municipio-grid', 'dash-municipio-resumen', municipioStats, stats.total, 'municipio');
         this.updateAcumuladoVendedor(vendedorStats);
         this.updateMatriz(matriz, vendedorStats, zonaStats);
         this.updateDayCards(dailyStats);
         const badge = document.getElementById('dash-dia-resumen');
         if (badge) badge.textContent = Object.keys(dailyStats).length + ' días';
-        const cur = this.computeTotals(this.records);
-        const prev = this.computeTotals(this.prevRecords || []);
+        this._metaMonthKey = this._monthKeyFromDate(this.fechaFin);
+        this._metaMonthKeySel = this._metaMonthKey;
+        const rb = document.getElementById('dash-resumen-count');
+        if (rb) rb.textContent = records.length + ' registros';
+        this._agg = { vendedor: vendedorStats, zona: zonaStats, carrier: carrierStats, cliente: clienteStats, empresa: empresaStats, municipio: municipioStats, daily: dailyStats, stats };
+        this._computeRiesgo(records);
+        const cur = this.computeTotals(records);
+        const prev = this.computeTotals(this._applyDimFilters(this.prevRecords || []));
         const pct = (c, p) => p !== 0 ? ((c - p) / Math.abs(p) * 100) : null;
         this.renderInsights({ stats, dailyStats, vendedorStats, zonaStats, carrierStats, deltas: { total: pct(cur.total, prev.total) } });
         this._updateRangeLabel();
@@ -740,6 +896,402 @@ const Dashboard = {
         return d;
     },
 
+    /* ── Global dimension filters (cross-filter) ── */
+    _dimFilterDefs() {
+        return [
+            { key: 'vendedor', label: 'Vendedor' },
+            { key: 'empresa', label: 'Empresa' },
+            { key: 'zona', label: 'Departamento' },
+            { key: 'municipio', label: 'Municipio' },
+            { key: 'cliente', label: 'Cliente' },
+            { key: 'condicion', label: 'Condición' }
+        ];
+    },
+
+    _dimRecordValue(r, key) {
+        if (key === 'vendedor') return (r.vendedor || '').trim() || 'Sin vendedor';
+        if (key === 'empresa') return (r.empresa || '').trim() || 'Sin empresa';
+        if (key === 'zona') return (r.departamento || r.zona || '').trim() || 'Sin departamento';
+        if (key === 'municipio') return (r.municipio || '').trim() || 'Sin municipio';
+        if (key === 'cliente') return (r.cliente || '').trim() || 'Sin cliente';
+        if (key === 'condicion') {
+            const c = (r.condicionPago || '').toLowerCase().trim();
+            return c === 'contado' ? 'Contado' : (c === 'credito' || c === 'crédito' ? 'Crédito' : '');
+        }
+        return '';
+    },
+
+    _renderDimFilters() {
+        const box = document.getElementById('dash-filters');
+        if (!box) return;
+        const active = Object.values(this.dimFilters).filter(Boolean).length;
+        box.innerHTML = this._dimFilterDefs().map(d => `
+            <label class="dash-filter">
+                <span class="dash-filter-label">${d.label}</span>
+                <select class="dash-filter-select" data-dim="${d.key}"><option value="">Todos</option></select>
+            </label>`).join('') +
+            `<button class="dash-filter-clear" id="dash-filter-clear"${active ? '' : ' hidden'}>Limpiar filtros (${active})</button>`;
+        this._populateDimFilters();
+        this._setupDimFilters();
+    },
+
+    _populateDimFilters() {
+        const box = document.getElementById('dash-filters');
+        if (!box) return;
+        this._dimFilterDefs().forEach(d => {
+            const sel = box.querySelector(`select[data-dim="${d.key}"]`);
+            if (!sel) return;
+            const vals = {};
+            (this.records || []).forEach(r => { const v = this._dimRecordValue(r, d.key); if (v) vals[v] = true; });
+            const list = Object.keys(vals).sort((a, b) => a.localeCompare(b));
+            const cur = this.dimFilters[d.key];
+            const opts = ['<option value="">Todos</option>'];
+            if (cur && !vals[cur]) opts.push(`<option value="${this._escapeAttr(cur)}" selected>${this._escapeHtml(cur)}</option>`);
+            opts.push(list.map(v =>
+                `<option value="${this._escapeAttr(v)}"${v === cur ? ' selected' : ''}>${this._escapeHtml(v)}</option>`
+            ).join(''));
+            sel.innerHTML = opts.join('');
+        });
+    },
+
+    _setupDimFilters() {
+        const box = document.getElementById('dash-filters');
+        if (!box || box.dataset.bound) return;
+        box.dataset.bound = '1';
+        box.addEventListener('change', e => {
+            const sel = e.target.closest('select[data-dim]');
+            if (!sel) return;
+            this.dimFilters[sel.dataset.dim] = sel.value;
+            this._renderDimFilters();
+            this.computeAndRender();
+        });
+        box.addEventListener('click', e => { if (e.target.closest('#dash-filter-clear')) this._clearDimFilters(); });
+    },
+
+    _clearDimFilters() {
+        Object.keys(this.dimFilters).forEach(k => { this.dimFilters[k] = ''; });
+        this._renderDimFilters();
+        this.computeAndRender();
+    },
+
+    _applyDimFilters(records) {
+        const f = this.dimFilters || {};
+        if (!Object.values(f).some(Boolean)) return records || [];
+        return (records || []).filter(r => this._dimFilterDefs().every(d => {
+            const want = f[d.key];
+            return !want || this._dimRecordValue(r, d.key) === want;
+        }));
+    },
+
+    /* ── Dashboard config (metas + comisiones) ── */
+    async _loadDashboardConfig() {
+        try {
+            const doc = await firebase.firestore().collection('config').doc('dashboard').get();
+            const d = doc.exists ? doc.data() : {};
+            let metas = d.metas || {};
+            if (Object.keys(metas).some(k => typeof metas[k] === 'number')) {
+                const flat = {};
+                Object.keys(metas).forEach(k => { if (typeof metas[k] === 'number') flat[k] = metas[k]; });
+                metas = {};
+                metas[this._monthKeyFromDate(this.fechaFin)] = flat;
+            }
+            this.metas = metas;
+            this.comisiones = d.comisiones || {};
+        } catch (e) {
+            console.warn('[Dashboard] config load error:', e);
+            this.metas = this.metas || {};
+            this.comisiones = this.comisiones || {};
+        }
+        this._configLoaded = true;
+        if (this.records && this.records.length) this.computeAndRender();
+    },
+
+    _monthKeyFromDate(d) {
+        if (!d) d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    },
+
+    _metaHtml(name, monto) {
+        const monthObj = (this.metas || {})[this._metaMonthKey] || {};
+        const meta = Number(monthObj[name]) || 0;
+        if (!meta) return '';
+        const pctRaw = (monto / meta) * 100;
+        const done = monto >= meta;
+        return `<div class="dash-meta-block">
+            <div class="dash-meta-block-row"><span>Meta ${this.formatMoney(meta)}</span><span class="${done ? 'done' : ''}">${pctRaw.toFixed(0)}%</span></div>
+            <div class="dash-meta-block-bar"><div class="dash-meta-block-fill ${done ? 'done' : ''}" style="width:${Math.min(100, Math.max(0, pctRaw))}%"></div></div>
+        </div>`;
+    },
+
+    _comisionHtml(name, monto) {
+        const pct = Number((this.comisiones || {})[name]) || 0;
+        if (!pct) return '';
+        return `<div class="dash-comision-line">Comisión ${pct}%: <strong>${this.formatMoney(monto * pct / 100)}</strong></div>`;
+    },
+
+    showMetasModal() {
+        if (window.permissions && window.permissions.manageMetas === false) {
+            showToast('No tienes permisos para gestionar metas', 'error');
+            return;
+        }
+        const vendors = [];
+        const seen = {};
+        const add = v => { v = (v || '').trim(); if (v && v !== 'Sin vendedor' && !seen[v]) { seen[v] = true; vendors.push(v); } };
+        (this.records || []).forEach(r => add(this._dimRecordValue(r, 'vendedor')));
+        Object.keys(this.comisiones || {}).forEach(add);
+        Object.keys(this.metas || {}).forEach(mk => {
+            const m = this.metas[mk];
+            if (m && typeof m === 'object') Object.keys(m).forEach(add);
+        });
+        vendors.sort((a, b) => a.localeCompare(b));
+
+        const monthKey = this._metaMonthKeySel || this._metaMonthKey;
+        const rowsHtml = mk => vendors.length === 0
+            ? '<p style="color:var(--text-tertiary);">No hay vendedores en este periodo.</p>'
+            : vendors.map(v => `
+                    <div class="dash-meta-edit-row" data-vendor="${this._escapeAttr(v)}">
+                        <span class="dash-meta-edit-name">${this._escapeHtml(v)}</span>
+                        <label class="dash-meta-edit-field"><span>Meta $</span><input type="number" min="0" step="1" class="dash-meta-input" data-meta value="${Number(((this.metas || {})[mk] || {})[v]) || ''}"></label>
+                        <label class="dash-meta-edit-field"><span>Comisión %</span><input type="number" min="0" max="100" step="0.1" class="dash-meta-input" data-comision value="${Number((this.comisiones || {})[v]) || ''}"></label>
+                    </div>`).join('');
+
+        const existing = document.querySelector('.dash-metas-backdrop');
+        if (existing) existing.remove();
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop dash-metas-backdrop';
+        const modal = document.createElement('div');
+        modal.className = 'modal-content';
+        modal.style.maxWidth = '560px';
+        modal.style.maxHeight = '85vh';
+        modal.style.overflowY = 'auto';
+        modal.innerHTML = `
+            <h2 style="margin:0 0 0.25rem;">🎯 Metas y comisiones</h2>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem;">Elige el mes para definir la meta mensual por vendedor. La comisión aplica por vendedor.</p>
+            <div style="margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+                <label style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);">Mes</label>
+                <input type="month" id="dash-metas-month" value="${monthKey}" style="padding:6px 8px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-family);font-size:0.9rem;">
+            </div>
+            <div id="dash-metas-rows">${rowsHtml(monthKey)}</div>
+            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem;">
+                <button class="btn btn-secondary" id="dash-metas-cancel">Cancelar</button>
+                <button class="btn btn-primary" id="dash-metas-save">Guardar</button>
+            </div>`;
+        document.body.appendChild(backdrop);
+        backdrop.appendChild(modal);
+        const close = () => { backdrop.remove(); };
+        backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
+
+        const monthInput = modal.querySelector('#dash-metas-month');
+        monthInput.addEventListener('change', () => {
+            this._metaMonthKeySel = monthInput.value;
+            modal.querySelector('#dash-metas-rows').innerHTML = rowsHtml(monthInput.value);
+        });
+
+        modal.querySelector('#dash-metas-cancel').addEventListener('click', close);
+        modal.querySelector('#dash-metas-save').addEventListener('click', async () => {
+            const mk = monthInput.value;
+            if (!mk) { showToast('Selecciona un mes', 'error'); return; }
+            const comisiones = {};
+            const monthAmounts = {};
+            modal.querySelectorAll('.dash-meta-edit-row').forEach(row => {
+                const v = row.dataset.vendor;
+                const mv = parseFloat(row.querySelector('[data-meta]').value);
+                const cv = parseFloat(row.querySelector('[data-comision]').value);
+                if (!isNaN(mv) && mv > 0) monthAmounts[v] = mv;
+                if (!isNaN(cv) && cv > 0) comisiones[v] = cv;
+            });
+            const metas = Object.assign({}, this.metas || {});
+            if (Object.keys(monthAmounts).length === 0) delete metas[mk];
+            else metas[mk] = monthAmounts;
+            try {
+                await firebase.firestore().collection('config').doc('dashboard').set({ metas, comisiones, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                this.metas = metas;
+                this.comisiones = comisiones;
+                this.computeAndRender();
+                showToast('Metas guardadas', 'success');
+                close();
+            } catch (err) {
+                showToast('Error al guardar: ' + err.message, 'error');
+            }
+        });
+    },
+
+    /* ── Clientes en riesgo (churn) ── */
+    _computeRiesgo(records) {
+        const curCli = {}, prevCli = {};
+        (records || []).forEach(r => { const c = (r.cliente || '').trim(); if (c) curCli[c] = (curCli[c] || 0) + signedAmount(r, 'venta'); });
+        this._applyDimFilters(this.prevRecords || []).forEach(r => { const c = (r.cliente || '').trim(); if (c) prevCli[c] = (prevCli[c] || 0) + signedAmount(r, 'venta'); });
+        const enRiesgo = Object.keys(prevCli).filter(c => !(c in curCli)).map(c => ({ name: c, monto: prevCli[c] })).sort((a, b) => b.monto - a.monto);
+        const nuevos = Object.keys(curCli).filter(c => !(c in prevCli)).map(c => ({ name: c, monto: curCli[c] })).sort((a, b) => b.monto - a.monto);
+        this._riesgo = { enRiesgo, nuevos };
+        this._renderRiesgo();
+    },
+
+    _renderRiesgo() {
+        const box = document.getElementById('dash-riesgo-content');
+        if (!box) return;
+        const badge = document.getElementById('dash-riesgo-resumen');
+        const r = this._riesgo || { enRiesgo: [], nuevos: [] };
+        const hasPrev = (this.prevRecords || []).length > 0;
+        if (badge) badge.textContent = hasPrev ? (r.enRiesgo.length + ' en riesgo') : 'sin periodo previo';
+        if (!hasPrev) { box.innerHTML = '<p class="dash-riesgo-empty">Selecciona un rango con periodo anterior para detectar clientes que dejaron de comprar.</p>'; return; }
+        if (r.enRiesgo.length === 0 && r.nuevos.length === 0) { box.innerHTML = '<p class="dash-riesgo-empty">Sin cambios: los clientes del periodo anterior siguen comprando.</p>'; return; }
+        const risk = r.enRiesgo.slice(0, 12).map(c => `<div class="dash-riesgo-item"><span class="dash-riesgo-name">${this._escapeHtml(c.name)}</span><span class="dash-riesgo-amt down">${this.formatMoney(c.monto)}</span></div>`).join('');
+        const news = r.nuevos.slice(0, 12).map(c => `<div class="dash-riesgo-item"><span class="dash-riesgo-name">${this._escapeHtml(c.name)}</span><span class="dash-riesgo-amt up">+${this.formatMoney(c.monto)}</span></div>`).join('');
+        box.innerHTML = `<div class="dash-riesgo-col">
+            <div class="dash-riesgo-col-title down">Dejaron de comprar (${r.enRiesgo.length})</div>
+            ${risk || '<p class="dash-riesgo-empty">Ninguno</p>'}
+        </div>
+        <div class="dash-riesgo-col">
+            <div class="dash-riesgo-col-title up">Clientes nuevos (${r.nuevos.length})</div>
+            ${news || '<p class="dash-riesgo-empty">Ninguno</p>'}
+        </div>`;
+    },
+
+    /* ── Evolución mensual (tendencia) ── */
+    async _loadMonthlyTrend() {
+        const key = formatDateForInput(this.fechaFin);
+        if (this._trendKey === key) { this._renderTrendTable(); return; }
+        const box = document.getElementById('dash-trend-chart');
+        if (box) box.innerHTML = '';
+        const months = 6;
+        const end = new Date(this.fechaFin);
+        const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1, 0, 0, 0);
+        try {
+            const snap = await firebase.firestore().collection('interlogic')
+                .where('fecha', '>=', start)
+                .where('fecha', '<=', end)
+                .orderBy('fecha', 'desc')
+                .limit(3000)
+                .get();
+            let recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
+            recs = this._applyDimFilters(recs);
+            const buckets = [];
+            for (let i = 0; i < months; i++) {
+                const d = new Date(end.getFullYear(), end.getMonth() - (months - 1) + i, 1);
+                buckets.push({ key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: this.formatMonthShort(d.getMonth()) + " '" + String(d.getFullYear()).slice(2), total: 0, count: 0, contado: 0, credito: 0 });
+            }
+            const map = {};
+            buckets.forEach(b => { map[b.key] = b; });
+            recs.forEach(r => {
+                const d = r.fecha && r.fecha.toDate ? r.fecha.toDate() : null;
+                if (!d) return;
+                const k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                const b = map[k];
+                if (!b) return;
+                const m = signedAmount(r, 'venta');
+                b.total += m; b.count++;
+                const c = (r.condicionPago || '').toLowerCase().trim();
+                if (c === 'contado') b.contado += m;
+                else if (c === 'credito' || c === 'crédito') b.credito += m;
+            });
+            this._trendKey = key;
+            this._trendMonths = buckets;
+            this._renderTrend(buckets);
+            this._renderTrendTable();
+        } catch (err) {
+            console.error('[Dashboard] trend error:', err);
+            if (box) box.innerHTML = '<p class="dash-riesgo-empty">No se pudo cargar la tendencia.</p>';
+        }
+    },
+
+    _renderTrend(buckets) {
+        const total = buckets.reduce((a, b) => a + b.total, 0);
+        const tt = document.getElementById('dash-trend-total');
+        if (tt) tt.textContent = this.formatMoney(total);
+        if (this.charts.trend) {
+            this.charts.trend.updateOptions({
+                xaxis: { categories: buckets.map(b => b.label) },
+                series: [
+                    { name: 'Total', data: buckets.map(b => Math.round(b.total)) },
+                    { name: 'Contado', data: buckets.map(b => Math.round(b.contado)) },
+                    { name: 'Crédito', data: buckets.map(b => Math.round(b.credito)) }
+                ]
+            });
+        }
+        requestAnimationFrame(() => this._resizeCharts());
+    },
+
+    _renderTrendTable() {
+        const box = document.getElementById('dash-trend-table');
+        if (!box || !this._trendMonths) return;
+        box.innerHTML = `<div class="table-container" style="overflow-x:auto;"><table class="data-table" style="font-size:0.85rem;">
+            <thead><tr><th>Mes</th><th style="text-align:right;">Ventas</th><th style="text-align:right;">Entregas</th><th style="text-align:right;">Ticket prom.</th></tr></thead>
+            <tbody>${this._trendMonths.map(b => `<tr><td>${b.label}</td><td style="text-align:right;">${this.formatMoney(b.total)}</td><td style="text-align:right;">${b.count}</td><td style="text-align:right;">${b.count ? this.formatMoney(b.total / b.count) : '-'}</td></tr>`).join('')}</tbody>
+        </table></div>`;
+    },
+
+    /* ── Exportar tab por tab ── */
+    _exportTab(key) {
+        const a = this._agg || {};
+        if (key === 'resumen') return this.exportDetailToExcel(this._activeRecords || [], 'Detalle periodo');
+        if (key === 'dia') return this._exportDaily(a.daily);
+        if (key === 'tendencia') return this._exportTrend();
+        const titles = { vendedor: 'Vendedores', zona: 'Departamentos', carrier: 'Entregadores', cliente: 'Clientes', empresa: 'Empresas', municipio: 'Municipios' };
+        const map = a[key];
+        if (!map) { showToast('No hay datos para exportar', 'info'); return; }
+        this._exportStats(map, titles[key] || key);
+    },
+
+    _exportStats(map, title) {
+        const rows = Object.entries(map).sort((x, y) => y[1].monto - x[1].monto).map(([name, d]) => ({
+            'Nombre': name,
+            'Ventas': d.monto,
+            'Entregas': d.count,
+            'Contado': d.contado,
+            'Crédito': d.credito,
+            'Ticket Prom.': d.count ? d.monto / d.count : 0
+        }));
+        this._writeXlsx(rows, title, 'Resumen');
+    },
+
+    _exportDaily(daily) {
+        if (!daily) { showToast('No hay datos para exportar', 'info'); return; }
+        const rows = Object.keys(daily).sort().map(k => {
+            const d = daily[k];
+            return {
+                'Día': d.label,
+                'Ventas': d.total,
+                'Entregas': d.totalCount,
+                'Contado': d.contado,
+                'Crédito': d.credito,
+                'Dalse': d.dalse,
+                'Incede': d.incede
+            };
+        });
+        this._writeXlsx(rows, 'Por día', 'Por día');
+    },
+
+    _exportTrend() {
+        if (!this._trendMonths) { showToast('Abre la pestaña Tendencia primero', 'info'); return; }
+        const rows = this._trendMonths.map(b => ({
+            'Mes': b.label,
+            'Ventas': b.total,
+            'Entregas': b.count,
+            'Contado': b.contado,
+            'Crédito': b.credito,
+            'Ticket Prom.': b.count ? b.total / b.count : 0
+        }));
+        this._writeXlsx(rows, 'Tendencia mensual', 'Tendencia');
+    },
+
+    _writeXlsx(rows, title, sheetName) {
+        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
+        if (!rows.length) { showToast('No hay datos para exportar', 'info'); return; }
+        try {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.max(k.length, ...rows.map(r => String(r[k] == null ? '' : r[k]).length)) + 2 }));
+            XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Datos');
+            const fechaStr = formatDateForInput(this.fechaInicio);
+            XLSX.writeFile(wb, `${String(title).replace(/[^a-zA-Z0-9]/g, '_')}_${fechaStr}.xlsx`);
+            showToast('Excel exportado exitosamente', 'success');
+        } catch (err) {
+            console.error('[Dashboard] Export tab error:', err);
+            showToast('Error al exportar Excel', 'error');
+        }
+    },
+
     _dimDeltas: { vendedor: {}, zona: {}, carrier: {} },
 
     updateKpiCards(s) {
@@ -768,12 +1320,14 @@ const Dashboard = {
         sub('dash-incede-sub', s.total > 0 ? ((s.incede / s.total) * 100).toFixed(0) + '% del total' : '');
 
         try {
-            const curV = this._aggregateDim(this.records, 'vendedor');
-            const prevV = this._aggregateDim(this.prevRecords || [], 'vendedor');
-            const curC = this._aggregateDim(this.records, 'carrier');
-            const prevC = this._aggregateDim(this.prevRecords || [], 'carrier');
-            const curZ = this._aggregateDim(this.records, 'zona');
-            const prevZ = this._aggregateDim(this.prevRecords || [], 'zona');
+            const act = this._activeRecords || this.records;
+            const prv = this._applyDimFilters(this.prevRecords || []);
+            const curV = this._aggregateDim(act, 'vendedor');
+            const prevV = this._aggregateDim(prv, 'vendedor');
+            const curC = this._aggregateDim(act, 'carrier');
+            const prevC = this._aggregateDim(prv, 'carrier');
+            const curZ = this._aggregateDim(act, 'zona');
+            const prevZ = this._aggregateDim(prv, 'zona');
             this._dimDeltas = { vendedor: this._dimPct(curV, prevV), zona: this._dimPct(curZ, prevZ), carrier: this._dimPct(curC, prevC) };
         } catch (e) { this._dimDeltas = { vendedor: {}, zona: {}, carrier: {} }; }
         const dalseCard = document.querySelector('.dash-kpi-icon-dalse')?.closest('.dash-kpi-card');
@@ -1165,6 +1719,30 @@ const Dashboard = {
             this.charts.acum = new ApexCharts(acumEl, acumOptions);
         }
 
+        /* ── Trend chart (evolución mensual) ── */
+        const trendEl = document.getElementById('dash-trend-chart');
+        if (trendEl) {
+            const trendOptions = {
+                chart: { type: 'line', fontFamily: 'Inter, sans-serif', height: 380, toolbar: { show: false }, zoom: { enabled: false } },
+                series: [
+                    { name: 'Total', data: [] },
+                    { name: 'Contado', data: [] },
+                    { name: 'Crédito', data: [] }
+                ],
+                colors: ['#7c3aed', '#10b981', '#f59e0b'],
+                stroke: { curve: 'smooth', width: 3 },
+                markers: { size: 5 },
+                xaxis: { categories: [], labels: { style: { colors: mutedColor, fontFamily: 'Inter, sans-serif' } } },
+                yaxis: { labels: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US'), style: { colors: labelColor, fontFamily: 'Inter, sans-serif' } } },
+                grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0' },
+                legend: { position: 'top', horizontalAlign: 'right', labels: { colors: labelColor }, fontFamily: 'Inter, sans-serif' },
+                dataLabels: { enabled: false },
+                tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
+                theme: { mode: theme }
+            };
+            this.charts.trend = new ApexCharts(trendEl, trendOptions);
+        }
+
         const renderJobs = Object.values(this.charts)
             .filter(c => c && typeof c.render === 'function')
             .map(c => c.render());
@@ -1318,6 +1896,8 @@ const Dashboard = {
                         <div class="dash-vendedor-body">
                             <div class="dash-vendedor-name">${this._escapeHtml(name)}</div>
                             <div class="dash-vendedor-amount">${this.formatMoney(d.monto)}</div>
+                            ${this._metaHtml(name, d.monto)}
+                            ${this._comisionHtml(name, d.monto)}
                         </div>
                     </div>
                     <div class="dash-vendedor-meta">
@@ -1424,6 +2004,62 @@ const Dashboard = {
                 series: [{ data: chartData }]
             });
         }
+    },
+
+    /* ── Dimension cards genéricas (Cliente / Empresa / Municipio) ── */
+    _renderDimCards(gridId, badgeId, statsMap, totalMonto, dimKey) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        const badge = document.getElementById(badgeId);
+        const rows = Object.entries(statsMap).sort((a, b) => b[1].monto - a[1].monto);
+        const labels = { cliente: 'clientes', empresa: 'empresas', municipio: 'municipios' };
+        if (badge) badge.textContent = rows.length + ' ' + (labels[dimKey] || 'registros');
+        if (rows.length === 0) {
+            grid.innerHTML = '<div class="dash-empty" style="grid-column:1/-1;"><p>No hay datos para estos filtros</p></div>';
+            return;
+        }
+        const colors = ['#7c3aed', '#8b5cf6', '#a78bfa', '#6366f1', '#9333ea', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+        const showAll = this._rankState[dimKey];
+        grid.innerHTML = rows.map(([name, d], index) => {
+            const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
+            const avg = d.count > 0 ? d.monto / d.count : 0;
+            const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
+            const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
+            const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
+            const color = colors[index % colors.length];
+            return `<div class="dash-zona-card" data-dim-key="${dimKey}" data-dim-value="${this._escapeAttr(name)}" style="${index >= 5 && !showAll ? 'display:none;' : ''}">
+                <div class="dash-zona-card-inner">
+                    <div class="dash-zona-card-top">
+                        <div class="dash-zona-icon-wrap"><span class="dash-rank-medal">${medal}</span><span class="dash-dim-dot" style="background:${color};"></span></div>
+                        <div class="dash-zona-body">
+                            <div class="dash-zona-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
+                            <div class="dash-zona-amount">${this.formatMoney(d.monto)}</div>
+                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span></div>
+                        </div>
+                    </div>
+                    <div class="dash-zona-bar-wrap">
+                        <div class="dash-zona-bar">
+                            <div class="dash-zona-bar-contado" style="width:${ctPct}%" title="Contado: ${this.formatMoney(d.contado)}"></div>
+                            <div class="dash-zona-bar-credito" style="width:${crPct}%" title="Crédito: ${this.formatMoney(d.credito)}"></div>
+                        </div>
+                        <div class="dash-zona-bar-labels">
+                            <span class="dash-zona-bar-label-contado">${this.formatMoney(d.contado)} contado</span>
+                            <span class="dash-zona-bar-label-credito">${this.formatMoney(d.credito)} crédito</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        grid.querySelectorAll('[data-dim-key]').forEach(card => {
+            card.addEventListener('click', () => this.showDimValueDetail(card.dataset.dimKey, card.dataset.dimValue));
+        });
+    },
+
+    showDimValueDetail(dimKey, value) {
+        const labels = { cliente: 'Cliente', empresa: 'Empresa', municipio: 'Municipio' };
+        const base = this._activeRecords || this.records;
+        const filtered = base.filter(r => this._dimRecordValue(r, dimKey) === value);
+        this._renderDetailModal(filtered, (labels[dimKey] || dimKey) + ': ' + value, '#7c3aed');
     },
 
     /* ── Acumulado por Vendedor (pie chart interactivo) ── */
@@ -1694,9 +2330,7 @@ const Dashboard = {
     /* ── Escape helpers ── */
     _escapeHtml(s) {
         if (s == null) return '';
-        const d = document.createElement('div');
-        d.textContent = String(s);
-        return d.innerHTML;
+        return sanitizeHTML(String(s));
     },
     _escapeAttr(s) {
         return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1888,12 +2522,7 @@ const Dashboard = {
 
     /* ── Shared modal renderer (enhanced) ── */
     _renderDetailModal(filtered, title, color) {
-        const esc = (s) => {
-            if (!s && s !== 0) return '';
-            const d = document.createElement('div');
-            d.textContent = String(s);
-            return d.innerHTML;
-        };
+        const esc = (s) => sanitizeHTML(String((s || s === 0) ? s : ''));
 
         const formatDt = (d) => {
             if (!d) return '—';

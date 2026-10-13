@@ -33,7 +33,9 @@ const Asistencia = {
         const cols = [];
         for (let d = startDay; d <= endDay; d++) {
             const date = new Date(y, m-1, d);
-            cols.push({ day:d, date, label:fmt.format(date), key:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` });
+            const dow = date.getDay();
+            const short = `${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dow]} ${d}`;
+            cols.push({ day:d, date, label:fmt.format(date), dow, short, isWeekend: dow === 0 || dow === 6, key:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` });
         }
         return cols;
     },
@@ -112,6 +114,7 @@ const Asistencia = {
         const db = firebase.firestore();
         const pk = this.currentPeriodKey();
         const empList = this.employees.map(e => ({ id:e.id, name:e.name }));
+        this.updateStatus('Guardando…', 'saving');
         try {
             await db.collection('asistencia').doc('_config').set({ employees: empList }, { merge:true });
             await db.collection('asistencia').doc(pk).set({
@@ -119,24 +122,29 @@ const Asistencia = {
                 byEmployee: this.byEmployee
             }, { merge:true });
             this.dirty = false;
+            this.updateStatus('Guardado correctamente', 'ok');
+            if (typeof showToast === 'function') showToast('Asistencia guardada','success');
         } catch(e) {
             console.error('Error saving:', e);
-            if (typeof showToast === 'function') showToast('Error al guardar','error');
+            this.updateStatus('Error al guardar', 'error');
+            if (typeof showToast === 'function') showToast('Error al guardar asistencia','error');
         }
     },
 
     markDirty() {
         this.dirty = true;
+        this.updateStatus('Sin guardar…', 'dirty');
         if (this.saveTimer) clearTimeout(this.saveTimer);
         this.saveTimer = setTimeout(() => {
             this.saveToFirestore();
-            this.updateStatus('Guardado automáticamente');
         }, 800);
     },
 
-    updateStatus(msg) {
+    updateStatus(msg, state) {
         const el = document.getElementById('asis-status');
-        if (el) el.textContent = msg;
+        if (!el) return;
+        el.textContent = msg;
+        el.dataset.state = state || '';
     },
 
     async render() {
@@ -149,13 +157,12 @@ const Asistencia = {
         const canEdit = window.permissions?.canCreate || window.permissions?.canEdit;
         contentArea.innerHTML = `
             <div style="display:flex;flex-direction:column;height:100%;min-height:calc(100vh - 100px);">
-            <div class="module-header" style="flex-shrink:0;">
-                <div>
-                    <h1>📅 Asistencia</h1>
-                    <p>Control de horas y permisos — BOD Despacho</p>
-                </div>
-                <span id="asis-status" class="asis-save-status"></span>
-            </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'asistencia',
+                title: 'Asistencia',
+                subtitle: 'Control de horas y permisos — BOD Despacho',
+                actions: `<span id="asis-status" class="asis-save-status"></span>`
+            })}
             <div class="asis-toolbar" style="flex-shrink:0;">
                 <div class="asis-period-panel">
                     <label class="asis-field">
@@ -189,9 +196,9 @@ const Asistencia = {
             <div class="asis-status-bar" style="flex-shrink:0;">
                 <span class="asis-sb-label">Estado:</span>
                 <div class="asis-chip-row">
-                    <button class="asis-status-btn asis-cruce" data-status="cruce">CRUCE</button>
-                    <button class="asis-status-btn asis-iss" data-status="iss">ISS 75%</button>
-                    <button class="asis-status-btn asis-descuento" data-status="descuento">DESC.</button>
+                    <button class="asis-status-btn asis-cruce" data-status="cruce" title="CRUCE: hora extra — marca con color verde">CRUCE</button>
+                    <button class="asis-status-btn asis-iss" data-status="iss" title="ISS 75%: inasistencia sin certificado — cobra 75%">ISS 75%</button>
+                    <button class="asis-status-btn asis-descuento" data-status="descuento" title="DESC: descuento directo — rojo">DESC.</button>
                 </div>
                 <span class="asis-sb-label">Aplicar:</span>
                 <div class="asis-chip-row">
@@ -201,6 +208,7 @@ const Asistencia = {
                     <button class="asis-scope-btn asis-scope-muted" id="asis-btn-clear">Quitar</button>
                 </div>
             </div>
+            <div class="asis-summary" id="asis-summary"></div>
             <div class="asis-sheet-card" style="flex:1;min-height:200px;">
                 <div class="asis-table-wrapper">
                     <table class="asis-table" id="asis-table">
@@ -209,6 +217,7 @@ const Asistencia = {
                             <tr id="asis-header-row">
                                 <th class="asis-col-num asis-sticky">#</th>
                                 <th class="asis-col-name asis-sticky asis-sticky-name">Empleado</th>
+                                <th class="asis-col-total">TOTAL</th>
                                 <th class="asis-col-obs">OBS</th>
                             </tr>
                         </thead>
@@ -222,6 +231,7 @@ const Asistencia = {
         this.loadFromFirestore().then(() => {
             this.populateSelects();
             this.renderTable();
+            this.updateSummary();
             this.updateStatus(`${this.month}/${this.year}, ${this.periodRangeLabel(this.periodHalf)}`);
         });
     },
@@ -267,6 +277,7 @@ const Asistencia = {
                             <tr id="asis-header-row">
                                 <th class="asis-col-num asis-sticky">#</th>
                                 <th class="asis-col-name asis-sticky asis-sticky-name">Empleado</th>
+                                <th class="asis-col-total">TOT</th>
                                 <th class="asis-col-obs">OBS</th>
                             </tr>
                         </thead>
@@ -317,22 +328,26 @@ const Asistencia = {
         const headerRow = document.getElementById('asis-header-row');
         if (!headerRow) return;
         headerRow.querySelectorAll('.asis-col-date').forEach(el => el.remove());
-        const obsTh = headerRow.querySelector('.asis-col-obs');
+        const totalTh = headerRow.querySelector('.asis-col-total');
         this.dateColumns.forEach(col => {
             const th = document.createElement('th');
-            th.className = 'asis-col-date';
+            th.className = 'asis-col-date' + (col.isWeekend ? ' asis-th-weekend' : '');
             th.dataset.dateKey = col.key;
             const span = document.createElement('span');
             span.className = 'asis-date-header';
-            span.textContent = col.label;
+            span.title = col.label;
+            const abbr = document.createElement('b');
+            abbr.className = 'asis-date-short';
+            abbr.textContent = col.short;
+            span.appendChild(abbr);
             th.appendChild(span);
-            headerRow.insertBefore(th, obsTh);
+            headerRow.insertBefore(th, totalTh);
         });
         this.syncColspan();
     },
 
     syncColspan() {
-        const total = 2 + this.dateColumns.length + 1;
+        const total = 2 + this.dateColumns.length + 2;
         const title = document.querySelector('.asis-sheet-title');
         if (title) title.colSpan = total;
     },
@@ -367,10 +382,18 @@ const Asistencia = {
             tr.appendChild(tdName);
             requestAnimationFrame(() => this.autoResizeNameInput(nameInput));
 
+            let totalHours = 0;
+            let totalCruce = 0;
+            let totalIss = 0;
+            let totalDesc = 0;
             this.dateColumns.forEach(col => {
                 const cell = rowData.cells[col.key] || { hours:'', status:null };
+                if (parseFloat(cell.hours)) totalHours += parseFloat(cell.hours);
+                if (cell.status === 'cruce') totalCruce++;
+                else if (cell.status === 'iss') totalIss++;
+                else if (cell.status === 'descuento') totalDesc++;
                 const td = document.createElement('td');
-                td.className = 'asis-cell-date';
+                td.className = 'asis-cell-date' + (col.isWeekend ? ' asis-weekend' : '');
                 td.dataset.employeeId = emp.id;
                 td.dataset.dateKey = col.key;
                 const input = document.createElement('input');
@@ -385,6 +408,15 @@ const Asistencia = {
                 tr.appendChild(td);
             });
 
+            const tdTotal = document.createElement('td');
+            tdTotal.className = 'asis-col-total asis-cell-total';
+            const totalParts = [];
+            if (totalHours) totalParts.push(`${totalHours % 1 ? totalHours.toFixed(1) : totalHours} hs`);
+            if (totalCruce) totalParts.push(`<span class="asis-t-flag asis-flag-cruce">⚡${totalCruce}</span>`);
+            if (totalIss) totalParts.push(`<span class="asis-t-flag asis-flag-iss">📋${totalIss}</span>`);
+            if (totalDesc) totalParts.push(`<span class="asis-t-flag asis-flag-desc">✕${totalDesc}</span>`);
+            tdTotal.innerHTML = totalParts.length ? totalParts.join(' ') : '—';
+
             const tdObs = document.createElement('td');
             tdObs.className = 'asis-cell-obs asis-col-obs';
             const obsInput = document.createElement('input');
@@ -396,11 +428,51 @@ const Asistencia = {
                 this.autoResizeObsInput(obsInput);
             });
             tdObs.appendChild(obsInput);
+
+            tr.appendChild(tdTotal);
             tr.appendChild(tdObs);
             requestAnimationFrame(() => this.autoResizeObsInput(obsInput));
 
             tbody.appendChild(tr);
         });
+        this.updateSummary();
+    },
+
+    updateSummary() {
+        const el = document.getElementById('asis-summary');
+        if (!el) return;
+        let totalHours = 0;
+        let casiTotal = 0;
+        let cruce = 0;
+        let iss = 0;
+        let desc = 0;
+        let filled = 0;
+        this.employees.forEach(emp => {
+            const row = this.byEmployee[emp.id];
+            if (!row) return;
+            this.dateColumns.forEach(col => {
+                const cell = row.cells?.[col.key];
+                if (!cell) return;
+                const h = parseFloat(cell.hours);
+                if (h) { totalHours += h; filled++; }
+                if (cell.status === 'cruce') cruce++;
+                else if (cell.status === 'iss') iss++;
+                else if (cell.status === 'descuento') desc++;
+            });
+            if (row.observations && String(row.observations).length) casiTotal++;
+        });
+        const period = this.periodRangeLabel(this.periodHalf);
+        const dias = this.dateColumns.length;
+        const fmt = n => (n % 1 ? n.toFixed(1) : n);
+        el.innerHTML = `
+            <span class="asis-sum-chip asis-sum-days">📅 ${period}</span>
+            <span class="asis-sum-chip">👥 ${this.employees.length} empleados</span>
+            <span class="asis-sum-chip">🗓 ${dias} días</span>
+            <span class="asis-sum-chip asis-sum-hours">⏱ ${fmt(totalHours)} hs</span>
+            <span class="asis-sum-chip asis-sum-cruce">⚡ ${cruce} cruce${cruce === 1 ? '' : 's'}</span>
+            <span class="asis-sum-chip asis-sum-iss">📋 ${iss} ISS</span>
+            <span class="asis-sum-chip asis-sum-desc">✕ ${desc} desc.</span>
+        `;
     },
 
     selectCell(td, employeeId, dateKey) {

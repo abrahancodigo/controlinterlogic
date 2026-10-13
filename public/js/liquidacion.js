@@ -143,9 +143,9 @@ const Liquidacion = {
         const paint = () => {
             const list = modal.querySelector('#liq-drv-list');
             if (!list) return;
-            list.innerHTML = this.repartidores.length === 0 ? '<p style="font-size:0.85rem;color:#8e8e93;text-align:center;padding:1rem;">Sin repartidores registrados</p>' :
+            list.innerHTML = this.repartidores.length === 0 ? '<p style="font-size:0.85rem;color:var(--text-tertiary);text-align:center;padding:1rem;">Sin repartidores registrados</p>' :
                 '<div class="table-container"><table class="data-table" style="font-size:0.8rem;"><thead><tr><th>Nombre</th><th>Vehículo</th><th>Zona</th><th style="text-align:right;">Comisión</th><th>Estado</th><th></th></tr></thead><tbody>' +
-                this.repartidores.map(x => '<tr><td><strong>' + sanitizeHTML(x.nombre || '') + '</strong><br><span style="font-size:0.72rem;color:#666;">' + sanitizeHTML(x.telefono || '') + '</span></td><td>' + sanitizeHTML(x.vehiculo || '-') + '</td><td>' + sanitizeHTML(x.zona || '-') + '</td><td style="text-align:right;">' + (x.comisionPct ?? 70) + '%</td><td>' + (x.activo !== false ? '<span class="badge badge-primary">Activo</span>' : '<span class="badge">Inactivo</span>') + '</td><td style="white-space:nowrap;"><button class="btn btn-secondary btn-sm" data-drv-edit="' + x.id + '">Editar</button> <button class="btn btn-sm" data-drv-toggle="' + x.id + '">' + (x.activo !== false ? 'Desactivar' : 'Activar') + '</button> <button class="btn btn-danger btn-sm" data-drv-del="' + x.id + '">Eliminar</button></td></tr>').join('') +
+                this.repartidores.map(x => '<tr><td><strong>' + sanitizeHTML(x.nombre || '') + '</strong><br><span style="font-size:0.72rem;color:var(--text-secondary);">' + sanitizeHTML(x.telefono || '') + '</span></td><td>' + sanitizeHTML(x.vehiculo || '-') + '</td><td>' + sanitizeHTML(x.zona || '-') + '</td><td style="text-align:right;">' + (x.comisionPct ?? 70) + '%</td><td>' + (x.activo !== false ? '<span class="badge badge-primary">Activo</span>' : '<span class="badge">Inactivo</span>') + '</td><td style="white-space:nowrap;"><button class="btn btn-secondary btn-sm" data-drv-edit="' + x.id + '">Editar</button> <button class="btn btn-sm" data-drv-toggle="' + x.id + '">' + (x.activo !== false ? 'Desactivar' : 'Activar') + '</button> <button class="btn btn-danger btn-sm" data-drv-del="' + x.id + '">Eliminar</button></td></tr>').join('') +
                 '</tbody></table></div>';
             list.querySelectorAll('[data-drv-edit]').forEach(b => { b.onclick = () => this._driverForm(modal, paint, b.dataset.drvEdit); });
             list.querySelectorAll('[data-drv-toggle]').forEach(b => { b.onclick = async () => {
@@ -300,18 +300,18 @@ const Liquidacion = {
 
     _renderShell() {
         const area = document.getElementById('content-area');
-        const mobile = window.innerWidth <= 768;
         area.innerHTML =
-            '<div class="module-header"><div><h1 style="' + (mobile ? 'font-size:1.35rem;font-weight:800;' : '') + '">Liquidación</h1>' +
-            '<p style="' + (mobile ? 'font-size:0.78rem;color:#8e8e93;' : '') + '">Ruta del día, cobro y cierre en un solo lugar <span style="font-size:0.65rem;color:#c0c0c0;">v8</span></p></div>' +
-            '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;">' +
-            '<button class="btn btn-secondary" data-act="alerts" id="liq-alerts-btn">Vencidos: 0</button>' +
-            '<button class="btn btn-secondary" data-act="drivers">Repartidores</button>' +
-            '<button class="btn btn-secondary" data-act="new-route">Nueva ruta</button>' +
-            '<button class="btn btn-secondary" data-act="export-excel" title="Descargar lo filtrado a Excel">📥 Excel</button>' +
-            '<button class="btn btn-secondary" data-act="export-pdf" title="Descargar lo filtrado a PDF">🖨 PDF</button>' +
-            '<button class="btn btn-primary" data-act="liquidate" id="liq-btn-liquidar">Liquidar ruta</button>' +
-            '</div></div>' +
+            SharedComponents.renderModuleHeader({
+                icon: 'liquidacion',
+                title: 'Liquidación',
+                subtitle: 'Ruta del día, cobro y cierre en un solo lugar',
+                actions: '<button class="btn btn-secondary" data-act="alerts" id="liq-alerts-btn">Vencidos: 0</button>' +
+                    '<button class="btn btn-secondary" data-act="drivers">Repartidores</button>' +
+                    '<button class="btn btn-secondary" data-act="new-route">Nueva ruta</button>' +
+                    '<button class="btn btn-secondary" data-act="export-excel" title="Descargar lo filtrado a Excel">📥 Excel</button>' +
+                    '<button class="btn btn-secondary" data-act="export-pdf" title="Descargar lo filtrado a PDF">🖨 PDF</button>' +
+                    '<button class="btn btn-primary" data-act="liquidate" id="liq-btn-liquidar">Liquidar ruta</button>'
+            }) +
             '<div id="liq-stats"></div>' +
             '<div class="card" style="margin-bottom:1rem;"><div class="card-body" id="liq-routebar"></div></div>' +
             '<div id="liq-bulkbar"></div>' +
@@ -615,9 +615,9 @@ const Liquidacion = {
         });
         box.innerHTML = SharedComponents.renderStatsGrid([
             { label: 'Por entregar', id: 'liq-st-entregar' },
-            { label: 'Por cobrar', id: 'liq-st-cobrar', style: 'color:#b45309;' },
-            { label: 'Vencido', id: 'liq-st-vencido', style: 'color:#dc2626;' },
-            { label: 'Proyección 30 días', id: 'liq-st-proy', style: 'color:#6d28d9;' }
+            { label: 'Por cobrar', id: 'liq-st-cobrar', style: 'color:var(--kpi-credito);' },
+            { label: 'Vencido', id: 'liq-st-vencido', style: 'color:var(--error);' },
+            { label: 'Proyección 30 días', id: 'liq-st-proy', style: 'color:var(--kpi-total);' }
         ], { containerId: '', containerStyle: 'margin-bottom:1rem;' });
         const set = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
         set('liq-st-entregar', formatCurrency(porEntregar));
@@ -654,8 +654,8 @@ const Liquidacion = {
             '</div>' +
             '<div style="display:flex;gap:0.5rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center;">' +
             chip('todos', 'Todos') + chip('entregar', 'Por entregar') + chip('cobrar', 'Por cobrar') + chip('vencidos', 'Vencidos') +
-            (sel ? '<span style="font-size:0.8rem;color:#666;">' + sanitizeHTML(sel.repartidorNombre || '') + ' · ' + sanitizeHTML(sel.vehiculo || '') + ' · ' + sanitizeHTML(sel.zona || '') + (isLiq ? ' · <strong style="color:#16a34a;">LIQUIDADA</strong> <button class="btn btn-secondary btn-sm" data-act="print-liq">Imprimir</button> <button class="btn btn-danger btn-sm" data-act="del-route">Eliminar</button>' : '') + '</span>' : '') +
-            '<span style="font-size:0.8rem;color:#8e8e93;margin-left:auto;">' + pend.length + ' rutas activas</span>' +
+            (sel ? '<span style="font-size:0.8rem;color:var(--text-secondary);">' + sanitizeHTML(sel.repartidorNombre || '') + ' · ' + sanitizeHTML(sel.vehiculo || '') + ' · ' + sanitizeHTML(sel.zona || '') + (isLiq ? ' · <strong style="color:var(--success);">LIQUIDADA</strong> <button class="btn btn-secondary btn-sm" data-act="print-liq">Imprimir</button> <button class="btn btn-danger btn-sm" data-act="del-route">Eliminar</button>' : '') + '</span>' : '') +
+            '<span style="font-size:0.8rem;color:var(--text-tertiary);margin-left:auto;">' + pend.length + ' rutas activas</span>' +
             '</div>' +
             '<div id="liq-daypanel" style="margin-top:0.75rem;"></div>';
         const select = document.getElementById('liq-route-select');
@@ -686,14 +686,14 @@ const Liquidacion = {
         if (!panel) return;
         const dayRoutes = this._dayRoutes();
         if (!this.dayFilter) {
-            panel.innerHTML = '<p style="font-size:0.8rem;color:#8e8e93;margin:0;">Mostrando todos los días. Elige una fecha para ver su cierre.</p>';
+            panel.innerHTML = '<p style="font-size:0.8rem;color:var(--text-tertiary);margin:0;">Mostrando todos los días. Elige una fecha para ver su cierre.</p>';
             return;
         }
         if (dayRoutes.length === 0) {
-            panel.innerHTML = '<p style="font-size:0.8rem;color:#8e8e93;margin:0;">Sin rutas este día. Crea una con "Nueva ruta" o asígnala desde la cola.</p>';
+            panel.innerHTML = '<p style="font-size:0.8rem;color:var(--text-tertiary);margin:0;">Sin rutas este día. Crea una con "Nueva ruta" o asígnala desde la cola.</p>';
             return;
         }
-        panel.innerHTML = '<p style="font-size:0.8rem;color:#8e8e93;">Cargando cierre del día...</p>';
+        panel.innerHTML = '<p style="font-size:0.8rem;color:var(--text-tertiary);">Cargando cierre del día...</p>';
         const db = firebase.firestore();
         const ids = dayRoutes.map(r => r.id);
         let dels = [];
@@ -723,21 +723,21 @@ const Liquidacion = {
             else if (!isLiq) tCom += com;
             tDep += rec;
             const dif = liq ? (liq.diferencia || 0) : 0;
-            return '<tr style="' + (isLiq ? 'background:#f0fdf4;' : '') + '"><td><strong>Ruta #' + (rt.correlativo || rt.id.substring(0, 6)) + '</strong><br><span style="font-size:0.72rem;color:#666;">' + sanitizeHTML(rt.repartidorNombre || '') + '</span></td>' +
+            return '<tr style="' + (isLiq ? 'background:var(--soft-success-bg);' : '') + '"><td><strong>Ruta #' + (rt.correlativo || rt.id.substring(0, 6)) + '</strong><br><span style="font-size:0.72rem;color:var(--text-secondary);">' + sanitizeHTML(rt.repartidorNombre || '') + '</span></td>' +
                 '<td style="text-align:center;">' + hechos.length + '/' + dd.length + '</td>' +
                 '<td style="text-align:right;">' + formatCurrency(fact) + '</td>' +
                 '<td style="text-align:right;">' + formatCurrency(codEsp) + '</td>' +
-                '<td style="text-align:right;">' + (isLiq ? formatCurrency(rec) : '<span style="color:#ccc;">-</span>') + '</td>' +
+                '<td style="text-align:right;">' + (isLiq ? formatCurrency(rec) : '<span style="color:var(--text-tertiary);">-</span>') + '</td>' +
                 '<td>' + (isLiq ? '<span class="badge badge-primary">Liquidada</span>' + (dif !== 0 ? ' <span class="badge" style="background:#fee2e2;color:#991b1b;">Dif ' + formatCurrency(Math.abs(dif)) + '</span>' : '') : '<span class="badge badge-accent">Pendiente</span>') + '</td>' +
                 '<td style="white-space:nowrap;">' + (isLiq ? '<button class="btn btn-secondary btn-sm" data-act="day-sel" data-id="' + rt.id + '">Ver</button>' : '<button class="btn btn-primary btn-sm" data-act="day-liq" data-id="' + rt.id + '">Liquidar</button>') + '</td></tr>';
         }).join('');
         const tDif = Math.round((tCodEsp - tRec) * 100) / 100;
-        panel.innerHTML = '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem;">' +
+        panel.innerHTML = '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;padding:0.75rem;">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem;"><strong style="font-size:0.9rem;">Cierre del día ' + this.dayFilter + '</strong><span class="badge ' + (liqCount === dayRoutes.length ? 'badge-primary' : 'badge-accent') + '">' + liqCount + '/' + dayRoutes.length + ' liquidadas</span></div>' +
             '<div class="table-container"><table class="data-table" style="font-size:0.78rem;"><thead><tr><th>Ruta</th><th>Entregas</th><th style="text-align:right;">Facturado</th><th style="text-align:right;">COD esp.</th><th style="text-align:right;">Recibido</th><th>Estado</th><th></th></tr></thead><tbody>' + rowsHtml +
-            '<tr style="font-weight:700;border-top:2px solid #e2e8f0;"><td>Total día</td><td></td><td style="text-align:right;">' + formatCurrency(tFact) + '</td><td style="text-align:right;">' + formatCurrency(tCodEsp) + '</td><td style="text-align:right;">' + formatCurrency(tRec) + '</td><td>' + (tDif !== 0 ? '<span style="color:#dc2626;">Dif ' + formatCurrency(Math.abs(tDif)) + '</span>' : '<span style="color:#16a34a;">Cuadrado</span>') + '</td><td></td></tr>' +
+            '<tr style="font-weight:700;border-top:2px solid var(--border-color);"><td>Total día</td><td></td><td style="text-align:right;">' + formatCurrency(tFact) + '</td><td style="text-align:right;">' + formatCurrency(tCodEsp) + '</td><td style="text-align:right;">' + formatCurrency(tRec) + '</td><td>' + (tDif !== 0 ? '<span style="color:var(--error);">Dif ' + formatCurrency(Math.abs(tDif)) + '</span>' : '<span style="color:var(--success);">Cuadrado</span>') + '</td><td></td></tr>' +
             '</tbody></table></div>' +
-            '<p style="font-size:0.78rem;color:#666;margin:0.5rem 0 0;">Fletes: <strong>' + formatCurrency(tFlete) + '</strong> · Comisiones: <strong>' + formatCurrency(tCom) + '</strong> · Efectivo a depositar: <strong style="color:#16a34a;">' + formatCurrency(tDep) + '</strong></p></div>';
+            '<p style="font-size:0.78rem;color:var(--text-secondary);margin:0.5rem 0 0;">Fletes: <strong>' + formatCurrency(tFlete) + '</strong> · Comisiones: <strong>' + formatCurrency(tCom) + '</strong> · Efectivo a depositar: <strong style="color:var(--success);">' + formatCurrency(tDep) + '</strong></p></div>';
     },
 
     _primaryLabel(r) {
@@ -763,7 +763,7 @@ const Liquidacion = {
         const done = [...doneMap.values()];
         let html = '';
         if (rows.length === 0) {
-            html += '<div style="text-align:center;padding:2rem;color:#8e8e93;">Sin pendientes con estos filtros</div>';
+            html += '<div style="text-align:center;padding:2rem;color:var(--text-tertiary);">Sin pendientes con estos filtros</div>';
         } else if (window.innerWidth <= 768) {
             html += rows.map(r => this._cardHtml(r)).join('');
         } else {
@@ -774,7 +774,7 @@ const Liquidacion = {
         }
         if (done.length > 0) {
             const totalCobrado = done.reduce((s, r) => s + this._cobrado(r), 0);
-            html += '<h3 style="font-size:0.9rem;margin:1.25rem 0 0.5rem;color:#16a34a;">Completados del día (' + done.length + ') · ' + formatCurrency(totalCobrado) + ' cobrado</h3>';
+            html += '<h3 style="font-size:0.9rem;margin:1.25rem 0 0.5rem;color:var(--success);">Completados del día (' + done.length + ') · ' + formatCurrency(totalCobrado) + ' cobrado</h3>';
             if (window.innerWidth <= 768) {
                 html += done.map(r => this._doneCardHtml(r)).join('');
             } else {
@@ -788,24 +788,24 @@ const Liquidacion = {
 
     _doneRowHtml(r) {
         const canUndo = !!this._lastActions[r.id] || this._isContado(r);
-        return '<tr style="background:#f0fdf4;">' +
+        return '<tr style="background:var(--soft-success-bg);">' +
             '<td><strong>' + sanitizeHTML(r.guia || '') + '</strong></td>' +
             '<td>' + sanitizeHTML(r.cliente || '') + '</td>' +
             '<td style="text-align:right;">' + formatCurrency(r.venta || 0) + '</td>' +
-            '<td style="text-align:right;font-weight:700;color:#16a34a;">' + formatCurrency(this._cobrado(r)) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:var(--success);">' + formatCurrency(this._cobrado(r)) + '</td>' +
             '<td><span class="badge badge-primary">Completado</span></td>' +
-            '<td>' + (canUndo ? '<button class="btn btn-secondary btn-sm" data-act="undo" data-id="' + r.id + '" style="border:1px solid #b91c1c;color:#b91c1c;font-weight:700;box-shadow:0 0 0 1px rgba(185,28,28,0.25);">↩ Deshacer</button>' : '') + '</td></tr>';
+            '<td>' + (canUndo ? '<button class="btn btn-secondary btn-sm" data-act="undo" data-id="' + r.id + '" style="border:1px solid var(--error);color:var(--error);font-weight:700;box-shadow:0 0 0 1px rgba(185,28,28,0.25);">↩ Deshacer</button>' : '') + '</td></tr>';
     },
 
     _doneCardHtml(r) {
         const canUndo = !!this._lastActions[r.id] || this._isContado(r);
-        return '<div class="m-data-card" style="background:#f0fdf4;opacity:0.8;">' +
+        return '<div class="m-data-card" style="background:var(--soft-success-bg);opacity:0.8;">' +
             '<div class="m-card-header"><span class="m-card-title">#' + sanitizeHTML(r.guia || 'N/A') + '</span><span class="badge badge-primary">Completado</span></div>' +
             '<div class="m-card-rows">' +
             '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '') + '</span></div>' +
-            '<div class="m-card-row"><span class="m-card-label">Cobrado</span><span class="m-card-value" style="font-weight:700;color:#16a34a;">' + formatCurrency(this._cobrado(r)) + '</span></div>' +
+            '<div class="m-card-row"><span class="m-card-label">Cobrado</span><span class="m-card-value" style="font-weight:700;color:var(--success);">' + formatCurrency(this._cobrado(r)) + '</span></div>' +
             '</div>' +
-            (canUndo ? '<div class="m-card-actions"><button class="m-card-action" data-act="undo" data-id="' + r.id + '" style="color:#b91c1c;font-weight:700;">↩ Deshacer</button></div>' : '') + '</div>';
+            (canUndo ? '<div class="m-card-actions"><button class="m-card-action" data-act="undo" data-id="' + r.id + '" style="color:var(--error);font-weight:700;">↩ Deshacer</button></div>' : '') + '</div>';
     },
 
     _estadoBadge(r) {
@@ -819,8 +819,8 @@ const Liquidacion = {
         const st = this._status(r);
         const canUndo = !!this._lastActions[r.id] || r.entregado === true;
         const checked = this.selected.has(r.id) ? ' checked' : '';
-        const route = r.rutaId ? this._routeLabel(r.rutaId) : '<span style="color:#ccc;">-</span>';
-        return '<tr style="' + (st === 'entregar' ? 'background:#fffbeb;' : 'background:#f0fdf4;') + '">' +
+        const route = r.rutaId ? this._routeLabel(r.rutaId) : '<span style="color:var(--text-tertiary);">-</span>';
+        return '<tr style="' + (st === 'entregar' ? 'background:var(--soft-warn-bg);' : 'background:var(--soft-success-bg);') + '">' +
             '<td><input type="checkbox" data-act="sel" data-id="' + r.id + '"' + checked + '></td>' +
             '<td><strong>' + sanitizeHTML(r.guia || '') + '</strong></td>' +
             '<td><a href="#" data-act="ficha" data-cliente="' + sanitizeHTML(r.cliente || '') + '" onclick="return false;">' + sanitizeHTML(r.cliente || '') + '</a></td>' +
@@ -828,14 +828,14 @@ const Liquidacion = {
             '<td>' + sanitizeHTML(r.condicionPago || '-') + '</td>' +
             '<td style="font-size:0.75rem;">' + sanitizeHTML(r.entrega || '-') + '</td>' +
             '<td style="font-size:0.75rem;">' + sanitizeHTML(r.cobra || '-') + '</td>' +
-            '<td style="font-size:0.75rem;">' + route + (r.rutaId ? ' <a href="#" data-act="unassign" data-id="' + r.id + '" title="Quitar de ruta" style="color:#dc2626;" onclick="return false;">x</a>' : '') + '</td>' +
+            '<td style="font-size:0.75rem;">' + route + (r.rutaId ? ' <a href="#" data-act="unassign" data-id="' + r.id + '" title="Quitar de ruta" style="color:var(--error);" onclick="return false;">x</a>' : '') + '</td>' +
             '<td>' + this._estadoBadge(r) + '</td>' +
-            '<td style="text-align:right;font-weight:700;color:#16a34a;">' + formatCurrency(this._cobrado(r)) + '</td>' +
-            '<td style="text-align:right;font-weight:700;color:' + (this._pendiente(r) > 0 ? '#b45309' : '#16a34a') + ';">' + formatCurrency(this._pendiente(r)) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:var(--success);">' + formatCurrency(this._cobrado(r)) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:' + (this._pendiente(r) > 0 ? 'var(--kpi-credito)' : 'var(--success)') + ';">' + formatCurrency(this._pendiente(r)) + '</td>' +
             '<td style="white-space:nowrap;">' +
             '<button class="btn ' + (st === 'entregar' && this._isContado(r) ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="go" data-id="' + r.id + '">' + this._primaryLabel(r) + '</button> ' +
-            (st === 'entregar' ? '<button class="btn btn-sm" data-act="nodel" data-id="' + r.id + '" title="No entregado" style="border:1px solid #e2e8f0;">No entregado</button>' : '') +
-            (canUndo ? ' <button class="btn btn-secondary btn-sm" data-act="undo" data-id="' + r.id + '" style="border:1px solid #b91c1c;color:#b91c1c;">↩ Deshacer</button>' : '') +
+            (st === 'entregar' ? '<button class="btn btn-sm" data-act="nodel" data-id="' + r.id + '" title="No entregado" style="border:1px solid var(--border-color);">No entregado</button>' : '') +
+            (canUndo ? ' <button class="btn btn-secondary btn-sm" data-act="undo" data-id="' + r.id + '" style="border:1px solid var(--error);color:var(--error);">↩ Deshacer</button>' : '') +
             '</td></tr>';
     },
 
@@ -843,20 +843,20 @@ const Liquidacion = {
         const st = this._status(r);
         const canUndo = !!this._lastActions[r.id] || r.entregado === true;
         const sel = this.selected.has(r.id);
-        return '<div class="m-data-card" style="background:' + (st === 'entregar' ? '#fffbeb' : '#f0fdf4') + '">' +
+        return '<div class="m-data-card" style="background:' + (st === 'entregar' ? 'var(--soft-warn-bg)' : 'var(--soft-success-bg)') + '">' +
             '<div class="m-card-header"><span class="m-card-title">#' + sanitizeHTML(r.guia || 'N/A') + '</span>' + this._estadoBadge(r) + '</div>' +
             '<div class="m-card-rows">' +
             '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value"><a href="#" data-act="ficha" data-cliente="' + sanitizeHTML(r.cliente || '') + '" onclick="return false;">' + sanitizeHTML(r.cliente || '') + '</a></span></div>' +
             '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value">' + formatCurrency(r.venta || 0) + '</span></div>' +
             '<div class="m-card-row"><span class="m-card-label">Entrega / Cobra</span><span class="m-card-value">' + sanitizeHTML(r.entrega || '-') + ' / ' + sanitizeHTML(r.cobra || '-') + '</span></div>' +
-            '<div class="m-card-row"><span class="m-card-label">Abonos</span><span class="m-card-value" style="font-weight:700;color:#16a34a;">' + formatCurrency(this._cobrado(r)) + '</span></div>' +
+            '<div class="m-card-row"><span class="m-card-label">Abonos</span><span class="m-card-value" style="font-weight:700;color:var(--success);">' + formatCurrency(this._cobrado(r)) + '</span></div>' +
             '<div class="m-card-row"><span class="m-card-label">CxC</span><span class="m-card-value" style="font-weight:700;">' + formatCurrency(this._pendiente(r)) + '</span></div>' +
             '<div class="m-card-row"><span class="m-card-label">Ruta</span><span class="m-card-value">' + (r.rutaId ? this._routeLabel(r.rutaId) : 'Sin ruta') + '</span></div>' +
             '</div>' +
             '<div class="m-card-actions" onclick="event.stopPropagation()">' +
             '<button class="m-card-action" data-act="go" data-id="' + r.id + '">' + this._primaryLabel(r) + '</button>' +
             (st === 'entregar' ? '<button class="m-card-action" data-act="nodel" data-id="' + r.id + '">No entregado</button>' : '') +
-            (canUndo ? '<button class="m-card-action" data-act="undo" data-id="' + r.id + '" style="color:#b91c1c;font-weight:700;">↩ Deshacer</button>' : '') +
+            (canUndo ? '<button class="m-card-action" data-act="undo" data-id="' + r.id + '" style="color:var(--error);font-weight:700;">↩ Deshacer</button>' : '') +
             '<button class="m-card-action" data-act="sel" data-id="' + r.id + '">' + (sel ? 'Quitar selección' : 'Seleccionar') + '</button>' +
             '</div></div>';
     },
@@ -873,7 +873,7 @@ const Liquidacion = {
         });
         box.innerHTML = '<div class="card" style="margin-bottom:1rem;border:2px solid #2563eb;"><div class="card-body" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">' +
             '<strong>' + rows.length + ' seleccionados</strong>' +
-            '<span style="font-size:0.85rem;">Contado a cobrar: <strong style="color:#16a34a;">' + formatCurrency(contado) + '</strong></span>' +
+            '<span style="font-size:0.85rem;">Contado a cobrar: <strong style="color:var(--success);">' + formatCurrency(contado) + '</strong></span>' +
             '<span style="font-size:0.85rem;">A CxC: <strong>' + formatCurrency(credito) + '</strong></span>' +
             '<span style="flex:1;"></span>' +
             '<button class="btn btn-primary btn-sm" data-act="bulk-go">Entrega masiva</button>' +
@@ -910,7 +910,7 @@ const Liquidacion = {
         if (!r) return;
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
-        modal.innerHTML = '<div class="modal-content" style="max-width:520px;max-height:90vh;overflow-y:auto;"><h2 style="margin-bottom:0.25rem;">Marcar como entregado</h2><p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Guía <strong>' + sanitizeHTML(r.guia || 'N/A') + '</strong> · Venta <strong>' + formatCurrency(r.venta || 0) + '</strong></p><div style="display:flex;gap:0.5rem;margin-bottom:1rem;"><button type="button" class="btn btn-primary" id="liq-del-full">Pago completo</button><button type="button" class="btn btn-secondary" id="liq-del-partial">Pago parcial</button></div><form id="liq-del-form"><div id="liq-del-payments"></div><button type="button" class="btn btn-secondary btn-sm" id="liq-del-add" style="margin-top:0.5rem;">+ Agregar abono</button><p id="liq-del-total" style="font-weight:700;text-align:right;margin:1rem 0 0;"></p><div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;"><button type="button" class="btn btn-secondary" id="liq-del-cancel">Cancelar</button><button type="submit" class="btn btn-primary" id="liq-del-save">Guardar</button></div></form></div>';
+        modal.innerHTML = '<div class="modal-content" style="max-width:520px;max-height:90vh;overflow-y:auto;"><h2 style="margin-bottom:0.25rem;">Marcar como entregado</h2><p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Guía <strong>' + sanitizeHTML(r.guia || 'N/A') + '</strong> · Venta <strong>' + formatCurrency(r.venta || 0) + '</strong></p><div style="display:flex;gap:0.5rem;margin-bottom:1rem;"><button type="button" class="btn btn-primary" id="liq-del-full">Pago completo</button><button type="button" class="btn btn-secondary" id="liq-del-partial">Pago parcial</button></div><form id="liq-del-form"><div id="liq-del-payments"></div><button type="button" class="btn btn-secondary btn-sm" id="liq-del-add" style="margin-top:0.5rem;">+ Agregar abono</button><p id="liq-del-total" style="font-weight:700;text-align:right;margin:1rem 0 0;"></p><div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;"><button type="button" class="btn btn-secondary" id="liq-del-cancel">Cancelar</button><button type="submit" class="btn btn-primary" id="liq-del-save">Guardar</button></div></form></div>';
         document.body.appendChild(modal);
         const list = modal.querySelector('#liq-del-payments');
         const total = modal.querySelector('#liq-del-total');
@@ -1044,7 +1044,7 @@ const Liquidacion = {
         modal.className = 'modal-backdrop';
         modal.innerHTML = '<div class="modal-content" style="max-width:450px;">' +
             '<h2 style="margin-bottom:0.5rem;">No entregado</h2>' +
-            '<p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Guía <strong>' + sanitizeHTML(r.guia || '') + '</strong> · ' + sanitizeHTML(r.cliente || '') + '</p>' +
+            '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Guía <strong>' + sanitizeHTML(r.guia || '') + '</strong> · ' + sanitizeHTML(r.cliente || '') + '</p>' +
             '<form id="liq-nodel-form"><div class="form-group"><label>Motivo</label><select id="liq-nodel-motivo" style="width:100%;"><option>Cliente ausente</option><option>Rechazado por el cliente</option><option>Dirección errónea</option><option>Sin dinero (contado)</option><option>Producto dañado</option><option>Otro</option></select></div>' +
             '<div class="form-group" style="margin-top:1rem;"><label>Nota</label><input type="text" id="liq-nodel-nota" style="width:100%;" placeholder="Detalle opcional"></div>' +
             '<div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;"><button type="button" class="btn btn-secondary" id="liq-nodel-cancel">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div></form></div>';
@@ -1077,11 +1077,11 @@ const Liquidacion = {
         modal.className = 'modal-backdrop';
         modal.innerHTML = '<div class="modal-content" style="max-width:480px;">' +
             '<h2 style="margin-bottom:1rem;">Cobrar ' + formatCurrency(pendiente) + '</h2>' +
-            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.85rem;display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            '<div><span style="color:#8e8e93;">Guía:</span> <strong>' + sanitizeHTML(r.guia || 'N/A') + '</strong></div>' +
-            '<div><span style="color:#8e8e93;">Cliente:</span> <strong>' + sanitizeHTML(r.cliente || '') + '</strong></div>' +
-            '<div><span style="color:#8e8e93;">Venta:</span> <strong>' + formatCurrency(r.venta || 0) + '</strong></div>' +
-            '<div><span style="color:#8e8e93;">Cobrado:</span> <strong style="color:#16a34a;">' + formatCurrency(cobrado) + '</strong></div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.85rem;display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            '<div><span style="color:var(--text-tertiary);">Guía:</span> <strong>' + sanitizeHTML(r.guia || 'N/A') + '</strong></div>' +
+            '<div><span style="color:var(--text-tertiary);">Cliente:</span> <strong>' + sanitizeHTML(r.cliente || '') + '</strong></div>' +
+            '<div><span style="color:var(--text-tertiary);">Venta:</span> <strong>' + formatCurrency(r.venta || 0) + '</strong></div>' +
+            '<div><span style="color:var(--text-tertiary);">Cobrado:</span> <strong style="color:var(--success);">' + formatCurrency(cobrado) + '</strong></div>' +
             '</div>' +
             '<form id="liq-pay-form"><div class="form-group"><label>Monto a cobrar</label><input type="number" id="liq-pay-monto" step="0.01" min="0.01" max="' + pendiente + '" value="' + pendiente.toFixed(2) + '" style="width:100%;font-size:1.1rem;" required></div>' +
             '<div class="form-group" style="margin-top:1rem;"><label>Método</label><select id="liq-pay-metodo" style="width:100%;"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="deposito">Depósito</option><option value="tarjeta">Tarjeta</option></select></div>' +
@@ -1102,7 +1102,7 @@ const Liquidacion = {
             row.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
             const def = new Date();
             def.setDate(def.getDate() + 7 * (i + 1));
-            row.innerHTML = '<input type="date" id="liq-pay-plan-fecha-' + i + '" value="' + formatDateForInput(def) + '" style="flex:1;padding:6px;border:1px solid #e2e8f0;border-radius:6px;"><input type="number" id="liq-pay-plan-monto-' + i + '" step="0.01" min="0.01" style="width:110px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;" placeholder="$"><button type="button" class="btn btn-sm btn-danger">x</button>';
+            row.innerHTML = '<input type="date" id="liq-pay-plan-fecha-' + i + '" value="' + formatDateForInput(def) + '" style="flex:1;padding:6px;border:1px solid var(--border-color);border-radius:6px;"><input type="number" id="liq-pay-plan-monto-' + i + '" step="0.01" min="0.01" style="width:110px;padding:6px;border:1px solid var(--border-color);border-radius:6px;" placeholder="$"><button type="button" class="btn btn-sm btn-danger">x</button>';
             row.querySelector('button').onclick = () => row.remove();
             document.getElementById('liq-pay-plan-list').appendChild(row);
         };
@@ -1159,15 +1159,15 @@ const Liquidacion = {
         if (rows.length === 0) return;
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
-        modal.innerHTML = '<div class="modal-content" style="max-width:760px;max-height:90vh;overflow-y:auto;"><h2 style="margin-bottom:0.25rem;">Entregas seleccionadas (' + rows.length + ')</h2><p style="font-size:0.85rem;color:#666;">Elige pago completo, parcial o sin abono para cada guía.</p><div id="liq-bulk-payments"></div><div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;"><button type="button" class="btn btn-secondary" id="liq-bulk-cancel">Cancelar</button><button type="button" class="btn btn-primary" id="liq-bulk-save">Guardar entregas</button></div></div>';
+        modal.innerHTML = '<div class="modal-content" style="max-width:760px;max-height:90vh;overflow-y:auto;"><h2 style="margin-bottom:0.25rem;">Entregas seleccionadas (' + rows.length + ')</h2><p style="font-size:0.85rem;color:var(--text-secondary);">Elige pago completo, parcial o sin abono para cada guía.</p><div id="liq-bulk-payments"></div><div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1rem;"><button type="button" class="btn btn-secondary" id="liq-bulk-cancel">Cancelar</button><button type="button" class="btn btn-primary" id="liq-bulk-save">Guardar entregas</button></div></div>';
         document.body.appendChild(modal);
         const list = modal.querySelector('#liq-bulk-payments');
         rows.forEach((r, index) => {
             const amount = this._status(r) === 'cobrar' ? this._pendiente(r) : (this._isContado(r) ? Number(r.venta) || 0 : 0);
             const card = document.createElement('div');
             card.dataset.id = r.id;
-            card.style.cssText = 'border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;margin-top:0.75rem;';
-            card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;"><strong>#' + sanitizeHTML(r.guia || 'N/A') + ' · ' + sanitizeHTML(r.cliente || '') + '</strong><span>Venta: ' + formatCurrency(r.venta || 0) + '</span></div><div style="display:grid;grid-template-columns:150px 1fr;gap:0.5rem;margin-top:0.5rem;"><select class="liq-bulk-mode"><option value="full">Pago completo</option><option value="partial">Pago parcial</option><option value="none">Sin abono</option></select><div class="liq-bulk-rows"></div></div><button type="button" class="btn btn-secondary btn-sm liq-bulk-add" style="display:none;margin-top:0.5rem;">+ Agregar abono</button><div class="liq-bulk-summary" style="font-size:0.8rem;text-align:right;margin-top:0.5rem;color:#666;"></div>';
+            card.style.cssText = 'border:1px solid var(--border-color);border-radius:8px;padding:0.75rem;margin-top:0.75rem;';
+            card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;"><strong>#' + sanitizeHTML(r.guia || 'N/A') + ' · ' + sanitizeHTML(r.cliente || '') + '</strong><span>Venta: ' + formatCurrency(r.venta || 0) + '</span></div><div style="display:grid;grid-template-columns:150px 1fr;gap:0.5rem;margin-top:0.5rem;"><select class="liq-bulk-mode"><option value="full">Pago completo</option><option value="partial">Pago parcial</option><option value="none">Sin abono</option></select><div class="liq-bulk-rows"></div></div><button type="button" class="btn btn-secondary btn-sm liq-bulk-add" style="display:none;margin-top:0.5rem;">+ Agregar abono</button><div class="liq-bulk-summary" style="font-size:0.8rem;text-align:right;margin-top:0.5rem;color:var(--text-secondary);"></div>';
             const rowsBox = card.querySelector('.liq-bulk-rows');
             const summary = card.querySelector('.liq-bulk-summary');
             const add = value => { const row = document.createElement('div'); row.style.cssText = 'display:grid;grid-template-columns:1fr 150px 32px;gap:5px;margin-top:4px;'; row.innerHTML = '<input type="number" class="liq-bulk-amount" min="0.01" step="0.01" value="' + (value || '') + '" placeholder="Monto"><select class="liq-bulk-method"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="deposito">Depósito</option><option value="tarjeta">Tarjeta</option></select><button type="button" class="btn btn-sm btn-danger">×</button>'; row.querySelector('button').onclick = () => { row.remove(); refresh(); }; row.querySelector('.liq-bulk-amount').oninput = refresh; rowsBox.appendChild(row); };
@@ -1222,7 +1222,7 @@ const Liquidacion = {
         modal.className = 'modal-backdrop';
         modal.innerHTML = '<div class="modal-content" style="max-width:500px;">' +
             '<h2 style="margin-bottom:0.5rem;">Asignar a ruta (' + rows.length + ')</h2>' +
-            '<p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">Total: <strong>' + formatCurrency(total) + '</strong>' +
+            '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">Total: <strong>' + formatCurrency(total) + '</strong>' +
             (empresasEntrega.length > 0 ? '<br>Entregan: <strong>' + sanitizeHTML(empresasEntrega.join(', ')) + '</strong>' : '') +
             (empresasCobra.length > 0 ? '<br>Cobran: <strong>' + sanitizeHTML(empresasCobra.join(', ')) + '</strong>' : '') + '</p>' +
             '<form id="liq-assign-form"><div class="form-group"><label>Ruta existente</label><select id="liq-assign-route" style="width:100%;"><option value="">Nueva ruta...</option>' +
@@ -1286,7 +1286,7 @@ const Liquidacion = {
             '<div class="form-group" style="margin-top:0.75rem;"><label>Repartidor</label><select id="liq-nr-rep" style="width:100%;"' + (reps.length === 0 ? ' disabled' : '') + '><option value="">' + (reps.length === 0 ? 'No hay repartidores activos' : 'Seleccionar...') + '</option>' +
             reps.map(x => '<option value="' + x.id + '" data-nombre="' + sanitizeHTML(x.nombre || '') + '" data-vehiculo="' + sanitizeHTML(x.vehiculo || '') + '">' + sanitizeHTML(x.nombre || '') + ' - ' + sanitizeHTML(x.vehiculo || '') + '</option>').join('') +
             '</select></div>' +
-            '<div class="form-group" style="margin-top:0.75rem;"><label>Vehículo</label><input type="text" id="liq-nr-veh" readonly style="width:100%;background:#f5f5f5;"></div>' +
+            '<div class="form-group" style="margin-top:0.75rem;"><label>Vehículo</label><input type="text" id="liq-nr-veh" readonly style="width:100%;background:var(--bg-tertiary);"></div>' +
             '<div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;"><button type="button" class="btn btn-secondary" id="liq-nr-cancel">Cancelar</button><button type="submit" class="btn btn-primary" id="liq-nr-save">Crear ruta</button></div></form></div>';
         document.body.appendChild(modal);
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
@@ -1332,14 +1332,14 @@ const Liquidacion = {
         modal.className = 'modal-backdrop';
         modal.innerHTML = '<div class="modal-content" style="max-width:500px;">' +
             '<h2 style="margin-bottom:0.25rem;">Liquidar ' + this._routeLabel(route.id) + '</h2>' +
-            '<p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">' + sanitizeHTML(route.repartidorNombre || '') + ' · ' + sanitizeHTML(route.vehiculo || '') + ' · Entregas ' + hechos.length + '/' + dels.length + '</p>' +
+            '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">' + sanitizeHTML(route.repartidorNombre || '') + ' · ' + sanitizeHTML(route.vehiculo || '') + ' · Entregas ' + hechos.length + '/' + dels.length + '</p>' +
             '<table style="width:100%;font-size:0.9rem;"><tr><td style="padding:6px;">Total facturado</td><td style="text-align:right;font-weight:700;">' + formatCurrency(facturado) + '</td></tr>' +
             '<tr><td style="padding:6px;">Fletes</td><td style="text-align:right;">' + formatCurrency(fletes) + '</td></tr>' +
             '<tr><td style="padding:6px;">Comisión piloto (' + comisionPct + '%)</td><td style="text-align:right;">' + formatCurrency(comisionMonto) + '</td></tr>' +
             '<tr><td style="padding:6px;">COD esperado</td><td style="text-align:right;font-weight:700;">' + formatCurrency(codEsp) + '</td></tr></table>' +
             '<form id="liq-do-form"><div class="form-group" style="margin-top:1rem;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;"><input type="checkbox" id="liq-do-comision" checked> Incluir comisión de ' + formatCurrency(comisionMonto) + ' al piloto</label></div>' +
             '<div class="form-group" style="margin-top:0.75rem;"><label>COD recibido</label><input type="number" id="liq-do-recibido" step="0.01" min="0" value="' + codEsp.toFixed(2) + '" style="width:100%;font-size:1.1rem;text-align:right;" required></div>' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;font-size:1rem;"><strong>Diferencia</strong><strong id="liq-do-dif" style="color:#16a34a;">' + formatCurrency(0) + '</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;font-size:1rem;"><strong>Diferencia</strong><strong id="liq-do-dif" style="color:var(--success);">' + formatCurrency(0) + '</strong></div>' +
             '<div class="form-group" style="margin-top:0.75rem;"><label>Observaciones</label><input type="text" id="liq-do-obs" style="width:100%;" placeholder="Notas de la liquidación"></div>' +
             '<div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;"><button type="button" class="btn btn-secondary" id="liq-do-cancel">Cancelar</button><button type="submit" class="btn btn-primary" id="liq-do-save">Aprobar liquidación</button></div></form></div>';
         document.body.appendChild(modal);
@@ -1350,7 +1350,7 @@ const Liquidacion = {
             const dif = Math.round((codEsp - rec) * 100) / 100;
             const el = document.getElementById('liq-do-dif');
             el.textContent = formatCurrency(Math.abs(dif));
-            el.style.color = dif === 0 ? '#16a34a' : '#dc2626';
+            el.style.color = dif === 0 ? 'var(--success)' : 'var(--error)';
         };
         document.getElementById('liq-do-recibido').addEventListener('input', recalc);
         document.getElementById('liq-do-form').addEventListener('submit', async (e) => {
@@ -1441,12 +1441,12 @@ const Liquidacion = {
         modal.className = 'modal-backdrop';
         modal.innerHTML = '<div class="modal-content" style="max-width:640px;max-height:90vh;overflow-y:auto;">' +
             '<h2 style="margin-bottom:0.25rem;">' + sanitizeHTML(cliente) + '</h2>' +
-            '<p style="font-size:0.9rem;color:#666;margin-bottom:1rem;">Saldo total: <strong style="color:#b45309;">' + formatCurrency(saldo) + '</strong>' + (venc > 0 ? ' · <strong style="color:#dc2626;">Vencido: ' + formatCurrency(venc) + '</strong>' : '') + '</p>' +
+            '<p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">Saldo total: <strong style="color:var(--kpi-credito);">' + formatCurrency(saldo) + '</strong>' + (venc > 0 ? ' · <strong style="color:var(--error);">Vencido: ' + formatCurrency(venc) + '</strong>' : '') + '</p>' +
             '<h3 style="font-size:0.9rem;margin-bottom:0.5rem;">Facturas pendientes (' + rows.length + ')</h3>' +
             '<div class="table-container"><table class="data-table" style="font-size:0.8rem;"><thead><tr><th>Guía</th><th style="text-align:right;">Venta</th><th style="text-align:right;">Cobrado</th><th style="text-align:right;">Saldo</th><th>Vence</th><th></th></tr></thead><tbody>' +
             rows.map(r => {
                 const v = this._vencimiento(r);
-                return '<tr><td><strong>' + sanitizeHTML(r.guia || '') + '</strong></td><td style="text-align:right;">' + formatCurrency(r.venta || 0) + '</td><td style="text-align:right;color:#16a34a;">' + formatCurrency(this._cobrado(r)) + '</td><td style="text-align:right;font-weight:700;">' + formatCurrency(this._pendiente(r)) + '</td><td style="font-size:0.75rem;color:' + (this._isVencido(r) ? '#dc2626' : '#666') + ';">' + (v ? formatDateShort(v) : '-') + '</td><td><button class="btn btn-primary btn-sm" data-ficha-pay="' + r.id + '">Cobrar</button></td></tr>';
+                return '<tr><td><strong>' + sanitizeHTML(r.guia || '') + '</strong></td><td style="text-align:right;">' + formatCurrency(r.venta || 0) + '</td><td style="text-align:right;color:var(--success);">' + formatCurrency(this._cobrado(r)) + '</td><td style="text-align:right;font-weight:700;">' + formatCurrency(this._pendiente(r)) + '</td><td style="font-size:0.75rem;color:' + (this._isVencido(r) ? 'var(--error)' : 'var(--text-secondary)') + ';">' + (v ? formatDateShort(v) : '-') + '</td><td><button class="btn btn-primary btn-sm" data-ficha-pay="' + r.id + '">Cobrar</button></td></tr>';
             }).join('') +
             '</tbody></table></div>' +
             '<div style="display:flex;gap:0.5rem;margin:1rem 0;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" id="liq-f-gest">Nueva gestión</button><button class="btn btn-secondary btn-sm" id="liq-f-nc">Nota de crédito / Ajuste</button><button class="btn btn-secondary btn-sm" id="liq-f-hist">Ver historial</button></div>' +
@@ -1463,7 +1463,7 @@ const Liquidacion = {
 
     async _fichaHistorial(modal, cliente, rows) {
         const box = modal.querySelector('#liq-f-extra');
-        box.innerHTML = '<p style="font-size:0.85rem;color:#666;">Cargando historial...</p>';
+        box.innerHTML = '<p style="font-size:0.85rem;color:var(--text-secondary);">Cargando historial...</p>';
         const db = firebase.firestore();
         let cobros = [], gestiones = [], ajustes = [];
         try {
@@ -1482,15 +1482,15 @@ const Liquidacion = {
         const ids = new Set(rows.map(r => r.id));
         cobros = cobros.filter(c => !c.interlogicId || ids.has(c.interlogicId));
         let html = '<h3 style="font-size:0.9rem;margin:0.5rem 0;">Pagos (' + cobros.length + ')</h3>';
-        html += cobros.length === 0 ? '<p style="font-size:0.8rem;color:#8e8e93;">Sin pagos registrados</p>' :
+        html += cobros.length === 0 ? '<p style="font-size:0.8rem;color:var(--text-tertiary);">Sin pagos registrados</p>' :
             '<div class="table-container"><table class="data-table" style="font-size:0.78rem;"><thead><tr><th>Fecha</th><th>Guía</th><th style="text-align:right;">Monto</th><th>Método</th><th>Ref</th></tr></thead><tbody>' +
             cobros.map(c => '<tr><td>' + (c.fecha && c.fecha.toDate ? formatDateShort(c.fecha) : '-') + '</td><td>' + sanitizeHTML(c.guia || '') + '</td><td style="text-align:right;">' + formatCurrency(c.monto || 0) + '</td><td>' + sanitizeHTML(c.metodo || '') + '</td><td style="font-size:0.72rem;">' + sanitizeHTML(c.referencia || '') + '</td></tr>').join('') + '</tbody></table></div>';
         html += '<h3 style="font-size:0.9rem;margin:0.75rem 0 0.5rem;">Gestiones (' + gestiones.length + ')</h3>';
-        html += gestiones.length === 0 ? '<p style="font-size:0.8rem;color:#8e8e93;">Sin gestiones</p>' :
+        html += gestiones.length === 0 ? '<p style="font-size:0.8rem;color:var(--text-tertiary);">Sin gestiones</p>' :
             '<div class="table-container"><table class="data-table" style="font-size:0.78rem;"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Resultado</th></tr></thead><tbody>' +
             gestiones.map(g => '<tr><td>' + (g.fecha && g.fecha.toDate ? formatDateShort(g.fecha) : '-') + '</td><td>' + sanitizeHTML(g.tipo || '') + '</td><td>' + sanitizeHTML(g.descripcion || '') + '</td><td>' + sanitizeHTML(g.resultado || '') + '</td></tr>').join('') + '</tbody></table></div>';
         html += '<h3 style="font-size:0.9rem;margin:0.75rem 0 0.5rem;">Ajustes (' + ajustes.length + ')</h3>';
-        html += ajustes.length === 0 ? '<p style="font-size:0.8rem;color:#8e8e93;">Sin ajustes</p>' :
+        html += ajustes.length === 0 ? '<p style="font-size:0.8rem;color:var(--text-tertiary);">Sin ajustes</p>' :
             '<div class="table-container"><table class="data-table" style="font-size:0.78rem;"><thead><tr><th>Fecha</th><th>Tipo</th><th style="text-align:right;">Monto</th><th>Motivo</th></tr></thead><tbody>' +
             ajustes.map(a => '<tr><td>' + (a.fecha && a.fecha.toDate ? formatDateShort(a.fecha) : '-') + '</td><td>' + sanitizeHTML(a.tipo || '') + '</td><td style="text-align:right;">' + formatCurrencySigned(a.monto || 0) + '</td><td>' + sanitizeHTML(a.motivo || '') + '</td></tr>').join('') + '</tbody></table></div>';
         box.innerHTML = html;
@@ -1513,7 +1513,7 @@ const Liquidacion = {
                 let proxTs = null;
                 if (prox) { const p = prox.split('-').map(Number); proxTs = firebase.firestore.Timestamp.fromDate(new Date(p[0], p[1] - 1, p[2], 12, 0, 0)); }
                 await firebase.firestore().collection('gestiones').add({ cliente, tipo: document.getElementById('liq-fg-tipo').value, descripcion: document.getElementById('liq-fg-desc').value.trim(), resultado: document.getElementById('liq-fg-res').value.trim(), proximaAccion: proxTs, fecha: firebase.firestore.FieldValue.serverTimestamp(), usuario: (firebase.auth().currentUser && firebase.auth().currentUser.uid) || '', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                box.innerHTML = '<p style="font-size:0.85rem;color:#16a34a;">Gestión guardada</p>';
+                box.innerHTML = '<p style="font-size:0.85rem;color:var(--success);">Gestión guardada</p>';
                 showToast('Gestión guardada', 'success');
             } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
         });
@@ -1558,7 +1558,7 @@ const Liquidacion = {
                     }
                 }
                 await this._commitChunks(ops);
-                box.innerHTML = '<p style="font-size:0.85rem;color:#16a34a;">Ajuste guardado</p>';
+                box.innerHTML = '<p style="font-size:0.85rem;color:var(--success);">Ajuste guardado</p>';
                 showToast('Ajuste guardado', 'success');
             } catch (err) { showToast('Error: ' + err.message, 'error'); setButtonLoading(btn, false); }
         });

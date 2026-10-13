@@ -60,10 +60,11 @@ const Settings = {
         const isMobile = window.innerWidth <= 768;
 
         contentArea.innerHTML = `
-            <div class="content-header" style="${isMobile ? 'padding:0;' : ''}">
-                <h1 style="${isMobile ? 'font-size:1.35rem;font-weight:800;' : ''}">⚙️ Configuraciones</h1>
-                <p style="${isMobile ? 'font-size:0.78rem;color:var(--m-text-secondary);' : ''}">Personaliza tu sistema y gestiona usuarios</p>
-            </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'settings',
+                title: 'Configuraciones',
+                subtitle: 'Personaliza tu sistema y gestiona usuarios'
+            })}
 
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
                 <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">

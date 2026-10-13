@@ -259,6 +259,9 @@ const App = {
             if (window.Flota.unsubscribeOT) { window.Flota.unsubscribeOT(); window.Flota.unsubscribeOT = null; }
             if (window.Flota.unsubscribeProveedores) { window.Flota.unsubscribeProveedores(); window.Flota.unsubscribeProveedores = null; }
         }
+        if (this.currentModule === 'tarimas' && window.Tarimas) {
+            if (window.Tarimas.cleanup) window.Tarimas.cleanup();
+        }
 
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
@@ -315,6 +318,9 @@ const App = {
                     break;
                 case 'asistencia':
                     if (window.Asistencia && window.Asistencia.render) await window.Asistencia.render();
+                    break;
+                case 'tarimas':
+                    if (window.Tarimas && window.Tarimas.render) await window.Tarimas.render();
                     break;
                 default:
                     console.warn(`Unknown module: ${moduleName}`);

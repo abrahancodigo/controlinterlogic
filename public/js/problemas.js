@@ -21,16 +21,17 @@ const Problemas = {
         this._desktopListenerAdded = false;
 
         contentArea.innerHTML = `
-            <div class="module-header">
-                <div>
-                    <h1>🚨 Registro de Problemas</h1>
-                    <p>Control de incidencias y novedades en entregas</p>
-                </div>
+            ${SharedComponents.renderModuleHeader({
+                icon: 'problemas',
+                title: 'Registro de Problemas',
+                subtitle: 'Control de incidencias y novedades en entregas',
+                actions: `
                 <button id="btn-add-problema" class="btn btn-primary btn-lg ${!canCreate ? 'btn-disabled' : ''}" ${!canCreate ? 'disabled' : ''}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Nuevo Problema
                 </button>
-            </div>
+                `
+            })}
 
             <div id="problemas-timeline" class="problemas-timeline">
                 <div class="problemas-loading">
