@@ -4,6 +4,7 @@
 
 const InterlogicFilters = {
     showMobileFilters() {
+        document.querySelectorAll('.mf-filter-sheet').forEach(el => el.remove());
         const fields = [
             { key: 'empresa', label: 'Empresa', options: this.getDistinctValues('empresa') },
             { key: 'condicionPago', label: 'Condición', options: this.getDistinctValues('condicionPago') },
@@ -15,25 +16,44 @@ const InterlogicFilters = {
             { key: 'formaPago', label: 'Forma Pago', options: this.getDistinctValues('formaPago') },
         ];
 
-        let body = '';
+        let body = '<fieldset class="mf-form-section"><legend>Período</legend><div class="m-form-group"><label for="m-filter-start">Desde</label><input type="date" id="m-filter-start" value="' + sanitizeHTML(this.filters.startDate || '') + '" required></div><div class="m-form-group"><label for="m-filter-end">Hasta</label><input type="date" id="m-filter-end" value="' + sanitizeHTML(this.filters.endDate || '') + '" required></div><p class="mf-field-error" id="m-filter-error" role="alert" hidden></p></fieldset>';
         fields.forEach(f => {
             if (!f.options.length) return;
-            body += '<div style="margin-bottom:16px;"><div style="font-weight:700;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:#8e8e93;margin-bottom:8px;">' + f.label + '</div><div class="m-filter-list">';
+            body += '<details class="mf-filter-group"><summary>' + f.label + '</summary><div class="m-filter-list">';
             f.options.forEach(v => {
                 const isActive = this.filters[f.key]?.includes(String(v));
-                body += '<label class="m-filter-item"><input type="checkbox" value="' + v + '" ' + (isActive ? 'checked' : '') + ' data-filter-key="' + f.key + '" data-filter-value="' + String(v).replace(/"/g, '&quot;') + '"><span>' + (v || '(vacío)') + '</span></label>';
+                body += '<label class="m-filter-item"><input type="checkbox" value="' + sanitizeHTML(v).replace(/"/g, '&quot;') + '" ' + (isActive ? 'checked' : '') + ' data-filter-key="' + f.key + '" data-filter-value="' + sanitizeHTML(String(v)).replace(/"/g, '&quot;') + '"><span>' + sanitizeHTML(v || '(vacío)') + '</span></label>';
             });
-            body += '</div></div>';
+            body += '</div></details>';
         });
 
         const sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">Filtros</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body">' + body + '</div><div class="m-sheet-footer"><button class="btn" onclick="Interlogic.clearAllFilters();document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Limpiar filtros</button><button class="btn btn-primary" onclick="document.querySelectorAll(\'.m-bottom-sheet,.m-sheet-backdrop\').forEach(function(e){e.remove();});">Aplicar</button></div></div>';
-        document.body.appendChild(sheet);
-        sheet.querySelector('.m-sheet-body').addEventListener('change', function(e) {
-            if (e.target.type === 'checkbox' && e.target.dataset.filterKey) {
-                Interlogic.toggleMobileFilter(e.target.dataset.filterKey, e.target.dataset.filterValue, e.target.checked);
-            }
-        });
+        sheet.className = 'mf-sheet-root mf-filter-sheet';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" data-m-close></div><div class="m-bottom-sheet show" role="dialog" aria-modal="true" aria-labelledby="m-filter-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="m-filter-title">Afinar tu búsqueda</span><button type="button" class="m-sheet-close" data-m-close aria-label="Cerrar filtros">✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Elige el período y los datos que necesitas. Los cambios se aplican al confirmar.</p>' + body + '</div><div class="m-sheet-footer"><button type="button" class="btn" data-m-filter-clear>Limpiar</button><button type="button" class="btn btn-primary" data-m-filter-apply>Aplicar filtros</button></div></div>';
+        document.getElementById('content-area').appendChild(sheet);
+        sheet.querySelector('.m-sheet-close').focus({ preventScroll: true });
+    },
+
+    applyMobileFilterSheet(sheet) {
+        const start = sheet.querySelector('#m-filter-start').value;
+        const end = sheet.querySelector('#m-filter-end').value;
+        const error = sheet.querySelector('#m-filter-error');
+        if (!start || !end || start > end) {
+            error.textContent = !start || !end ? 'Selecciona ambas fechas.' : 'La fecha inicial debe ser anterior o igual a la final.';
+            error.hidden = false;
+            sheet.querySelector('#m-filter-start').focus();
+            return;
+        }
+        const changed = start !== this.filters.startDate || end !== this.filters.endDate;
+        this.filters.startDate = start;
+        this.filters.endDate = end;
+        const checks = [...sheet.querySelectorAll('[data-filter-key]')];
+        new Set(checks.map(el => el.dataset.filterKey)).forEach(key => { this.filters[key] = []; });
+        checks.filter(el => el.checked).forEach(el => this.filters[el.dataset.filterKey].push(el.dataset.filterValue));
+        this.closeMobileSheet(sheet);
+        this.updateMobileControls();
+        if (changed) this.reloadListener(true);
+        else this.applyFilters();
     },
 
     toggleMobileFilter(field, value, checked) {
@@ -189,6 +209,12 @@ const InterlogicFilters = {
         this.currentPage = 1;
         this.showAll = false;
         this.filteredRecords = this.records.filter(record => {
+            if (this.isMobile) {
+                const status = this.mobileStatus || 'all';
+                if (status === 'pending' && (record.anulado === true || record.entregado === true || record.doc === 'NC')) return false;
+                if (status === 'delivered' && (record.anulado === true || record.entregado !== true || record.doc === 'NC')) return false;
+                if (status === 'cancelled' && record.anulado !== true) return false;
+            }
             for (let field in this.filters) {
                 const activeValues = this.filters[field];
 
@@ -430,6 +456,7 @@ const InterlogicFilters = {
             formaPago: []
         };
         this.currentSort = { field: '', direction: '' };
+        this.mobileStatus = 'all';
 
         const startInput = document.getElementById('filter-start-date');
         const endInput = document.getElementById('filter-end-date');
@@ -437,6 +464,9 @@ const InterlogicFilters = {
         if (endInput) endInput.value = today;
         const searchInput = document.getElementById('global-search');
         if (searchInput) searchInput.value = '';
+        const mobileSearch = document.getElementById('m-global-search');
+        if (mobileSearch) mobileSearch.value = '';
+        if (this.isMobile) this.updateMobileControls();
 
         this.applyFilters();
         this.reloadListener(false);

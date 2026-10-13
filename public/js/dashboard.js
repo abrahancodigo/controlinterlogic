@@ -59,6 +59,19 @@ const Dashboard = {
         // Saludo dinámico según hora — toque humano tipo app nativa
         area.innerHTML = `
 <div class="dash">
+    <section class="mobile-home" aria-label="Tu operación">
+        <div class="mobile-home-heading"><p class="mf-eyebrow">TU OPERACIÓN, A MANO</p><h1>Todo listo para avanzar.</h1><p>Revisa tus entregas y organiza el siguiente paso.</p></div>
+        <div class="mobile-work-grid">
+            <button type="button" class="mobile-work-card" data-home-action="pending"><span class="mobile-work-icon">${this._kpiIcon('credito')}</span><strong id="home-pending">—</strong><span>Pendientes de entrega</span><small>Ver registros <span aria-hidden="true">↗</span></small></button>
+            <button type="button" class="mobile-work-card delivered" data-home-action="delivered"><span class="mobile-work-icon">${this._kpiIcon('dalse')}</span><strong id="home-delivered">—</strong><span>Entregadas</span><small>Consultar detalle <span aria-hidden="true">↗</span></small></button>
+        </div>
+        <p class="mobile-scope" id="home-scope">Cargando el período seleccionado…</p>
+        <div class="mobile-home-actions">
+            ${window.permissions?.canCreate ? '<button type="button" class="btn btn-primary" data-home-action="new">+ Nuevo registro</button>' : ''}
+            <button type="button" class="btn" data-home-action="route">Ver ruta</button>
+            <button type="button" class="mobile-incident-link" data-home-action="problems">Revisar incidencias <span aria-hidden="true">→</span></button>
+        </div>
+    </section>
     <div class="dash-topbar">
         <div class="dash-topbar-title">
             <h1>Resumen de ventas</h1>
@@ -74,12 +87,9 @@ const Dashboard = {
             </div>
             <div class="dash-date-pill">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <input type="date" id="dash-date-inicio" value="${dateInicio}" class="dash-pill-input">
+                <label class="dash-date-field"><span>Desde</span><input type="date" id="dash-date-inicio" value="${dateInicio}" class="dash-pill-input"></label>
                         <span class="dash-pill-sep">→</span>
-                        <input type="date" id="dash-date-fin" value="${dateFin}" class="dash-pill-input">
-                        <button class="dash-pill-btn" id="dash-apply-btn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        </button>
+                         <label class="dash-date-field"><span>Hasta</span><input type="date" id="dash-date-fin" value="${dateFin}" class="dash-pill-input"></label>
                     </div>
                     <button class="dash-export-btn" id="dash-export-btn" title="Exportar Dashboard">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -95,6 +105,9 @@ const Dashboard = {
         ⚠️ El rango seleccionado tiene más de 2,000 registros: los totales mostrados corresponden solo a los 2,000 más recientes. Usa un rango más corto para ver datos completos.
     </div>
 
+    <button type="button" class="mobile-analysis-toggle" data-home-action="analysis" aria-expanded="false" aria-controls="mobile-sales-analysis">Ver análisis de ventas <span aria-hidden="true">↗</span></button>
+
+    <div id="mobile-sales-analysis" class="mobile-sales-analysis">
     <div class="dash-tabs" role="tablist" aria-label="Dimensiones del dashboard">
         <button class="dash-tab active" role="tab" aria-selected="true" data-tab="resumen">Resumen</button>
         <button class="dash-tab" role="tab" aria-selected="false" data-tab="vendedor">Vendedor</button>
@@ -228,6 +241,7 @@ const Dashboard = {
     </div>
     </div>
 
+    </div>
     <!-- Pill flotante: total siempre a la vista, tap = volver arriba -->
     <button class="dash-float-pill" id="dash-float-pill" aria-label="Volver arriba">
         <span class="dash-float-pill-icon">
@@ -246,6 +260,21 @@ const Dashboard = {
         this.subscribeToData();
     },
 
+    applyCustomDates() {
+        const iv = document.getElementById('dash-date-inicio').value;
+        const fv = document.getElementById('dash-date-fin').value;
+        if (!iv || !fv) { showToast('Selecciona ambas fechas', 'error'); return; }
+        if (iv > fv) { showToast('La fecha inicial no puede ser posterior a la final', 'error'); return; }
+        const inicio = new Date(iv + 'T00:00:00');
+        const fin = new Date(fv + 'T23:59:59.999');
+        document.querySelectorAll('.dash-chip').forEach(c => c.classList.toggle('active', c.dataset.period === 'custom'));
+        document.querySelector('.dash')?.classList.add('dash-custom-dates');
+        if (this.fechaInicio.getTime() === inicio.getTime() && this.fechaFin.getTime() === fin.getTime()) return;
+        this.fechaInicio = inicio;
+        this.fechaFin = fin;
+        this.subscribeToData();
+    },
+
     /* ── Events ── */
     setupEvents() {
         document.querySelectorAll('.dash-chip').forEach(chip => {
@@ -253,6 +282,7 @@ const Dashboard = {
                 document.querySelectorAll('.dash-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 const period = chip.dataset.period;
+                document.querySelector('.dash')?.classList.toggle('dash-custom-dates', period === 'custom');
                 if (period === 'custom') return;
                 const d = this.getPeriodDates(period);
                 this.fechaInicio = d.inicio;
@@ -262,20 +292,6 @@ const Dashboard = {
                 this.subscribeToData();
             });
         });
-
-        const applyBtn = document.getElementById('dash-apply-btn');
-        if (applyBtn) {
-            applyBtn.addEventListener('click', () => {
-                const iv = document.getElementById('dash-date-inicio').value;
-                const fv = document.getElementById('dash-date-fin').value;
-                if (!iv || !fv) { showToast('Selecciona ambas fechas', 'error'); return; }
-                if (iv > fv) { showToast('La fecha inicial no puede ser posterior a la final', 'error'); return; }
-                this.fechaInicio = new Date(iv + 'T00:00:00');
-                this.fechaFin = new Date(fv + 'T23:59:59.999');
-                document.querySelectorAll('.dash-chip').forEach(c => c.classList.toggle('active', c.dataset.period === 'custom'));
-                this.subscribeToData();
-            });
-        }
 
         const exportBtn = document.getElementById('dash-export-btn');
         if (exportBtn) {
@@ -291,6 +307,46 @@ const Dashboard = {
         this._setupRankToggles();
         this._updateRangeLabel();
 
+        const area = document.getElementById('content-area');
+        if (area && !this._dateChangeDelegated) {
+            this._dateChangeDelegated = true;
+            area.addEventListener('change', e => {
+                if (e.target.id === 'dash-date-inicio' || e.target.id === 'dash-date-fin') this.applyCustomDates();
+            });
+        }
+        if (area && !this._homeDelegated) {
+            this._homeDelegated = true;
+            area.addEventListener('click', async e => {
+                const button = e.target.closest('[data-home-action]');
+                if (!button || button.disabled) return;
+                const action = button.dataset.homeAction;
+                if (action === 'analysis') {
+                    const open = document.querySelector('.dash')?.classList.toggle('dash-analysis-open');
+                    button.setAttribute('aria-expanded', String(!!open));
+                    button.innerHTML = (open ? 'Ocultar análisis de ventas' : 'Ver análisis de ventas') + ' <span aria-hidden="true">' + (open ? '−' : '↗') + '</span>';
+                    requestAnimationFrame(() => this._resizeCharts());
+                    return;
+                }
+                const start = formatDateForInput(this.fechaInicio), end = formatDateForInput(this.fechaFin);
+                if (['pending', 'delivered', 'new'].includes(action)) {
+                    if (!window.Interlogic) return;
+                    Interlogic.filters.startDate = start;
+                    Interlogic.filters.endDate = end;
+                    Interlogic.filters.search = '';
+                    Object.keys(Interlogic.filters).forEach(key => {
+                        if (Array.isArray(Interlogic.filters[key])) Interlogic.filters[key] = [];
+                    });
+                    Interlogic.mobileStatus = action === 'new' ? 'all' : action;
+                    button.disabled = true;
+                    try {
+                        await App.loadModule('interlogic');
+                        if (action === 'new' && App.currentModule === 'interlogic') Interlogic.showMobileForm();
+                    } finally { button.disabled = false; }
+                } else if (action === 'route') App.loadModule('liquidacion');
+                else if (action === 'problems') App.loadModule('problemas');
+            });
+        }
+
         /* ── Pill flotante: aparece al pasar los KPIs, tap = scroll to top ── */
         const floatPill = document.getElementById('dash-float-pill');
         if (floatPill) {
@@ -300,7 +356,7 @@ const Dashboard = {
                 if (kpiGrid) {
                     if (this._pillIO) this._pillIO.disconnect();
                     this._pillIO = new IntersectionObserver(entries => {
-                        entries.forEach(en => floatPill.classList.toggle('show', !en.isIntersecting));
+                        entries.forEach(en => floatPill.classList.toggle('show', !en.isIntersecting && en.boundingClientRect.bottom <= 80));
                     }, { rootMargin: '-80px 0px 0px 0px', threshold: 0 });
                     this._pillIO.observe(kpiGridEl);
                 }
@@ -396,16 +452,18 @@ const Dashboard = {
         if (!grid || grid.dataset.built) return;
         grid.dataset.built = '1';
         grid.innerHTML = this._kpiDefs().map(d => `
-            <div class="dash-kpi-card dash-kpi-loading" data-kpi="${d.key}" style="cursor:pointer;">
-                <div class="dash-kpi-head">
+            <div class="dash-kpi-card dash-kpi-loading${d.key === 'total' ? ' dash-kpi-total-card' : ''}" data-kpi="${d.key}" style="cursor:pointer;">
+                <div class="dash-kpi-head${d.key === 'total' ? ' dash-kpi-total-head' : ''}">
                     <div class="dash-kpi-icon dash-kpi-icon-${d.key}">${this._kpiIcon(d.key)}</div>
+                    ${d.key === 'total' ? `<div class="dash-kpi-label dash-kpi-total-label">${d.label}</div>` : ''}
                     <div class="dash-kpi-delta" id="dash-${d.key}-delta"></div>
                 </div>
                 <div class="dash-kpi-body">
-                    <div class="dash-kpi-label">${d.label}</div>
-                    <div class="dash-kpi-value" id="dash-${d.key}-monto">$0</div>
-                    <div class="dash-kpi-meta" id="dash-${d.key}-count">0 entregas</div>
-                    <div class="dash-kpi-sub" id="dash-${d.key}-sub"></div>
+                    ${d.key !== 'total' ? `<div class="dash-kpi-label">${d.label}</div>` : ''}
+                    <div class="dash-kpi-value${d.key === 'total' ? ' dash-kpi-total-value' : ''}" id="dash-${d.key}-monto">$0</div>
+                    ${d.key === 'total'
+                        ? `<div class="dash-kpi-total-details"><div class="dash-kpi-meta" id="dash-${d.key}-count">0 entregas</div><div class="dash-kpi-sub" id="dash-${d.key}-sub"></div></div>`
+                        : `<div class="dash-kpi-meta" id="dash-${d.key}-count">0 entregas</div><div class="dash-kpi-sub" id="dash-${d.key}-sub"></div>`}
                 </div>
             </div>`).join('');
         if (!grid.dataset.bound) {
@@ -515,6 +573,14 @@ const Dashboard = {
     },
 
     computeAndRender() {
+        const operational = this.records.filter(r => r.anulado !== true && r.doc !== 'NC');
+        const delivered = operational.filter(r => r.entregado === true).length;
+        const pendingEl = document.getElementById('home-pending');
+        const deliveredEl = document.getElementById('home-delivered');
+        if (pendingEl) pendingEl.textContent = String(operational.length - delivered);
+        if (deliveredEl) deliveredEl.textContent = String(delivered);
+        const scope = document.getElementById('home-scope');
+        if (scope) scope.textContent = (this._truncated ? 'Conteo parcial · ' : '') + 'Período: ' + this.formatDateShort(this.fechaInicio) + ' — ' + this.formatDateShort(this.fechaFin);
         const records = this.records;
         let stats = { total: 0, totalCount: 0, contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, dalseCount: 0, incede: 0, incedeCount: 0 };
         const carrierStats = {};
@@ -1250,10 +1316,15 @@ const Dashboard = {
                     <div class="dash-vendedor-card-top">
                         <div class="dash-vendedor-avatar" style="background:${avatarColor}"><span class="dash-vendedor-avatar-text">${initials}</span></div>
                         <div class="dash-vendedor-body">
-                            <div class="dash-vendedor-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
+                            <div class="dash-vendedor-name">${this._escapeHtml(name)}</div>
                             <div class="dash-vendedor-amount">${this.formatMoney(d.monto)}</div>
-                            <div class="dash-vendedor-meta"><span>${d.count} ent.</span><span class="dash-vendedor-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-vendedor-sep">·</span><span>${pct}% del total</span> ${this._rankDeltaHtml(name, 'vendedor')}</div>
                         </div>
+                    </div>
+                    <div class="dash-vendedor-meta">
+                        <span class="dash-rank-metric"><strong>${d.count}</strong><small>Entregas</small></span>
+                        <span class="dash-rank-metric"><strong>${this.formatMoney(avg)}</strong><small>Promedio</small></span>
+                        <span class="dash-rank-metric"><strong>${pct}%</strong><small>Del total</small></span>
+                        ${this._rankDeltaHtml(name, 'vendedor')}
                     </div>
                     <div class="dash-vendedor-bar-wrap">
                         <div class="dash-vendedor-bar">
@@ -1261,8 +1332,8 @@ const Dashboard = {
                             <div class="dash-vendedor-bar-credito" style="width:${crPct}%" title="Crédito: ${this.formatMoney(d.credito)}"></div>
                         </div>
                         <div class="dash-vendedor-bar-labels">
-                            <span class="dash-vendedor-bar-label-contado">${ctPct.toFixed(0)}% contado</span>
-                            <span class="dash-vendedor-bar-label-credito">${crPct.toFixed(0)}% crédito</span>
+                            <span class="dash-vendedor-bar-label-contado"><span>Contado · ${ctPct.toFixed(0)}%</span><strong>${this.formatMoney(d.contado)}</strong></span>
+                            <span class="dash-vendedor-bar-label-credito"><span>Crédito · ${crPct.toFixed(0)}%</span><strong>${this.formatMoney(d.credito)}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -1315,10 +1386,15 @@ const Dashboard = {
                     <div class="dash-zona-card-top">
                         <div class="dash-zona-icon-wrap"><span class="dash-rank-medal">${medal}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${zonaColor};"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
                         <div class="dash-zona-body">
-                            <div class="dash-zona-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
+                            <div class="dash-zona-name">${this._escapeHtml(name)}</div>
                             <div class="dash-zona-amount">${this.formatMoney(d.monto)}</div>
-                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span> ${this._rankDeltaHtml(name, 'zona')}</div>
                         </div>
+                    </div>
+                    <div class="dash-zona-meta">
+                        <span class="dash-rank-metric"><strong>${d.count}</strong><small>Entregas</small></span>
+                        <span class="dash-rank-metric"><strong>${this.formatMoney(avg)}</strong><small>Promedio</small></span>
+                        <span class="dash-rank-metric"><strong>${pct}%</strong><small>Del total</small></span>
+                        ${this._rankDeltaHtml(name, 'zona')}
                     </div>
                     <div class="dash-zona-bar-wrap">
                         <div class="dash-zona-bar">
@@ -1326,8 +1402,8 @@ const Dashboard = {
                             <div class="dash-zona-bar-credito" style="width:${crPct}%" title="Crédito: ${this.formatMoney(d.credito)}"></div>
                         </div>
                         <div class="dash-zona-bar-labels">
-                            <span class="dash-zona-bar-label-contado">${this.formatMoney(d.contado)} contado</span>
-                            <span class="dash-zona-bar-label-credito">${this.formatMoney(d.credito)} crédito</span>
+                            <span class="dash-zona-bar-label-contado"><span>Contado · ${ctPct.toFixed(0)}%</span><strong>${this.formatMoney(d.contado)}</strong></span>
+                            <span class="dash-zona-bar-label-credito"><span>Crédito · ${crPct.toFixed(0)}%</span><strong>${this.formatMoney(d.credito)}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -1387,7 +1463,7 @@ const Dashboard = {
                 const active = this.acumSelectedVendors.has(name);
                 return `<div class="dash-acum-chip${active ? ' active' : ''}" data-name="${this._escapeAttr(name)}" style="--chip-color:${color};">
                     <span class="dash-acum-chip-check"></span>
-                    <span class="dash-acum-chip-name">${this._escapeHtml(name.length > 20 ? name.substring(0, 19) + '\u2026' : name)}</span>
+                    <span class="dash-acum-chip-name">${this._escapeHtml(name)}</span>
                     <span class="dash-acum-chip-amount">${this.formatMoney(d.monto)}</span>
                 </div>`;
             }).join('');
@@ -1531,7 +1607,7 @@ const Dashboard = {
         const tercil2 = n > 2 ? allValues[Math.floor(2 * n / 3)] : (allValues[n - 1] || 0);
 
         thead.innerHTML = '<tr><th class="dash-matrix-corner">Vendedor / Dept.</th>' +
-            topZonas.map(z => `<th class="dash-matrix-colheader" title="${this._escapeAttr(z)}">${this._escapeHtml(z.length > 15 ? z.substring(0, 14) + '\u2026' : z)}</th>`).join('') +
+            topZonas.map(z => `<th class="dash-matrix-colheader" title="${this._escapeAttr(z)}">${this._escapeHtml(z)}</th>`).join('') +
             '<th class="dash-matrix-total">Total</th></tr>';
 
         let totalGlobal = 0;
@@ -1553,7 +1629,7 @@ const Dashboard = {
                 return `<td class="dash-matrix-cell ${hasData ? 'dash-matrix-cell-active ' + heatClass : ''}" data-vendedor="${this._escapeAttr(v)}" data-zona="${this._escapeAttr(z)}">${cellContent}</td>`;
             }).join('');
             totalGlobal += rowTotal;
-            return `<tr><td class="dash-matrix-rowheader">${this._escapeHtml(v.length > 18 ? v.substring(0, 17) + '\u2026' : v)}</td>${cells}<td class="dash-matrix-row-total">$${this.formatNumber(rowTotal)}</td></tr>`;
+            return `<tr><td class="dash-matrix-rowheader">${this._escapeHtml(v)}</td>${cells}<td class="dash-matrix-row-total">$${this.formatNumber(rowTotal)}</td></tr>`;
         }).join('') + (() => {
             const totals = topZonas.map(z => { let t = 0; topVendedores.forEach(v => { t += (matriz[v]?.[z]?.monto || 0); }); return t; });
             return `<tr class="dash-matrix-total-row"><td class="dash-matrix-corner">Total</td>${totals.map(t => `<td class="dash-matrix-col-total">$${this.formatNumber(t)}</td>`).join('')}<td class="dash-matrix-grand-total">$${this.formatNumber(totalGlobal)}</td></tr>`;
@@ -1586,7 +1662,7 @@ const Dashboard = {
                 cardsWrap.innerHTML = topCombos.map(({v,z,d}) => `
                     <div class="dash-matrix-card" data-vendedor="${this._escapeAttr(v)}" data-zona="${this._escapeAttr(z)}">
                         <div class="dash-matrix-card-head">
-                            <span class="dash-matrix-card-vendedor">${this._escapeHtml(v.length>18?v.substring(0,17)+'…':v)}</span>
+                            <span class="dash-matrix-card-vendedor">${this._escapeHtml(v)}</span>
                             <span class="dash-matrix-card-total">${this.formatMoney(d.monto)}</span>
                         </div>
                         <div class="dash-matrix-card-depto">${this._escapeHtml(z)}</div>
@@ -1690,13 +1766,21 @@ const Dashboard = {
                     <div class="dash-carrier-body">
                         <div class="dash-carrier-name">${this._escapeHtml(name)}</div>
                         <div class="dash-carrier-amount">${this.formatMoney(d.monto)}</div>
-                        <div class="dash-carrier-meta">${d.count} entrega${d.count !== 1 ? 's' : ''} · ${pct}% ${this._rankDeltaHtml(name, 'carrier')}</div>
                     </div>
+                </div>
+                <div class="dash-carrier-meta">
+                    <span class="dash-rank-metric"><strong>${d.count}</strong><small>Entregas</small></span>
+                    <span class="dash-rank-metric"><strong>${pct}%</strong><small>Del total</small></span>
+                    ${this._rankDeltaHtml(name, 'carrier')}
                 </div>
                 <div class="dash-carrier-bar-wrap">
                     <div class="dash-carrier-bar">
                         <div class="dash-carrier-bar-contado" style="width:${ctPct}%"></div>
                         <div class="dash-carrier-bar-credito" style="width:${crPct}%"></div>
+                    </div>
+                    <div class="dash-carrier-breakdown">
+                        <div class="dash-carrier-breakdown-item dash-carrier-breakdown-contado"><span>Contado</span><strong>${this.formatMoney(d.contado)}</strong><small>${ctPct.toFixed(0)}%</small></div>
+                        <div class="dash-carrier-breakdown-item dash-carrier-breakdown-credito"><span>Crédito</span><strong>${this.formatMoney(d.credito)}</strong><small>${crPct.toFixed(0)}%</small></div>
                     </div>
                 </div>
             </div>`;
@@ -1826,8 +1910,6 @@ const Dashboard = {
         });
 
         const total = filtered.reduce((sum, r) => sum + signedAmount(r, 'venta'), 0);
-        const avg = filtered.length > 0 ? total / filtered.length : 0;
-        const maxVenta = filtered.reduce((mx, r) => Math.max(mx, Math.abs(signedAmount(r, 'venta')) || 0), 0);
 
         const existingBd = document.querySelector('.dash-detail-backdrop');
         if (existingBd) existingBd.remove();
@@ -1866,14 +1948,6 @@ const Dashboard = {
                 <div class="dash-detail-chip dash-chip-total">
                     <span class="dash-chip-label">Total</span>
                     <span class="dash-chip-value">${this.formatMoney(total)}</span>
-                </div>
-                <div class="dash-detail-chip dash-chip-avg">
-                    <span class="dash-chip-label">Promedio</span>
-                    <span class="dash-chip-value">${this.formatMoney(avg)}</span>
-                </div>
-                <div class="dash-detail-chip dash-chip-max">
-                    <span class="dash-chip-label">Mayor venta</span>
-                    <span class="dash-chip-value">${this.formatMoney(maxVenta)}</span>
                 </div>
             </div>
             <div class="dash-detail-search">
@@ -2244,7 +2318,7 @@ const Dashboard = {
     _fitKpiValues() {
         if (window.innerWidth > 768) return;
         document.querySelectorAll('.dash-kpi-value').forEach(el => {
-            const len = (el.textContent || '').length;
+            const len = (el.dataset.raw != null ? this.formatMoney(el.dataset.raw) : (el.textContent || '')).length;
             el.setAttribute('data-long', len > 11 ? 'true' : 'false');
         });
         // Scroll hint: marca contenedores que realmente pueden hacer scroll

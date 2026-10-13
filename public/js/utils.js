@@ -428,3 +428,50 @@ function showFullLoadOverlay(visible, text, pct) {
         el.style.display = 'none';
     }
 }
+
+const MobileModalBack = {
+    stateKey: '__mobileModalBack',
+    active: false,
+
+    init() {
+        this.observer = new MutationObserver(() => this.sync());
+        this.observer.observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('popstate', () => {
+            if (!this.active) return;
+            this.active = false;
+            const closeButton = this.getCloseButton();
+            if (closeButton) closeButton.click();
+            else this.getModal()?.remove();
+        });
+        window.addEventListener('resize', () => this.sync());
+        this.sync();
+    },
+
+    isMobile() {
+        return window.innerWidth <= 768;
+    },
+
+    getModal() {
+        const modals = document.querySelectorAll('.mf-sheet-root, .m-bottom-sheet, .modal-backdrop, .dash-detail-modal');
+        return modals[modals.length - 1] || null;
+    },
+
+    getCloseButton() {
+        const modal = this.getModal();
+        if (!modal) return null;
+        return modal.querySelector('[data-m-close], .m-sheet-close, .modal-close, [aria-label*="Cerrar"], #confirm-cancel, .btn-secondary');
+    },
+
+    sync() {
+        const hasModal = this.isMobile() && !!this.getModal();
+        if (hasModal && !this.active) {
+            if (!history.state?.[this.stateKey]) history.pushState({ ...(history.state || {}), [this.stateKey]: true }, '');
+            this.active = true;
+        } else if (!hasModal && this.active) {
+            this.active = false;
+            if (history.state?.[this.stateKey]) history.back();
+        }
+    }
+};
+
+MobileModalBack.init();

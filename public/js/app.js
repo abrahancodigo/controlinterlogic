@@ -87,6 +87,8 @@ const App = {
         const moreOverlay = document.getElementById('more-overlay');
         const moreClose = document.getElementById('more-menu-close');
         const moreList = document.getElementById('more-menu-list');
+        const profileBtn = document.getElementById('mobile-profile-btn');
+        const closeMore = () => this.setMoreMenu(false);
 
         // Bottom nav clicks
         bnItems.forEach(item => {
@@ -94,8 +96,7 @@ const App = {
                 const module = item.dataset.module;
                 this.loadModule(module);
                 this.updateBottomNavActive(module);
-                if (moreMenu) moreMenu.classList.remove('show');
-                if (moreOverlay) moreOverlay.classList.remove('show');
+                closeMore();
                 // Reset more button active state
                 if (moreBtn) moreBtn.classList.remove('active');
             });
@@ -105,46 +106,79 @@ const App = {
         if (moreBtn) {
             moreBtn.addEventListener('click', () => {
                 this.populateMoreMenu();
-                moreMenu?.classList.toggle('show');
-                moreOverlay?.classList.toggle('show');
+                this.setMoreMenu(!moreMenu?.classList.contains('show'));
             });
         }
+        if (profileBtn) profileBtn.addEventListener('click', () => {
+            this.populateMoreMenu();
+            this.setMoreMenu(!moreMenu?.classList.contains('show'));
+        });
 
         // Close more menu
         if (moreClose) {
             moreClose.addEventListener('click', () => {
-                moreMenu?.classList.remove('show');
-                moreOverlay?.classList.remove('show');
+                closeMore();
             });
         }
         if (moreOverlay) {
             moreOverlay.addEventListener('click', () => {
-                moreMenu?.classList.remove('show');
-                moreOverlay?.classList.remove('show');
+                closeMore();
             });
         }
 
         // Handle more menu items
         if (moreList) {
             moreList.addEventListener('click', (e) => {
+                if (e.target.closest('[data-mobile-logout]')) {
+                    closeMore();
+                    document.getElementById('logout-btn')?.click();
+                    return;
+                }
                 const item = e.target.closest('.more-item');
                 if (item) {
                     const module = item.dataset.module;
                     this.loadModule(module);
                     this.updateBottomNavActive(module);
-                    moreMenu?.classList.remove('show');
-                    moreOverlay?.classList.remove('show');
+                    closeMore();
                 }
             });
         }
+        document.addEventListener('keydown', (e) => {
+            if (!moreMenu?.classList.contains('show')) return;
+            if (e.key === 'Escape') { closeMore(); return; }
+            if (e.key !== 'Tab') return;
+            const items = [...moreMenu.querySelectorAll('button:not(:disabled)')];
+            const first = items[0], last = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+        });
+    },
+
+    setMoreMenu(open) {
+        const menu = document.getElementById('more-menu');
+        menu?.classList.toggle('show', open);
+        document.getElementById('more-overlay')?.classList.toggle('show', open);
+        document.body.classList.toggle('mobile-menu-open', open);
+        ['bn-more-btn', 'mobile-profile-btn'].forEach(id => document.getElementById(id)?.setAttribute('aria-expanded', String(open)));
+        if (open) { this._moreTrigger = document.activeElement; menu?.focus(); }
+        else this._moreTrigger?.focus();
     },
 
     populateMoreMenu() {
         const list = document.getElementById('more-menu-list');
-        if (!list || list.children.length > 0) return;
+        if (!list) return;
+        list.replaceChildren();
+        const profile = document.createElement('div');
+        profile.className = 'mobile-account';
+        const name = document.createElement('strong');
+        name.textContent = document.getElementById('user-name')?.textContent || 'Mi cuenta';
+        const role = document.createElement('span');
+        role.textContent = document.getElementById('user-role')?.textContent || '';
+        profile.append(name, role);
+        list.appendChild(profile);
 
         // Los módulos ya presentes en la barra inferior no se repiten en "Más"
-        const bottomModules = ['dashboard', 'deliveries', 'clientes', 'liquidacion'];
+        const bottomModules = [...document.querySelectorAll('.bn-item[data-module]')].map(item => item.dataset.module);
 
         // Construye "Más" a partir de los ítems del sidebar, así móvil muestra
         // exactamente las mismas opciones que la versión PC (mobile-first).
@@ -164,6 +198,11 @@ const App = {
                 `<span class="more-item-label">${label ? label.textContent : module}</span>`;
             list.appendChild(div);
         });
+        const logout = document.createElement('button');
+        logout.className = 'mobile-logout';
+        logout.dataset.mobileLogout = '';
+        logout.textContent = 'Cerrar sesión';
+        list.appendChild(logout);
     },
 
     updateBottomNavActive(moduleName) {
@@ -186,6 +225,12 @@ const App = {
         document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
         const sidebarItem = document.querySelector(`.nav-item[data-module="${moduleName}"]`);
         if (sidebarItem) sidebarItem.classList.add('active');
+        document.querySelectorAll('.bn-item').forEach(btn => {
+            if (btn.classList.contains('active')) btn.setAttribute('aria-current', 'page');
+            else btn.removeAttribute('aria-current');
+        });
+        const title = document.getElementById('mobile-section-title');
+        if (title) title.textContent = moduleName === 'dashboard' ? 'Inicio' : moduleName === 'interlogic' ? 'Interlogic' : sidebarItem?.querySelector('.nav-text')?.textContent || 'Dalse';
     },
 
     async loadModule(moduleName) {
@@ -223,6 +268,7 @@ const App = {
         }
 
         this.currentModule = moduleName;
+        this.updateBottomNavActive(moduleName);
         const contentArea = document.getElementById('content-area');
         if (contentArea) contentArea.dataset.visualModule = moduleName;
 

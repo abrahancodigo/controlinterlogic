@@ -39,9 +39,8 @@
     /* quita el lag del transition global en móvil */
     transition: none !important;
   }
-  body *, body *::before, body *::after {
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.12s ease !important;
-  }
+  /* NOTA: no uses `body *` con !important para transiciones — mata los
+     transform/opacity de sheets, menú, FAB y toasts. */
   /* Evita scroll-jump/atasco cuando Firestore re-renderiza a mitad de scroll */
   #content-area { overflow-anchor: none; }
 }
@@ -208,16 +207,16 @@
     line-height: 1.1 !important;
     letter-spacing: -0.03em !important;
     color: var(--dash-text) !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    overflow-wrap: anywhere !important;
+    max-width: 100% !important;
   }
   /* Ajuste tipográfico para montos largos: si no cabe, reduce 1 paso */
   .dash-kpi-value[data-long="true"] { font-size: 1.05rem !important; }
   .dash-kpi-meta {
     font-size: 0.68rem !important;
     color: var(--dash-muted) !important;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    min-width: 0;
   }
   .dash-kpi-delta {
     font-size: 0.62rem !important;
@@ -352,6 +351,31 @@
     min-width: 0 !important;
     max-width: 100% !important;
     border-radius: 14px !important;
+  }
+  /* minmax(320-340px) de styles.css supera el ancho útil en 360px → la tarjeta
+     padre (overflow:hidden) corta meta y etiquetas. Grids y contenidos a minmax(0,1fr). */
+  .dash-vendedor-grid, .dash-zona-grid, .dash-carrier-grid, .dash-day-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .dash-vendedor-card-inner, .dash-zona-card-inner,
+  .dash-vendedor-body, .dash-zona-body, .dash-day-info {
+    min-width: 0 !important;
+  }
+  .dash-vendedor-bar-labels, .dash-zona-bar-labels {
+    flex-wrap: wrap !important;
+    gap: 4px 8px !important;
+  }
+  .dash-day-total-main {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .dash-day-label { overflow-wrap: anywhere; }
+  .dash-day-best {
+    display: inline-block !important;
+    width: auto !important;
+    max-width: 100% !important;
   }
   .dash-carrier-grid, .dash-day-grid {
     grid-template-columns: 1fr !important;
@@ -707,10 +731,51 @@
   .dash-topbar .dash-export-btn { width: 42px !important; height: 100% !important; min-height: 42px !important; border-radius: 13px !important; }
   .dash-insights { display: flex !important; grid-template-columns: none !important; overflow-x: auto !important; }
   .dash-insight { flex: 0 0 235px !important; }
+  /* El hijo de texto debe poder encoger dentro del flex (si no, el ellipsis trunca aunque haya espacio) */
+  .dash-insight > div { min-width: 0 !important; flex: 1 1 auto !important; }
+  .dash-insight-text {
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow-wrap: anywhere !important;
+  }
   .dash-tabs { display: flex !important; overflow-x: auto !important; white-space: nowrap !important; }
   .dash-tabpanel[hidden] { display: none !important; }
   .dash-tabpanel .dash-charts-row { display: grid !important; grid-template-columns: 1fr !important; }
   .dash > .dash-kpi-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .dash > .dash-kpi-grid .dash-kpi-card:first-child { grid-column: 1 / -1 !important; }
+  /* Iconos nítidos en móvil:
+     - section-header > svg: quita el content-box que lo agrandaba a 30px reales
+     - KPI/insight/topbar: tamaño coherente, nunca comprimidos por el flex */
+  .dash-section-header > svg {
+    box-sizing: border-box !important;
+    padding: 6px !important;
+    width: 30px !important;
+    height: 30px !important;
+    flex-shrink: 0 !important;
+  }
+  .dash-kpi-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+  .dash-insight-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+  }
+  .dash-topbar .dash-date-pill > svg,
+  .dash-topbar .dash-pill-btn svg,
+  .dash-topbar .dash-export-btn svg,
+  .dash-zona-icon-wrap svg {
+    flex-shrink: 0 !important;
+  }
+  .dash-export-btn, .dash-pill-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }
 

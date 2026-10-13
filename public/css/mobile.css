@@ -1,7 +1,10 @@
 
 .m-card-entregada {
-    border-left: 4px solid #16a34a !important;
-    background: #dcfce7 !important;
+    border-left: 4px solid var(--m-success, #16a34a);
+    background: color-mix(in srgb, var(--m-success, #16a34a) 10%, var(--m-surface, #fff));
+}
+[data-theme="dark"] .m-card-entregada {
+    background: color-mix(in srgb, var(--m-success, #16a34a) 16%, var(--m-surface, #1e293b));
 }
 /* ============================================================
    MOBILE DESIGN SYSTEM - Native App Experience (â‰¤768px)
@@ -295,21 +298,17 @@ body {
 .m-card-badge.warning { background: #fef3c7; color: #92400e; }
 .m-card-badge.danger { background: #fee2e2; color: #991b1b; }
 
-/* Card rows - horizontally scrollable to see full info */
+/* Card rows - label/value pairs that wrap, never scroll sideways */
 .m-card-rows {
     display: flex; flex-direction: column; gap: 6px;
     margin-bottom: 10px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 2px;
+    min-width: 0;
 }
-.m-card-rows::-webkit-scrollbar { display: none; }
 .m-card-row {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 8px;
-    min-width: max-content;
-    padding-right: 4px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+    padding-right: 2px;
 }
 .m-card-label {
     font-size: 0.7rem; color: var(--m-text-secondary);
@@ -319,8 +318,9 @@ body {
 .m-card-value {
     font-size: 0.85rem; color: var(--m-text); font-weight: 500;
     text-align: right;
-    white-space: nowrap;
-    flex-shrink: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    flex: 1 1 auto;
 }
 .m-card-value.money {
     font-weight: 700; color: var(--m-success);
@@ -652,6 +652,7 @@ button, [role="button"], .btn, .m-card-action {
 }
 
 [data-theme="dark"] body { background: #0f172a !important; }
+[data-theme="dark"] input[type="date"] { color-scheme: dark; }
 [data-theme="dark"] .mobile-header { background: #1e293b; border-bottom-color: #334155; box-shadow: 0 1px 0 rgba(129, 140, 248, 0.06); }
 [data-theme="dark"] .mobile-logo { color: #f1f5f9; -webkit-text-fill-color: #f1f5f9; }
 [data-theme="dark"] .m-data-card { background: #1e293b; border-color: #334155; box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02); }
@@ -757,7 +758,7 @@ button, [role="button"], .btn, .m-card-action {
     .m-stat-chip { min-width: 85px; padding: 10px 12px; }
     .m-stat-chip-value { font-size: 0.95rem; }
     .m-card-title { font-size: 0.85rem; }
-    .m-card-value { font-size: 0.78rem; max-width: 50%; }
+    .m-card-value { font-size: 0.78rem; }
     .bn-label { font-size: 0.52rem; }
     .bn-icon { font-size: 1.15rem; }
 }

@@ -11,6 +11,7 @@ const InterlogicRender = {
     },
 
     async renderDesktop() {
+        this.isMobile = false;
         const contentArea = document.getElementById('content-area');
 
         if (this._desktopAbortController) {
@@ -460,72 +461,134 @@ const InterlogicRender = {
         this.isMobile = true;
 
         contentArea.innerHTML = `
-            <div style="padding: 0 0 8px 0;">
-                <h1 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px; color: var(--m-text);">📊 Interlogic</h1>
-                <p style="font-size: 0.78rem; color: var(--m-text-secondary);">Gestión de registros</p>
+            <section class="mf-interlogic">
+            <div class="mf-module-heading">
+                <div><p class="mf-eyebrow">CONTROL DE DESPACHOS</p><h1>Interlogic</h1><p>Cada entrega, en un solo lugar.</p></div>
+                <details class="mf-tools"><summary aria-label="Opciones de exportación">${this.mobileIcon('more')}</summary><div><button type="button" class="btn" id="m-btn-export">Exportar Excel</button><button type="button" class="btn" id="m-btn-pdf">Exportar PDF</button></div></details>
             </div>
-
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                <input type="date" id="m-filter-start" value="${this.filters.startDate}" style="flex:1; padding: 10px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 0.85rem; font-family: var(--font-family); background: white; min-height: 42px;">
-                <input type="date" id="m-filter-end" value="${this.filters.endDate}" style="flex:1; padding: 10px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 0.85rem; font-family: var(--font-family); background: white; min-height: 42px;">
+            <div class="mf-search-controls">
+                <div class="m-search-bar">${this.mobileIcon('search')}<input type="search" id="m-global-search" aria-label="Buscar registros" placeholder="Guía, cliente o destino" value="${sanitizeHTML(this.filters.search || '').replace(/"/g, '&quot;')}"></div>
+                <button type="button" class="mf-filter-button" id="m-btn-filter" aria-label="Abrir filtros">${this.mobileIcon('filter')}<span id="m-filter-count"></span></button>
             </div>
-
-            <div class="m-search-bar">
-                <span class="search-icon-m">🔍</span>
-                <input type="text" id="m-global-search" placeholder="Buscar por guía, cliente, departamento..." value="${this.filters.search || ''}">
+            <div class="mf-periods" aria-label="Período de registros">
+                <button type="button" data-m-period="today">Hoy</button><button type="button" data-m-period="week">Semana</button><button type="button" data-m-period="month">Mes</button><button type="button" data-m-period="custom">Elegir fechas</button>
             </div>
-
-            <div class="m-stats-row" id="m-stats">
-                <div class="m-stat-chip"><div class="m-stat-chip-label">Venta</div><div class="m-stat-chip-value" id="ms-venta">$0</div></div>
+            <p class="mobile-scope" id="m-range-label"></p>
+            <div class="mf-status-tabs" aria-label="Estado de entrega">
+                <button type="button" data-m-status="all">Todas</button><button type="button" data-m-status="pending">Pendientes</button><button type="button" data-m-status="delivered">Entregadas</button><button type="button" data-m-status="cancelled">Anuladas</button>
+            </div>
+            <details class="mf-totals"><summary><span>Resumen de registros</span><strong id="ms-venta">$0</strong></summary><div class="m-stats-row" id="m-stats">
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Bultos</div><div class="m-stat-chip-value" id="ms-bultos">0</div></div>
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Costo Envío</div><div class="m-stat-chip-value" id="ms-envio">$0</div></div>
                 <div class="m-stat-chip"><div class="m-stat-chip-label">% Costo</div><div class="m-stat-chip-value" id="ms-pct">0%</div></div>
                 <div class="m-stat-chip"><div class="m-stat-chip-label">Registros</div><div class="m-stat-chip-value" id="ms-count">0</div></div>
-            </div>
-
-            <div class="m-actions-bar">
-                <button class="btn" id="m-btn-filter" style="border-radius:20px;">🔽 Filtrar</button>
-                <button class="btn btn-primary" id="m-btn-add" style="border-radius:20px;">➕ Nuevo</button>
-                <button class="btn" id="m-btn-export" style="border-radius:20px;">📥 Excel</button>
-                <button class="btn" id="m-btn-pdf" style="border-radius:20px;">🖨 PDF</button>
-            </div>
-
+            </div></details>
+            <div class="mf-list-heading"><h2 id="m-result-count" aria-live="polite">Tus registros</h2>${window.permissions?.canCreate ? '<button type="button" class="btn btn-primary" id="m-btn-add">+ Nuevo</button>' : ''}</div>
             <div class="m-data-list" id="m-data-list">
-                <div style="text-align:center;padding:40px;color:#8e8e93;">Cargando registros...</div>
+                <div class="mf-loading" role="status"><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><span>Cargando registros…</span></div>
             </div>
-            <div id="m-pagination" style="display:none;justify-content:center;align-items:center;gap:8px;padding:12px 0;flex-wrap:wrap;"></div>
+            <div id="m-pagination" class="mf-pagination" style="display:none;"></div>
+            </section>
         `;
 
-        await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
-
-        document.getElementById('m-filter-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.reloadListener(true); });
-        document.getElementById('m-filter-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.reloadListener(true); });
         let mSearchTimer;
         document.getElementById('m-global-search').addEventListener('input', e => {
             this.filters.search = e.target.value;
             clearTimeout(mSearchTimer);
             mSearchTimer = setTimeout(() => this.applyFilters(), 150);
         });
-        document.getElementById('m-btn-add').addEventListener('click', () => this.showMobileForm());
-        document.getElementById('m-btn-export').addEventListener('click', () => this.mobileExportExcel());
-        document.getElementById('m-btn-pdf').addEventListener('click', () => this._exportIlPdf());
-        document.getElementById('m-btn-filter').addEventListener('click', () => this.showMobileFilters());
 
         if (!this._mobileDelegationSetup) {
             this._mobileDelegationSetup = true;
             contentArea.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (button?.disabled) return;
+                if (button?.id === 'm-btn-add') { this.showMobileForm(); return; }
+                if (button?.id === 'm-btn-export') { this.mobileExportExcel(); return; }
+                if (button?.id === 'm-btn-pdf') { this._exportIlPdf(); return; }
+                if (button?.id === 'm-btn-filter' || button?.hasAttribute('data-m-open-filter')) { this.showMobileFilters(); return; }
+                if (button?.dataset.mPeriod) { this.setMobilePeriod(button.dataset.mPeriod); return; }
+                if (button?.dataset.mStatus) { this.mobileStatus = button.dataset.mStatus; this.applyFilters(); return; }
+                const sheet = e.target.closest('.mf-sheet-root');
+                if (sheet) {
+                    if (e.target.closest('[data-m-close]')) { this.closeMobileSheet(sheet); return; }
+                    if (button?.hasAttribute('data-m-filter-apply')) { this.applyMobileFilterSheet(sheet); return; }
+                    if (button?.hasAttribute('data-m-filter-clear')) { this.closeMobileSheet(sheet); this.clearAllFilters(); return; }
+                    if (button?.dataset.mDetailEdit) { const id = button.dataset.mDetailEdit; this.closeMobileSheet(sheet); this.showMobileForm(id); return; }
+                    if (button?.dataset.mDetailField) { this.editCellField(button.dataset.recordId, button.dataset.mDetailField, button); return; }
+                }
+                const pageBtn = e.target.closest('.m-page-btn');
+                if (pageBtn) { this.currentPage = Number(pageBtn.dataset.page); this.renderMobileCards(); document.querySelector('.mf-list-heading')?.scrollIntoView({ block: 'start' }); return; }
                 const mEditBtn = e.target.closest('.m-btn-edit');
                 if (mEditBtn) { const id = mEditBtn.getAttribute('data-record-id'); if (id) this.showMobileForm(id); return; }
                 const mDupBtn = e.target.closest('.m-btn-duplicate');
                 if (mDupBtn) { const id = mDupBtn.getAttribute('data-record-id'); if (id) this.duplicateRecord(id); return; }
                 const mDelBtn = e.target.closest('.m-btn-delete');
                 if (mDelBtn) { const id = mDelBtn.getAttribute('data-record-id'); if (id) this.deleteRecord(id); return; }
+                if (e.target.closest('.mf-card-menu')) return;
                 const mEditable = e.target.closest('.m-editable-cell');
                 if (mEditable) { e.stopPropagation(); const id = mEditable.getAttribute('data-record-id'); const field = mEditable.getAttribute('data-field'); if (id && field) this.editCellField(id, field, mEditable); return; }
                 const mCard = e.target.closest('.m-data-card');
-                if (mCard) { const id = mCard.getAttribute('data-record-id'); if (id) this.showMobileDetail(id); return; }
+                if (mCard && !e.target.closest('summary, a')) { const id = mCard.getAttribute('data-record-id'); if (id) this.showMobileDetail(id); return; }
+            });
+            contentArea.addEventListener('keydown', (e) => {
+                const card = e.target.closest('.m-data-card[data-record-id]');
+                if (card && e.target === card && ['Enter', ' '].includes(e.key)) { e.preventDefault(); this.showMobileDetail(card.dataset.recordId); }
+                const sheet = e.target.closest('.mf-sheet-root');
+                if (!sheet) return;
+                if (e.key === 'Escape') { this.closeMobileSheet(sheet); return; }
+                if (e.key !== 'Tab') return;
+                const controls = [...sheet.querySelectorAll('button:not(:disabled), input, select, textarea, summary, a[href]')].filter(el => el.getClientRects().length);
+                const first = controls[0], last = controls[controls.length - 1];
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
             });
         }
+        this.updateMobileControls();
+        await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
+    },
+
+    mobileIcon(name) {
+        const paths = { more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>', search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>', filter: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>', edit: '<path d="m15 4 5 5M4 20l4-1L20 7l-3-3L5 16z"/>', arrow: '<path d="m9 5 7 7-7 7"/>' };
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[name] || paths.arrow) + '</svg>';
+    },
+
+    setMobilePeriod(period) {
+        if (period === 'custom') { this.showMobileFilters(); return; }
+        const dates = Dashboard.getPeriodDates(period);
+        this.filters.startDate = formatDateForInput(dates.inicio);
+        this.filters.endDate = formatDateForInput(dates.fin);
+        this.updateMobileControls();
+        this.reloadListener(true);
+    },
+
+    updateMobileControls() {
+        document.querySelectorAll('[data-m-status]').forEach(btn => {
+            const active = btn.dataset.mStatus === (this.mobileStatus || 'all');
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', String(active));
+        });
+        let selectedPeriod = 'custom';
+        for (const period of ['month', 'week', 'today']) {
+            const range = Dashboard.getPeriodDates(period);
+            if (this.filters.startDate === formatDateForInput(range.inicio) && this.filters.endDate === formatDateForInput(range.fin)) selectedPeriod = period;
+        }
+        document.querySelectorAll('[data-m-period]').forEach(btn => {
+            const active = btn.dataset.mPeriod === selectedPeriod;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', String(active));
+        });
+        const label = document.getElementById('m-range-label');
+        if (label) label.textContent = 'Período: ' + (this.filters.startDate || 'Sin inicio') + ' — ' + (this.filters.endDate || 'Sin fin');
+        const count = Object.values(this.filters).reduce((n, v) => n + (Array.isArray(v) ? v.length : 0), 0);
+        const badge = document.getElementById('m-filter-count');
+        if (badge) { badge.textContent = count ? String(count) : ''; badge.hidden = !count; }
+    },
+
+    closeMobileSheet(sheet) {
+        sheet.remove();
+        const card = [...document.querySelectorAll('.m-data-card')].find(el => el.dataset.recordId === this._mobileDetailId);
+        (card || document.getElementById('m-btn-filter'))?.focus({ preventScroll: true });
     },
 
     renderMobileCards() {
@@ -545,38 +608,27 @@ const InterlogicRender = {
         var pageRecords = this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         if (this.filteredRecords.length === 0) {
-            list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📭</div><div class="m-empty-title">Sin registros</div><div class="m-empty-text">No se encontraron resultados.</div></div>';
+            list.innerHTML = '<div class="m-empty"><div class="mf-empty-symbol">' + this.mobileIcon('search') + '</div><div class="m-empty-title">No hay registros aquí</div><div class="m-empty-text">Prueba otro período o ajusta los filtros.</div><button type="button" class="btn" data-m-open-filter>Cambiar filtros</button></div>';
         } else {
             list.innerHTML = pageRecords.map(function(r) {
-                var empresaBadge = r.doc === 'NC' ? 'nc' : (r.empresa === 'DALSE' ? 'primary' : (r.empresa ? 'warning' : ''));
-                var idJs = r.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                var html = '<div class="m-data-card' + (r.entregado === true ? ' m-card-entregada' : '') + '" data-record-id="' + r.id + '" style="' + (r.anulado === true ? 'border-left:4px solid #dc2626;color:#dc2626;background:#fef2f2;' : '') + '">';
-                html += '<div class="m-card-header"><span class="m-card-title">#' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span>';
-                if (r.doc === 'NC') html += '<span class="m-card-badge badge-nc">NC</span>';
-                else if (empresaBadge) html += '<span class="m-card-badge ' + empresaBadge + '">' + sanitizeHTML(r.empresa || '') + '</span>';
-                html += '</div><div class="m-card-rows">';
-                html += '<div class="m-card-row"><span class="m-card-label">Cliente</span><span class="m-card-value">' + sanitizeHTML(r.cliente || '-') + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">Venta</span><span class="m-card-value money" style="' + (r.doc === 'NC' ? 'color:#ef4444;font-weight:700;' : '') + '">' + formatCurrency(r.venta || 0) + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</span></div>';
-                html += '<div class="m-card-row"><span class="m-card-label">Bultos</span><span class="m-card-value">' + formatNumber(r.bultos || 0) + '</span></div>';
-                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="entrega" style="cursor: pointer;">';
-                html += '<span class="m-card-label">🚚 Entrega</span><span class="m-card-value">' + sanitizeHTML(r.entrega || '—') + '</span></div>';
-                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="cobra" style="cursor: pointer;">';
-                html += '<span class="m-card-label">💰 Cobra</span><span class="m-card-value">' + sanitizeHTML(r.cobra || '—') + '</span></div>';
-                html += '<div class="m-card-row m-editable-cell" data-record-id="' + r.id + '" data-field="encargado" style="cursor: pointer;"><span class="m-card-label">👤 Encargado</span><span class="m-card-value">' + sanitizeHTML(r.encargado || '—') + '</span></div>';
-                if (r.formaPago) {
-                    var fpColors = { Efectivo: { bg: '#f0fdf4', fg: '#166534', icon: '💵' }, Cheque: { bg: '#eff6ff', fg: '#1e40af', icon: '🏦' }, Transferencia: { bg: '#faf5ff', fg: '#6b21a8', icon: '📱' }, Abono: { bg: '#fff7ed', fg: '#9a3412', icon: '📝' } };
-                    var fp = fpColors[r.formaPago] || { bg: '#f3f4f6', fg: '#374151', icon: '💳' };
-                    html += '<div class="m-card-row"><span class="m-card-label">💳 Pago</span><span class="m-card-value" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:' + fp.bg + ';color:' + fp.fg + ';font-weight:600;font-size:0.78rem;">' + fp.icon + ' ' + sanitizeHTML(r.formaPago) + '</span></div>';
+                const id = sanitizeHTML(r.id);
+                const status = r.anulado === true ? 'cancelled' : r.doc === 'NC' ? 'credit' : r.entregado === true ? 'delivered' : 'pending';
+                const labels = { cancelled: 'Anulada', credit: 'Nota de crédito', delivered: 'Entregada', pending: 'Pendiente' };
+                const destination = [r.municipio, r.departamento].filter(Boolean).join(', ') || r.direccion || 'Sin destino registrado';
+                const editable = canEdit && r.anulado !== true;
+                var html = '<article class="m-data-card mf-record-card" data-record-id="' + id + '" tabindex="0" aria-label="Ver registro ' + sanitizeHTML(r.guia || r.id) + '">';
+                html += '<div class="mf-record-top"><span class="mf-guide">Guía #' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span><span class="mf-status mf-status-' + status + '">' + labels[status] + '</span></div>';
+                html += '<h3 class="mf-record-client">' + sanitizeHTML(r.cliente || 'Cliente sin nombre') + '</h3><p class="mf-record-destination">' + sanitizeHTML(destination) + '</p>';
+                html += '<div class="mf-record-meta"><span>' + (r.fecha ? formatDateShort(r.fecha) : 'Sin fecha') + '</span><span>' + formatNumber(r.bultos || 0) + ' bultos</span><span>' + sanitizeHTML(r.empresa || 'Sin empresa') + '</span></div>';
+                html += '<div class="mf-record-bottom"><div><span class="mf-money-label">' + (r.doc === 'NC' ? 'Nota de crédito' : 'Venta') + '</span><strong class="mf-record-money' + (r.doc === 'NC' ? ' mf-credit-money' : '') + '">' + formatCurrencySigned(r.doc === 'NC' ? -Math.abs(r.venta || 0) : r.venta || 0) + '</strong></div><div class="mf-record-buttons">';
+                if (editable) html += '<button type="button" class="m-btn-edit mf-edit-button" data-record-id="' + id + '">' + self.mobileIcon('edit') + ' Editar</button>';
+                if (editable || canDelete) {
+                    html += '<details class="mf-card-options"><summary aria-label="Más acciones para la guía ' + sanitizeHTML(r.guia || r.id) + '">' + self.mobileIcon('more') + '</summary><div class="mf-card-menu">';
+                    if (editable) html += '<button type="button" class="m-btn-duplicate" data-record-id="' + id + '">Duplicar registro</button>';
+                    if (canDelete) html += '<button type="button" class="m-btn-delete" data-record-id="' + id + '">Eliminar registro</button>';
+                    html += '</div></details>';
                 }
-                html += '</div>';
-                if (canEdit || canDelete) {
-                    html += '<div class="m-card-actions" onclick="event.stopPropagation()">';
-                    if (canEdit) html += '<button class="m-card-action m-btn-edit" data-record-id="' + r.id + '" title="Editar">✏️</button><button class="m-card-action m-btn-duplicate" data-record-id="' + r.id + '" title="Duplicar">📋</button>';
-                    if (canDelete) html += '<button class="m-card-action delete m-btn-delete" data-record-id="' + r.id + '" title="Eliminar">🗑️</button>';
-                    html += '</div>';
-                }
-                html += '</div>';
+                html += '</div></div></article>';
                 return html;
             }).join('');
         }
@@ -592,6 +644,8 @@ const InterlogicRender = {
         setText('ms-envio', formatCurrencySigned(totalEnvio));
         setText('ms-pct', formatNumber(totalPct, 2) + '%');
         setText('ms-count', this.filteredRecords.length);
+        setText('m-result-count', totalRows + (totalRows === 1 ? ' registro' : ' registros'));
+        this.updateMobileControls();
 
         this._renderMobilePagination(totalRows, totalPages);
     },
@@ -607,24 +661,15 @@ const InterlogicRender = {
         pagEl.style.display = 'flex';
         var prevPage = Math.max(1, this.currentPage - 1);
         var nextPage = Math.min(totalPages, this.currentPage + 1);
-        var btnCls = 'style="cursor:pointer;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
-        var btnDis = 'style="cursor:not-allowed;opacity:0.4;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid #e5e5ea;border-radius:10px;background:#fff;"';
+        var btnCls = 'style="cursor:pointer;min-height:44px;min-width:44px;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid var(--m-separator);border-radius:10px;background:var(--m-surface);color:var(--m-text);"';
+        var btnDis = 'style="cursor:not-allowed;opacity:0.4;min-height:44px;min-width:44px;padding:8px 14px;font-size:0.85rem;font-weight:700;border:1px solid var(--m-separator);border-radius:10px;background:var(--m-surface);color:var(--m-text);"';
         var warnHtml = this._truncated
-            ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#b45309;padding:6px 10px;background:#fff7ed;border-radius:8px;">⚠ Solo se muestran los ' + this.records.length.toLocaleString() + ' registros más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">⬇ Cargar todo</button></div>'
-            : (this._fullMode ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#1e40af;padding:6px 10px;background:#eff6ff;border-radius:8px;">📊 Rango completo (' + this.records.length.toLocaleString() + ' registros). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">↻ Tiempo real</button></div>' : '');
+            ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#f59e0b;padding:6px 10px;background:rgba(245,158,11,0.12);border-radius:8px;">⚠ Solo se muestran los ' + this.records.length.toLocaleString() + ' registros más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">⬇ Cargar todo</button></div>'
+            : (this._fullMode ? '<div style="width:100%;text-align:center;font-size:0.75rem;color:#3b82f6;padding:6px 10px;background:rgba(59,130,246,0.12);border-radius:8px;">📊 Rango completo (' + this.records.length.toLocaleString() + ' registros). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:4px;">↻ Tiempo real</button></div>' : '');
         pagEl.innerHTML = warnHtml +
             '<button type="button" class="m-page-btn" data-page="' + prevPage + '" ' + (this.currentPage <= 1 ? 'disabled' : '') + ' ' + (this.currentPage <= 1 ? btnDis : btnCls) + '>‹ Ant</button>' +
-            '<span style="font-size:0.82rem;color:#555;padding:0 4px;">' + this.currentPage + ' / ' + totalPages + '</span>' +
+            '<span style="font-size:0.82rem;color:var(--m-text-secondary);padding:0 4px;">' + this.currentPage + ' / ' + totalPages + '</span>' +
             '<button type="button" class="m-page-btn" data-page="' + nextPage + '" ' + (this.currentPage >= totalPages ? 'disabled' : '') + ' ' + (this.currentPage >= totalPages ? btnDis : btnCls) + '>Sig ›</button>';
-        if (!this._mobilePaginationBound) {
-            this._mobilePaginationBound = true;
-            pagEl.addEventListener('click', (function(e) {
-                var btn = e.target.closest('.m-page-btn');
-                if (!btn) return;
-                var p = parseInt(btn.dataset.page, 10);
-                if (!isNaN(p) && p >= 1) { this.currentPage = p; this.renderMobileCards(); }
-            }).bind(this));
-        }
     },
 
     renderTable() {

@@ -1572,12 +1572,35 @@ const InterlogicCRUD = {
     },
 
     showMobileDetail(id) {
-        var r = this.filteredRecords.find(function(x) { return x.id === id; }) || this.records.find(function(x) { return x.id === id; });
+        const r = this.filteredRecords.find(x => x.id === id) || this.records.find(x => x.id === id);
         if (!r) return;
+        this._mobileDetailId = id;
+        const fields = [...this.columnDefs.filter(f => f.key !== 'acciones'), { key: 'direccion', label: 'Dirección' }].map(f => {
+            let value = r[f.key];
+            if (f.key === 'fecha') value = value ? formatDateShort(value) : '—';
+            else if (['venta', 'costoEnvio'].includes(f.key)) value = formatCurrencySigned(r.doc === 'NC' ? -Math.abs(value || 0) : value || 0);
+            else if (f.key === 'costoPorcentaje') value = formatNumber(value || 0, 2) + '%';
+            else value = value == null || value === '' ? '—' : String(value);
+            const editable = window.permissions?.canEdit && r.anulado !== true && ['entrega', 'cobra', 'encargado'].includes(f.key);
+            return '<div class="mf-detail-field"><dt>' + sanitizeHTML(f.label) + '</dt><dd>' + (editable ? '<button type="button" class="mf-detail-edit" data-m-detail-field="' + f.key + '" data-record-id="' + sanitizeHTML(id) + '">' + sanitizeHTML(value) + this.mobileIcon('edit') + '</button>' : sanitizeHTML(value)) + '</dd></div>';
+        }).join('');
+        const sheet = document.createElement('div');
+        sheet.className = 'mf-sheet-root';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" data-m-close></div><div class="m-bottom-sheet show" role="dialog" aria-modal="true" aria-labelledby="m-detail-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="m-detail-title">Guía #' + sanitizeHTML(r.guia || 'Detalle') + '</span><button type="button" class="m-sheet-close" data-m-close aria-label="Cerrar detalle">✕</button></div><div class="m-sheet-body"><h2 class="mf-detail-client">' + sanitizeHTML(r.cliente || 'Cliente sin nombre') + '</h2><dl class="mf-detail-grid">' + fields + '<div class="mf-detail-field"><dt>Teléfono</dt><dd>' + sanitizeHTML(r.telefono || '—') + '</dd></div></dl></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cerrar</button>' + (window.permissions?.canEdit && r.anulado !== true ? '<button type="button" class="btn btn-primary" data-m-detail-edit="' + sanitizeHTML(id) + '">Editar registro</button>' : '') + '</div></div>';
+        document.getElementById('content-area').appendChild(sheet);
+        sheet.querySelector('.m-sheet-close').focus({ preventScroll: true });
+    },
 
-        var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="this.nextElementSibling.remove();this.remove();"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + sanitizeHTML(r.guia || 'Detalle') + '</span><button class="m-sheet-close" onclick="this.closest(\'.m-bottom-sheet\').remove();document.querySelector(\'.m-sheet-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Empresa</span><div style="font-weight:500;">' + sanitizeHTML(r.empresa || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(r.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Dirección</span><div style="font-weight:500;">' + sanitizeHTML(r.direccion || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (r.fecha ? formatDateShort(r.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Doc</span><div style="font-weight:500;">' + sanitizeHTML(r.doc || '') + (r.docNum ? ' #' + sanitizeHTML(r.docNum) : '') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Venta</span><div style="font-weight:700;color:#10b981;font-size:1.1rem;">' + formatCurrency(r.venta || 0) + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Bultos</span><div style="font-weight:500;">' + formatNumber(r.bultos || 0) + '</div></div></div>' + (r.formaPago ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Forma Pago</span><div style="font-weight:600;padding:4px 10px;border-radius:8px;display:inline-block;background:' + (({Efectivo:'#f0fdf4',Cheque:'#eff6ff',Transferencia:'#faf5ff',Abono:'#fff7ed'}[r.formaPago]||'#f3f4f6')) + ';color:' + (({Efectivo:'#166534',Cheque:'#1e40af',Transferencia:'#6b21a8',Abono:'#9a3412'}[r.formaPago]||'#374151')) + ';">' + (({Efectivo:'💵',Cheque:'🏦',Transferencia:'📱',Abono:'📝'}[r.formaPago]||'💳')) + ' ' + sanitizeHTML(r.formaPago) + '</div></div>' : '') + '</div></div></div>';
-        document.body.appendChild(sheet);
+    _mobileFormMarkup(record, isEdit) {
+        const esc = value => sanitizeHTML(String(value ?? '')).replace(/"/g, '&quot;');
+        const input = (key, label, type = 'text', extra = '') => '<div class="m-form-group"><label for="mf-' + key + '">' + label + '</label><input type="' + type + '" id="mf-' + key + '" value="' + esc(record?.[key] ?? '') + '" ' + extra + '>' + (extra.includes('required') ? '<span class="mf-help-error">Completa este campo.</span>' : '') + '</div>';
+        const select = (key, label, values, placeholder = false) => {
+            const options = [...values];
+            if (record?.[key] && !options.includes(record[key])) options.push(record[key]);
+            return '<div class="m-form-group"><label for="mf-' + key + '">' + label + '</label><select id="mf-' + key + '">' + (placeholder ? '<option value="">Seleccionar…</option>' : '') + options.map(value => '<option value="' + esc(value) + '"' + (record?.[key] === value ? ' selected' : '') + '>' + esc(value) + '</option>').join('') + '</select></div>';
+        };
+        const date = record?.fecha ? formatDateForInput(record.fecha) : formatDateForInput(new Date());
+        return '<div class="m-sheet-backdrop show" id="m-form-backdrop" data-m-close></div><div class="m-bottom-sheet show" id="m-form-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="mf-title">' + (isEdit ? 'Editar registro' : 'Nuevo registro') + '</span><button type="button" class="m-sheet-close" aria-label="Cerrar formulario" data-m-close>✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Completa los datos. Los campos con * son obligatorios.</p><form id="mf-fields"><fieldset class="mf-form-section"><legend>01 · Registro</legend>' + input('guia', 'Guía') + select('empresa', 'Empresa', ['DALSE', 'INCEDE']) + '<div class="m-form-group"><label for="mf-fecha">Fecha *</label><input type="date" id="mf-fecha" value="' + date + '" required><span class="mf-help-error">Selecciona una fecha.</span></div>' + select('doc', 'Tipo de documento', ['CCF', 'FT', 'NC']) + input('docNum', 'Número de documento') + '</fieldset><fieldset class="mf-form-section"><legend>02 · Cliente y destino</legend>' + input('cliente', 'Cliente *', 'text', 'required autocomplete="organization"') + '<div id="mf-cliente-observacion" class="mf-client-note" style="display:none;"></div>' + input('direccion', 'Dirección', 'text', 'autocomplete="street-address"') + input('telefono', 'Teléfono / WhatsApp', 'tel', 'inputmode="tel" autocomplete="tel"') + input('vendedor', 'Vendedor') + '</fieldset><fieldset class="mf-form-section"><legend>03 · Despacho y cobro</legend>' + input('venta', 'Venta ($)', 'number', 'step="0.01" inputmode="decimal"') + input('bultos', 'Bultos', 'number', 'step="1" min="0" inputmode="numeric"') + select('entrega', 'Quién entrega', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + select('cobra', 'Quién cobra', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + '<div class="m-form-group"><label for="mf-observations">Observaciones</label><textarea id="mf-observations" rows="3">' + esc(record?.observations) + '</textarea></div></fieldset></form></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cancelar</button><button type="button" class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar cambios' : 'Crear registro') + '</button></div></div>';
     },
 
     showMobileForm(id) {
@@ -1598,8 +1621,11 @@ const InterlogicCRUD = {
         var self = this;
 
         var sheet = document.createElement('div');
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="m-form-backdrop"></div><div class="m-bottom-sheet show" id="m-form-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Registro' : 'Nuevo Registro') + '</span><button class="m-sheet-close" onclick="document.getElementById(\'m-form-sheet\').remove();document.getElementById(\'m-form-backdrop\').remove();">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Guía</label><input type="text" id="mf-guia" value="' + sanitizeHTML(record?.guia || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Empresa</label><select id="mf-empresa"><option value="DALSE"' + (record?.empresa === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INCEDE"' + (record?.empresa === 'INCEDE' ? ' selected' : '') + '>INCEDE</option></select></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mf-fecha" value="' + (record?.fecha ? (typeof record.fecha === 'string' ? record.fecha.split('T')[0] : formatDateForInput(record.fecha)) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-row"><div class="m-form-group"><label>Doc</label><select id="mf-doc"><option value="CCF"' + (record?.doc === 'CCF' ? ' selected' : '') + '>CCF</option><option value="FT"' + (record?.doc === 'FT' ? ' selected' : '') + '>FT</option><option value="NC"' + (record?.doc === 'NC' ? ' selected' : '') + '>NC</option></select></div><div class="m-form-group"><label>N° Doc</label><input type="text" id="mf-docNum" value="' + sanitizeHTML(record?.docNum || '').replace(/"/g, '&quot;') + '"></div></div><div class="m-form-group"><label>Cliente</label><input type="text" id="mf-cliente" value="' + sanitizeHTML(record?.cliente || '').replace(/"/g, '&quot;') + '"></div><div id="mf-cliente-observacion" style="display:none;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:0.8rem;font-weight:600;margin-top:8px;"></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mf-direccion" value="' + sanitizeHTML(record?.direccion || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Teléfono (WhatsApp)</label><input type="text" id="mf-telefono" value="' + sanitizeHTML(record?.telefono || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mf-vendedor" value="' + sanitizeHTML(record?.vendedor || '').replace(/"/g, '&quot;') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Venta ($)</label><input type="number" id="mf-venta" step="0.01" value="' + (record?.venta || '') + '"></div><div class="m-form-group"><label>Bultos</label><input type="number" id="mf-bultos" value="' + (record?.bultos || '') + '"></div></div><div class="m-form-group"><label>Entrega</label><select id="mf-entrega"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.entrega === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.entrega === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.entrega === 'XPRESS' ? ' selected' : '') + '>XPRESS</option>' + (record?.entrega && !['DALSE', 'INTERLOGISTIC', 'XPRESS'].includes(record.entrega) ? '<option selected value="' + sanitizeHTML(record.entrega).replace(/"/g, '&quot;') + '">' + sanitizeHTML(record.entrega) + '</option>' : '') + '</select></div><div class="m-form-group"><label>Cobra</label><select id="mf-cobra"><option value="">Seleccionar...</option><option value="DALSE"' + (record?.cobra === 'DALSE' ? ' selected' : '') + '>DALSE</option><option value="INTERLOGISTIC"' + (record?.cobra === 'INTERLOGISTIC' ? ' selected' : '') + '>INTERLOGISTIC</option><option value="XPRESS"' + (record?.cobra === 'XPRESS' ? ' selected' : '') + '>XPRESS</option>' + (record?.cobra && !['DALSE', 'INTERLOGISTIC', 'XPRESS'].includes(record.cobra) ? '<option selected value="' + sanitizeHTML(record.cobra).replace(/"/g, '&quot;') + '">' + sanitizeHTML(record.cobra) + '</option>' : '') + '</select></div><div class="m-form-group"><label>Observaciones</label><textarea id="mf-observations" rows="2">' + sanitizeHTML(record?.observations || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn btn-primary" id="mf-submit" style="flex:1;">' + (isEdit ? 'Guardar Cambios' : 'Crear Registro') + '</button></div></div>';
-        document.body.appendChild(sheet);
+        sheet.id = 'm-form-root';
+        sheet.className = 'mf-sheet-root';
+        sheet.innerHTML = this._mobileFormMarkup(record, isEdit);
+        document.getElementById('content-area').appendChild(sheet);
+        sheet.querySelector('.m-sheet-close').focus({ preventScroll: true });
 
         if (record && record.cliente) {
             var mobileClientName = record.cliente.toLowerCase().trim();
@@ -1687,6 +1713,8 @@ const InterlogicCRUD = {
         document.getElementById('mf-submit').addEventListener('click', async function() {
             var btn = document.getElementById('mf-submit');
             if (btn.disabled) return;
+            const form = document.getElementById('mf-fields');
+            if (form?.reportValidity && !form.reportValidity()) return;
             btn.disabled = true;
             btn.textContent = 'Guardando...';
 
@@ -1802,8 +1830,12 @@ const InterlogicCRUD = {
                         observacionEntrega: mfObsEntrega
                     });
                 }
-                document.getElementById('m-form-sheet').remove();
-                document.getElementById('m-form-backdrop').remove();
+                const root = document.getElementById('m-form-root');
+                if (root) root.remove();
+                else {
+                    document.getElementById('m-form-sheet').remove();
+                    document.getElementById('m-form-backdrop').remove();
+                }
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
                 btn.disabled = false;

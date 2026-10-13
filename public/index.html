@@ -37,12 +37,13 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="css/styles.css?v=14">
-    <link rel="stylesheet" href="css/mobile.css?v=1">
+    <link rel="stylesheet" href="css/mobile.css?v=3">
     <link rel="stylesheet" href="css/dashboard_redesign.css?v=34">
-    <link rel="stylesheet" href="css/dashboard_mobile_fix.css?v=19">
-    <link rel="stylesheet" href="css/dashboard_visual.css?v=2">
+    <link rel="stylesheet" href="css/dashboard_mobile_fix.css?v=22">
+    <link rel="stylesheet" href="css/dashboard_visual.css?v=7">
     <link rel="stylesheet" href="css/operations_visual.css?v=9">
 <link rel="stylesheet" href="css/interlogic_premium.css?v=13">
+    <link rel="stylesheet" href="css/mobilefirst.css?v=7">
 </head>
 
 <body>
@@ -136,8 +137,8 @@
             <button id="mobile-toggle" class="mobile-menu-btn" aria-label="Abrir menú">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <div class="mobile-logo">Dalse</div>
-            <div style="width: 40px;"></div> <!-- Spacer -->
+            <div class="mobile-brand"><span class="mobile-brand-mark" aria-hidden="true">D</span><div><span class="mobile-brand-name">Dalse</span><span class="mobile-logo" id="mobile-section-title">Inicio</span></div></div>
+            <button type="button" class="mobile-profile-btn" id="mobile-profile-btn" aria-label="Abrir perfil y opciones" aria-controls="more-menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></button>
         </header>
 
         <!-- Floating Sidebar Toggle (Desktop/Global) -->
@@ -264,7 +265,11 @@
             <span class="bn-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             </span>
-            <span class="bn-label">Dashboard</span>
+            <span class="bn-label">Inicio</span>
+        </button>
+        <button class="bn-item" data-module="interlogic">
+            <span class="bn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h4"/></svg></span>
+            <span class="bn-label">Interlogic</span>
         </button>
         <button class="bn-item" data-module="liquidacion">
             <span class="bn-icon">
@@ -278,13 +283,7 @@
             </span>
             <span class="bn-label">Entregas</span>
         </button>
-        <button class="bn-item" data-module="clientes">
-            <span class="bn-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
-            </span>
-            <span class="bn-label">Clientes</span>
-        </button>
-        <button class="bn-item" id="bn-more-btn">
+        <button class="bn-item" id="bn-more-btn" aria-controls="more-menu" aria-expanded="false">
             <span class="bn-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
             </span>
@@ -294,7 +293,7 @@
 
     <!-- More Menu Overlay (mobile) -->
     <div class="more-overlay" id="more-overlay"></div>
-    <div class="more-menu" id="more-menu">
+    <div class="more-menu" id="more-menu" role="dialog" aria-modal="true" aria-label="Perfil y más opciones" tabindex="-1">
         <div class="more-menu-header">
             <span class="more-menu-title">Más opciones</span>
             <button class="more-menu-close" id="more-menu-close" aria-label="Cerrar">
@@ -383,19 +382,19 @@
     <script src="js/init.js?v=3"></script>
 
     <!-- Application Scripts -->
-    <script defer src="js/utils.js?v=6"></script>
+    <script defer src="js/utils.js?v=7"></script>
     <script defer src="js/shared/components.js?v=1"></script>
-    <script defer src="js/dashboard.js?v=42"></script>
-    <script defer src="js/app.js?v=2"></script>
+    <script defer src="js/dashboard.js?v=52"></script>
+    <script defer src="js/app.js?v=3"></script>
     <script src="js/auth.js?v=5"></script>
     <script defer src="js/users.js?v=3"></script>
     <script defer src="js/settings.js?v=2"></script>
     <script defer src="js/deliveries.js?v=7"></script>
     <!-- Interlogic modular -->
     <script defer src="js/interlogic/core.js?v=6"></script>
-    <script defer src="js/interlogic/render.js?v=18"></script>
-    <script defer src="js/interlogic/filters.js?v=3"></script>
-    <script defer src="js/interlogic/crud.js?v=23"></script>
+    <script defer src="js/interlogic/render.js?v=23"></script>
+    <script defer src="js/interlogic/filters.js?v=6"></script>
+    <script defer src="js/interlogic/crud.js?v=26"></script>
     <script defer src="js/interlogic/excel.js?v=7"></script>
     <script defer src="js/interlogic/routes.js?v=2"></script>
     <script defer src="js/interlogic/index.js?v=1"></script>
