@@ -40,16 +40,16 @@ const Tarimas = {
 
             <div class="tarimas-stats" id="tarimas-stats">
                 <div class="stat-card stat-card-total">
-                    <span class="stat-label">Total Actual</span>
-                    <span class="stat-value" id="tarima-total">0</span>
+                    <span class="stat-label">Existencia</span>
+                    <span class="stat-value" id="tarima-existencia">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Entradas Hoy</span>
-                    <span class="stat-value stat-value-in" id="tarima-entradas-hoy">0</span>
+                    <span class="stat-label">Total Entradas</span>
+                    <span class="stat-value stat-value-in" id="tarima-entradas">0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Salidas Hoy</span>
-                    <span class="stat-value stat-value-out" id="tarima-salidas-hoy">0</span>
+                    <span class="stat-label">Total Salidas</span>
+                    <span class="stat-value stat-value-out" id="tarima-salidas">0</span>
                 </div>
             </div>
 
@@ -111,16 +111,16 @@ const Tarimas = {
             </div>
             <div class="tarimas-stats" id="tarimas-stats" style="margin:8px 0;">
                 <div class="stat-card stat-card-total" style="padding:8px;">
-                    <span class="stat-label" style="font-size:0.65rem;">Total</span>
-                    <span class="stat-value" id="tarima-total" style="font-size:1.3rem;">0</span>
+                    <span class="stat-label" style="font-size:0.65rem;">Existencia</span>
+                    <span class="stat-value" id="tarima-existencia" style="font-size:1.3rem;">0</span>
                 </div>
                 <div class="stat-card" style="padding:8px;">
-                    <span class="stat-label" style="font-size:0.65rem;">Entradas Hoy</span>
-                    <span class="stat-value stat-value-in" id="tarima-entradas-hoy" style="font-size:1.3rem;">0</span>
+                    <span class="stat-label" style="font-size:0.65rem;">Total Entradas</span>
+                    <span class="stat-value stat-value-in" id="tarima-entradas" style="font-size:1.3rem;">0</span>
                 </div>
                 <div class="stat-card" style="padding:8px;">
-                    <span class="stat-label" style="font-size:0.65rem;">Salidas Hoy</span>
-                    <span class="stat-value stat-value-out" id="tarima-salidas-hoy" style="font-size:1.3rem;">0</span>
+                    <span class="stat-label" style="font-size:0.65rem;">Total Salidas</span>
+                    <span class="stat-value stat-value-out" id="tarima-salidas" style="font-size:1.3rem;">0</span>
                 </div>
             </div>
             <div id="m-tarima-list" class="m-data-list">
@@ -187,43 +187,26 @@ const Tarimas = {
     },
 
     calcularTotales() {
-        if (this.records.length > 0) {
-            this.totalActual = this.records[0].totalDespues || 0;
-        } else {
-            this.totalActual = 0;
-        }
-
-        const today = new Date();
-        const todayKey = today.getFullYear() + '-' +
-            String(today.getMonth() + 1).padStart(2, '0') + '-' +
-            String(today.getDate()).padStart(2, '0');
-
-        let entradasHoy = 0;
-        let salidasHoy = 0;
+        let totalEntradas = 0;
+        let totalSalidas = 0;
 
         this.records.forEach(r => {
-            const d = r.fecha ? (r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha)) : null;
-            if (!d) return;
-            const key = d.getFullYear() + '-' +
-                String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                String(d.getDate()).padStart(2, '0');
-            if (key === todayKey) {
-                if (r.tipo === 'ingreso') entradasHoy += (r.cantidad || 0);
-                else if (r.tipo === 'salida') salidasHoy += (r.cantidad || 0);
-            }
+            if (r.tipo === 'ingreso') totalEntradas += (r.cantidad || 0);
+            else if (r.tipo === 'salida') totalSalidas += (r.cantidad || 0);
         });
 
-        this._entradasHoy = entradasHoy;
-        this._salidasHoy = salidasHoy;
+        this._totalEntradas = totalEntradas;
+        this._totalSalidas = totalSalidas;
+        this.totalActual = totalEntradas - totalSalidas;
     },
 
     renderStats() {
-        const totalEl = document.getElementById('tarima-total');
-        const entradasEl = document.getElementById('tarima-entradas-hoy');
-        const salidasEl = document.getElementById('tarima-salidas-hoy');
+        const totalEl = document.getElementById('tarima-existencia');
+        const entradasEl = document.getElementById('tarima-entradas');
+        const salidasEl = document.getElementById('tarima-salidas');
         if (totalEl) totalEl.textContent = formatNumber(this.totalActual);
-        if (entradasEl) entradasEl.textContent = formatNumber(this._entradasHoy || 0);
-        if (salidasEl) salidasEl.textContent = formatNumber(this._salidasHoy || 0);
+        if (entradasEl) entradasEl.textContent = formatNumber(this._totalEntradas || 0);
+        if (salidasEl) salidasEl.textContent = formatNumber(this._totalSalidas || 0);
     },
 
     renderTable() {
@@ -530,23 +513,18 @@ const Tarimas = {
                 showToast('Movimiento actualizado', 'success');
             } else {
                 await db.runTransaction(async (transaction) => {
-                    const querySnap = await db.collection('tarimas_walmart')
-                        .orderBy('fecha', 'desc')
-                        .limit(1)
-                        .get();
+                    const todos = await transaction.get(db.collection('tarimas_walmart'));
 
-                    let totalAnterior = 0;
-                    if (!querySnap.empty) {
-                        totalAnterior = querySnap.docs[0].data().totalDespues || 0;
-                    }
+                    let saldoActual = 0;
+                    todos.forEach(doc => {
+                        const data = doc.data();
+                        if (data.tipo === 'ingreso') saldoActual += (data.cantidad || 0);
+                        else if (data.tipo === 'salida') saldoActual -= (data.cantidad || 0);
+                    });
 
                     const nuevoTotal = tipo === 'ingreso'
-                        ? totalAnterior + cantidad
-                        : totalAnterior - cantidad;
-
-                    if (nuevoTotal < 0) {
-                        throw new Error('No hay suficientes tarimas. Total actual: ' + totalAnterior);
-                    }
+                        ? saldoActual + cantidad
+                        : saldoActual - cantidad;
 
                     const nuevoDoc = db.collection('tarimas_walmart').doc();
                     transaction.set(nuevoDoc, {
@@ -560,6 +538,7 @@ const Tarimas = {
                         createdByName: window.currentUserData?.displayName || 'Usuario'
                     });
                 });
+                await this.recalcularTotales();
                 showToast(tipo === 'ingreso' ? 'Entrada registrada' : 'Salida registrada', 'success');
             }
 
