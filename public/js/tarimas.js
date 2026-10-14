@@ -512,9 +512,8 @@ const Tarimas = {
                 await this.recalcularTotales();
                 showToast('Movimiento actualizado', 'success');
             } else {
+                const todos = await db.collection('tarimas_walmart').get();
                 await db.runTransaction(async (transaction) => {
-                    const todos = await transaction.get(db.collection('tarimas_walmart'));
-
                     let saldoActual = 0;
                     todos.forEach(doc => {
                         const data = doc.data();
