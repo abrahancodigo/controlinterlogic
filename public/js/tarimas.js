@@ -501,6 +501,7 @@ const Tarimas = {
             const isEdit = !!this.editingId;
 
             if (isEdit) {
+                const previo = this.records.find(r => r.id === this.editingId);
                 await db.collection('tarimas_walmart').doc(this.editingId).update({
                     tipo: tipo,
                     cantidad: cantidad,
@@ -509,35 +510,24 @@ const Tarimas = {
                     fecha: fechaTs,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                await this.recalcularTotales();
+                const prevMs = previo && previo.fecha ? this._tsMs(previo.fecha) : null;
+                const desde = prevMs === null ? null : (prevMs < fechaTs.toMillis() ? previo.fecha : fechaTs);
+                await this.recalcularTotales(desde);
                 showToast('Movimiento actualizado', 'success');
             } else {
-                const todos = await db.collection('tarimas_walmart').get();
-                await db.runTransaction(async (transaction) => {
-                    let saldoActual = 0;
-                    todos.forEach(doc => {
-                        const data = doc.data();
-                        if (data.tipo === 'ingreso') saldoActual += (data.cantidad || 0);
-                        else if (data.tipo === 'salida') saldoActual -= (data.cantidad || 0);
-                    });
-
-                    const nuevoTotal = tipo === 'ingreso'
-                        ? saldoActual + cantidad
-                        : saldoActual - cantidad;
-
-                    const nuevoDoc = db.collection('tarimas_walmart').doc();
-                    transaction.set(nuevoDoc, {
+                const nuevoDoc = db.collection('tarimas_walmart').doc();
+                await this.recalcularTotales(fechaTs, {
+                    ref: nuevoDoc,
+                    data: {
                         tipo: tipo,
                         cantidad: cantidad,
                         destino: destino,
                         observacion: observacion,
-                        totalDespues: nuevoTotal,
                         fecha: fechaTs,
                         createdBy: user ? user.uid : '',
                         createdByName: window.currentUserData?.displayName || 'Usuario'
-                    });
+                    }
                 });
-                await this.recalcularTotales();
                 showToast(tipo === 'ingreso' ? 'Entrada registrada' : 'Salida registrada', 'success');
             }
 
@@ -550,27 +540,44 @@ const Tarimas = {
         }
     },
 
-    async recalcularTotales() {
+    _tsMs(fecha) {
+        return fecha && typeof fecha.toMillis === 'function' ? fecha.toMillis() : new Date(fecha).getTime();
+    },
+
+    async recalcularTotales(desdeFecha, nuevo) {
         const db = firebase.firestore();
         const snapshot = await db.collection('tarimas_walmart')
             .orderBy('fecha', 'asc')
+            .select('tipo', 'cantidad', 'fecha', 'totalDespues')
             .get();
 
-        let acumulado = 0;
-        const batch = db.batch();
+        const desdeMs = desdeFecha ? this._tsMs(desdeFecha) : null;
 
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const cantidad = data.cantidad || 0;
-            if (data.tipo === 'ingreso') {
-                acumulado += cantidad;
-            } else {
-                acumulado -= cantidad;
-            }
-            batch.update(doc.ref, { totalDespues: acumulado });
+        const items = snapshot.docs.map(d => ({ ref: d.ref, data: d.data(), isNew: false }));
+        if (nuevo) items.push({ ref: nuevo.ref, data: nuevo.data, isNew: true });
+        items.sort((a, b) => this._tsMs(a.data.fecha) - this._tsMs(b.data.fecha));
+
+        let acumulado = 0;
+        const updates = [];
+        items.forEach(item => {
+            const data = item.data;
+            if (data.tipo === 'ingreso') acumulado += (data.cantidad || 0);
+            else acumulado -= (data.cantidad || 0);
+            if (desdeMs !== null && this._tsMs(data.fecha) < desdeMs) return;
+            if (!item.isNew && (data.totalDespues || 0) === acumulado) return;
+            updates.push(item.isNew
+                ? { set: true, ref: item.ref, payload: Object.assign({}, data, { totalDespues: acumulado }) }
+                : { set: false, ref: item.ref, payload: { totalDespues: acumulado } });
         });
 
-        await batch.commit();
+        for (let i = 0; i < updates.length; i += 400) {
+            const batch = db.batch();
+            updates.slice(i, i + 400).forEach(u => {
+                if (u.set) batch.set(u.ref, u.payload);
+                else batch.update(u.ref, u.payload);
+            });
+            await batch.commit();
+        }
     },
 
     async deleteMovimiento(id) {
@@ -583,7 +590,7 @@ const Tarimas = {
         try {
             const db = firebase.firestore();
             await db.collection('tarimas_walmart').doc(id).delete();
-            await this.recalcularTotales();
+            await this.recalcularTotales(record.fecha || null);
             showToast('Movimiento eliminado', 'success');
         } catch (error) {
             console.error('Error deleting movimiento:', error);

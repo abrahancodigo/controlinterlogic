@@ -187,9 +187,8 @@ function isValidEmail(email) {
  * Sanitize HTML to prevent XSS
  */
 function sanitizeHTML(str) {
-    const temp = document.createElement('div');
-    temp.textContent = str;
-    return temp.innerHTML;
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, c => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;'));
 }
 
 /**
@@ -486,3 +485,40 @@ window.PRIVILEGES = [
     { key: 'manageMetas', label: 'Metas y comisiones (Dashboard)', def: true },
     { key: 'exportData', label: 'Exportar datos (Excel / PDF)', def: true }
 ];
+
+window.CDN_LIBS = {
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    html2pdf: 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+    exceljs: 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    apexcharts: 'https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js'
+};
+
+function ensureLib(name) {
+    const loaded = {
+        jspdf: () => typeof window.jspdf !== 'undefined' && !!window.jspdf.jsPDF,
+        html2pdf: () => typeof window.html2pdf !== 'undefined',
+        exceljs: () => typeof window.ExcelJS !== 'undefined',
+        xlsx: () => typeof window.XLSX !== 'undefined',
+        apexcharts: () => typeof window.ApexCharts !== 'undefined'
+    }[name];
+    if (loaded && loaded()) return Promise.resolve();
+    if (!window._libPromises) window._libPromises = {};
+    if (!window._libPromises[name]) {
+        window._libPromises[name] = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = window.CDN_LIBS[name];
+            s.onload = () => resolve();
+            s.onerror = () => {
+                window._libPromises[name] = null;
+                reject(new Error('No se pudo cargar ' + name));
+            };
+            document.head.appendChild(s);
+        });
+    }
+    return window._libPromises[name];
+}
+
+window.addEventListener('load', () => {
+    ['jspdf', 'html2pdf', 'exceljs', 'xlsx', 'apexcharts'].forEach(name => ensureLib(name).catch(() => {}));
+});

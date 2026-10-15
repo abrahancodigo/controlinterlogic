@@ -200,9 +200,14 @@ const InterlogicFilters = {
         const q = query.toLowerCase();
 
         items.forEach(item => {
-            const text = item.textContent.toLowerCase();
+            const text = item.dataset.lc || (item.dataset.lc = item.textContent.toLowerCase());
             item.style.display = text.includes(q) ? 'flex' : 'none';
         });
+    },
+
+    scheduleApplyFilters() {
+        clearTimeout(this._applyFiltersTimer);
+        this._applyFiltersTimer = setTimeout(() => this.applyFilters(), 80);
     },
 
     applyFilters() {
@@ -257,6 +262,8 @@ const InterlogicFilters = {
         });
 
         this.applySorting();
+
+        this._totals = this._computeTotals();
 
         const hasActiveFilters = this.currentSort.field || Object.entries(this.filters).some(([k, v]) => {
             const today = getLocalDateString();
@@ -332,6 +339,11 @@ const InterlogicFilters = {
             </div>
         `;
 
+        const optionsCacheKey = field + '|' + JSON.stringify(Object.entries(this.filters).filter(([k]) => k !== field));
+        let uniqueValues;
+        if (this._optionsCache && this._optionsCache.key === optionsCacheKey && this._optionsCache.src === this.records) {
+            uniqueValues = this._optionsCache.values;
+        } else {
         const recordsForOptions = this.records.filter(record => {
             for (let f in this.filters) {
                 if (f === field) continue;
@@ -376,12 +388,14 @@ const InterlogicFilters = {
         });
 
         const sourceRecords = recordsForOptions.length > 0 ? recordsForOptions : this.records;
-        const uniqueValues = [...new Set(sourceRecords.map(r => {
+        uniqueValues = [...new Set(sourceRecords.map(r => {
             if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
             if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
             if (field === 'costoPorcentaje') return formatNumber(r[field] || 0, 2) + '%';
             return String(r[field] || ' (Vacío)');
         }))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        this._optionsCache = { key: optionsCacheKey, src: this.records, values: uniqueValues };
+        }
 
         const activeValues = this.filters[field] || [];
 
@@ -409,7 +423,7 @@ const InterlogicFilters = {
             const checkboxes = list.querySelectorAll('input[type="checkbox"]');
             this.filters[field] = Array.from(checkboxes).map(cb => cb.dataset.value);
         }
-        this.applyFilters();
+        this.scheduleApplyFilters();
         this.populateFilterOptions(field);
     },
 
@@ -422,7 +436,7 @@ const InterlogicFilters = {
             this.filters[field] = this.filters[field].filter(v => v !== value);
         }
 
-        this.applyFilters();
+        this.scheduleApplyFilters();
     },
 
     clearAllFilters() {

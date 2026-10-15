@@ -65,6 +65,7 @@ const InterlogicCRUD = {
 
         try {
             this.unsubscribe = query.onSnapshot(snapshot => {
+                if (snapshot.docChanges().length === 0) return;
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -72,7 +73,7 @@ const InterlogicCRUD = {
                 this._truncated = snapshot.size >= RT_MAX_RECORDS;
                 this._fullMode = false;
 
-                this.applyFilters();
+                this.scheduleApplyFilters();
 
                 if (this.loading) {
                     this.loading = false;
@@ -1054,6 +1055,10 @@ const InterlogicCRUD = {
             });
             document.body.appendChild(container);
         }
+
+        if (container.dataset.ready === '1' && this._bulkCount === this.selectedRecords.size) return;
+        this._bulkCount = this.selectedRecords.size;
+        container.dataset.ready = '1';
 
         if (this.selectedRecords.size > 0) {
             container.style.display = 'inline-flex';

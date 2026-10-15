@@ -50,7 +50,7 @@ const InterlogicExcel = {
             showToast('No hay datos filtrados para exportar', 'warning');
             return;
         }
-        if (typeof ExcelJS === 'undefined') {
+        try { await ensureLib('exceljs'); } catch (e) {
             showToast('Librería Excel no disponible', 'error');
             return;
         }
@@ -151,12 +151,12 @@ const InterlogicExcel = {
         }
     },
 
-    _exportIlPdf() {
+    async _exportIlPdf() {
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos filtrados para exportar', 'warning');
             return;
         }
-        if (!window.jspdf || !window.jspdf.jsPDF) {
+        try { await ensureLib('jspdf'); } catch (e) {
             showToast('Librería PDF no disponible', 'error');
             return;
         }
@@ -321,8 +321,9 @@ const InterlogicExcel = {
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (evt) => {
+            reader.onload = async (evt) => {
                 try {
+                    await ensureLib('xlsx');
                     const data = new Uint8Array(evt.target.result);
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];

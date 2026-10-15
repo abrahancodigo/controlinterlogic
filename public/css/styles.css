@@ -1952,7 +1952,7 @@ tbody tr:hover {
 
 .badge-ghost {
     background: var(--surface-3);
-    color: var(--ink-3);
+    color: #475569;
 }
 
 .badge-warning {
@@ -1966,8 +1966,28 @@ tbody tr:hover {
 }
 
 .badge-purple {
-    background: var(--brand-soft);
-    color: var(--brand-2);
+    background: #e879f9;
+    color: #0f172a;
+}
+
+.badge-dalse {
+    background: #38bdf8;
+    color: #0f172a;
+}
+
+.badge-interlogic {
+    background: #fb923c;
+    color: #0f172a;
+}
+
+.badge-xpress {
+    background: #4ade80;
+    color: #0f172a;
+}
+
+.badge-incede {
+    background: #a78bfa;
+    color: #0f172a;
 }
 
 .mfp-btn {
@@ -7265,12 +7285,37 @@ tbody tr:hover {
 
 [data-theme="dark"] .badge-ghost {
     background: var(--bg-tertiary);
-    color: var(--text-secondary);
+    color: #cbd5e1;
 }
 
 [data-theme="dark"] .badge-warning {
     background: rgba(251, 191, 36, 0.15);
     color: #fbbf24;
+}
+
+[data-theme="dark"] .badge-dalse {
+    background: #0ea5e9;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .badge-interlogic {
+    background: #f97316;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .badge-xpress {
+    background: #22c55e;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .badge-purple {
+    background: #d946ef;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .badge-incede {
+    background: #a78bfa;
+    color: #0f172a;
 }
 
 /* ===================================

@@ -423,8 +423,8 @@ const KpiEvaluation = {
         }
     },
 
-    exportToExcel() {
-        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
+    async exportToExcel() {
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible', 'error'); return; }
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos para exportar.', 'warning');
             return;

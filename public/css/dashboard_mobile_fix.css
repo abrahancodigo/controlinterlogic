@@ -427,8 +427,6 @@
     padding-left: max(14px, env(safe-area-inset-left, 0)) !important;
     padding-right: max(14px, env(safe-area-inset-right, 0)) !important;
     background: rgba(255,255,255,0.92) !important;
-    backdrop-filter: blur(16px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     border-bottom: 0.5px solid var(--dash-border) !important;
     box-shadow: 0 1px 8px rgba(15,23,42,0.04) !important;
   }
@@ -458,7 +456,6 @@
     padding-left: env(safe-area-inset-left, 0) !important;
     padding-right: env(safe-area-inset-right, 0) !important;
     background: rgba(255,255,255,0.96) !important;
-    backdrop-filter: blur(18px) saturate(180%) !important;
     border-top: 0.5px solid var(--dash-border) !important;
     box-shadow: 0 -4px 20px rgba(15,23,42,0.06) !important;
   }

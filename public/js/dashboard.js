@@ -512,9 +512,7 @@ const Dashboard = {
             this._truncated = truncated;
             const warnEl = document.getElementById('dash-truncated-warn');
             if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
-            this._populateDimFilters();
-            this.computeAndRender();
-            this.updateDeltas();
+            this._scheduleRender();
         };
 
         const onError = (err) => {
@@ -532,7 +530,30 @@ const Dashboard = {
                 .then(all => finish(all, false))
                 .catch(onError);
         }
-        this.fetchPrevPeriod();
+        setTimeout(() => {
+            if (this._prevRequestKey === requestKey) this.fetchPrevPeriod();
+        }, 50);
+    },
+
+    _renderNow() {
+        this._populateDimFilters();
+        this.computeAndRender();
+        this.updateDeltas();
+    },
+
+    _scheduleRender() {
+        if (this._renderTimer) {
+            this._renderPending = true;
+            return;
+        }
+        this._renderNow();
+        this._renderTimer = setTimeout(() => {
+            this._renderTimer = null;
+            if (this._renderPending) {
+                this._renderPending = false;
+                this._renderNow();
+            }
+        }, 250);
     },
 
     fetchPrevPeriod() {
@@ -548,8 +569,7 @@ const Dashboard = {
             .then(all => {
                 if (this._prevRequestKey !== requestKey) return;
                 this.prevRecords = all.filter(r => r.anulado !== true);
-                this.computeAndRender();
-                this.updateDeltas();
+                this._scheduleRender();
             })
             .catch(() => {});
     },
@@ -1275,8 +1295,8 @@ const Dashboard = {
         this._writeXlsx(rows, 'Tendencia mensual', 'Tendencia');
     },
 
-    _writeXlsx(rows, title, sheetName) {
-        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
+    async _writeXlsx(rows, title, sheetName) {
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
         if (!rows.length) { showToast('No hay datos para exportar', 'info'); return; }
         try {
             const wb = XLSX.utils.book_new();
@@ -1437,9 +1457,10 @@ const Dashboard = {
     },
 
     async initCharts() {
-        if (this.chartInit) return;
+        if (this.chartInit || this._chartsLoading) return;
+        this._chartsLoading = true;
         const renderToken = this._renderToken;
-        if (typeof ApexCharts === 'undefined') { showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
+        try { await ensureLib('apexcharts'); } catch (e) { this._chartsLoading = false; showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
         const theme = this.getChartTheme();
         const labelColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
         const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
@@ -1747,9 +1768,10 @@ const Dashboard = {
             .filter(c => c && typeof c.render === 'function')
             .map(c => c.render());
         await Promise.all(renderJobs);
-        if (this._renderToken !== renderToken) return;
+        if (this._renderToken !== renderToken) { this._chartsLoading = false; return; }
 
         this.chartInit = true;
+        this._chartsLoading = false;
 
         // — Mobile resize handling: ResizeObserver + orientationchange
         const _debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
@@ -2767,7 +2789,7 @@ const Dashboard = {
     },
 
     /* ── Export detail to Excel ── */
-    exportDetailToExcel(data, title) {
+    async exportDetailToExcel(data, title) {
         showToast('Generando Excel...', 'info');
 
         const sorted = [...data].sort((a, b) => {
@@ -2806,7 +2828,7 @@ const Dashboard = {
             'Observaciones': r.observations || ''
         }));
 
-        if (typeof XLSX === 'undefined') { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
         try {
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(rows);
@@ -2829,10 +2851,10 @@ const Dashboard = {
     },
 
     /* ── Export ── */
-    exportDashboard() {
+    async exportDashboard() {
         const el = document.querySelector('.dash');
         if (!el) return;
-        if (typeof html2pdf === 'undefined') { showToast('Exportando... espere un momento', 'info'); return; }
+        try { await ensureLib('html2pdf'); } catch (e) { showToast('PDF no disponible (sin conexión al CDN)', 'error'); return; }
 
         showToast('Generando PDF...', 'info');
 
@@ -2975,6 +2997,7 @@ const Dashboard = {
         Object.values(this.charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
         this.charts = {};
         this.chartInit = false;
+        this._chartsLoading = false;
         this._acumInit = false;
         this.acumSelectedVendors = new Set();
         this.records = [];

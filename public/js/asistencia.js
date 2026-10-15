@@ -676,7 +676,7 @@ const Asistencia = {
     },
 
     async exportToExcel() {
-        if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS no disponible');
+        try { await ensureLib('exceljs'); } catch (e) { throw new Error('ExcelJS no disponible'); }
         const { employees, dateColumns, byEmployee } = this;
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Asistencia', { views:[{ state:'frozen', xSplit:2, ySplit:2 }] });
@@ -752,7 +752,7 @@ const Asistencia = {
     },
 
     async importFromExcel(arrayBuffer) {
-        if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS no disponible');
+        try { await ensureLib('exceljs'); } catch (e) { throw new Error('ExcelJS no disponible'); }
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(arrayBuffer);
         const sheet = workbook.worksheets[0];

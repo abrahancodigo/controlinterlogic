@@ -634,9 +634,10 @@ const InterlogicRender = {
             }).join('');
         }
 
-        var totalVenta = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'venta'); }, 0);
-        var totalBultos = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'bultos'); }, 0);
-        var totalEnvio = this.filteredRecords.reduce(function(s, r) { return s + self.signedAmount(r, 'costoEnvio'); }, 0);
+        var totalsM = this._totals || this._computeTotals();
+        var totalVenta = totalsM.venta;
+        var totalBultos = totalsM.bultos;
+        var totalEnvio = totalsM.envio;
         var totalPct = totalVenta > 0 ? ((totalEnvio / totalVenta) * 100) : 0;
 
         var setText = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
@@ -671,6 +672,11 @@ const InterlogicRender = {
             '<button type="button" class="m-page-btn" data-page="' + prevPage + '" ' + (this.currentPage <= 1 ? 'disabled' : '') + ' ' + (this.currentPage <= 1 ? btnDis : btnCls) + '>‹ Ant</button>' +
             '<span style="font-size:0.82rem;color:var(--m-text-secondary);padding:0 4px;">' + this.currentPage + ' / ' + totalPages + '</span>' +
             '<button type="button" class="m-page-btn" data-page="' + nextPage + '" ' + (this.currentPage >= totalPages ? 'disabled' : '') + ' ' + (this.currentPage >= totalPages ? btnDis : btnCls) + '>Sig ›</button>';
+    },
+
+    _badgeTransportista(value) {
+        const map = { DALSE: 'badge-dalse', INTERLOGISTIC: 'badge-interlogic', XPRESS: 'badge-xpress', INCEDE: 'badge-incede' };
+        return map[String(value || '').toUpperCase()] || 'badge-ghost';
     },
 
     renderTable() {
@@ -730,8 +736,13 @@ const InterlogicRender = {
         const tableBody = document.getElementById('interlogic-table-body');
         if (!tableBody) return;
 
+        const headerMap = {};
+        document.querySelectorAll('.filter-header').forEach(h => {
+            const m = (h.getAttribute('onclick') || '').match(/toggleFilter\(event, '([\w]+)'\)/);
+            if (m) headerMap[m[1]] = h;
+        });
         for (let field in this.filters) {
-            const header = document.querySelector(`[onclick*="toggleFilter(event, '${field}')"]`);
+            const header = headerMap[field];
             if (header) {
                 const isActive = Array.isArray(this.filters[field]) ? this.filters[field].length > 0 : !!this.filters[field];
                 if (isActive) header.classList.add('filter-active');
@@ -774,7 +785,7 @@ const InterlogicRender = {
             <tr style="${record.anulado === true ? 'background: #fef2f2; border-left: 4px solid #dc2626; color: #dc2626;' : (record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : '')}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
-                <td data-label="Empresa"><span class="badge ${record.empresa === 'DALSE' ? 'badge-primary' : 'badge-accent'}">${sanitizeHTML(record.empresa || '')}</span></td>
+                <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
                 <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
@@ -790,10 +801,10 @@ const InterlogicRender = {
                 <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
                 <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
                 <td data-label="Entrega" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="entrega" title="Clic para cambiar">
-                    <span class="badge ${record.entrega === 'DALSE' ? 'badge-primary' : (record.entrega === 'INTERLOGISTIC' ? 'badge-accent' : (record.entrega === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.entrega || '—')}</span>
+                    <span class="badge ${this._badgeTransportista(record.entrega)}">${sanitizeHTML(record.entrega || '—')}</span>
                 </td>
                 <td data-label="Cobra" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="cobra" title="Clic para cambiar">
-                    <span class="badge ${record.cobra === 'DALSE' ? 'badge-primary' : (record.cobra === 'INTERLOGISTIC' ? 'badge-accent' : (record.cobra === 'XPRESS' ? 'badge-warning' : 'badge-ghost'))}">${sanitizeHTML(record.cobra || '—')}</span>
+                    <span class="badge ${this._badgeTransportista(record.cobra)}">${sanitizeHTML(record.cobra || '—')}</span>
                 </td>
                 <td data-label="Encargado" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="encargado" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
                 <td data-label="Forma Pago">
@@ -813,13 +824,7 @@ const InterlogicRender = {
             </tr>
         `).join('');
 
-        const totals = this.filteredRecords.reduce((acc, r) => {
-            acc.venta += this.signedAmount(r, 'venta');
-            acc.bultos += this.signedAmount(r, 'bultos');
-            acc.cajas += r.anulado === true ? 0 : Number(r.cobrador || 0);
-            acc.envio += this.signedAmount(r, 'costoEnvio');
-            return acc;
-        }, { venta: 0, bultos: 0, cajas: 0, envio: 0 });
+        const totals = this._totals || this._computeTotals();
 
         const totalPorcentaje = totals.venta > 0 ? (totals.envio / totals.venta) * 100 : 0;
 
@@ -868,14 +873,21 @@ const InterlogicRender = {
         this.updateStats();
     },
 
-    updateStats() {
-        const targetRecords = this.filteredRecords;
-        const { totalVenta, totalBultos, totalEnvio } = targetRecords.reduce((acc, r) => {
-            acc.totalVenta += this.signedAmount(r, 'venta');
-            acc.totalBultos += this.signedAmount(r, 'bultos');
-            acc.totalEnvio += this.signedAmount(r, 'costoEnvio');
+    _computeTotals() {
+        return this.filteredRecords.reduce((acc, r) => {
+            acc.venta += this.signedAmount(r, 'venta');
+            acc.bultos += this.signedAmount(r, 'bultos');
+            acc.cajas += r.anulado === true ? 0 : Number(r.cobrador || 0);
+            acc.envio += this.signedAmount(r, 'costoEnvio');
             return acc;
-        }, { totalVenta: 0, totalBultos: 0, totalEnvio: 0 });
+        }, { venta: 0, bultos: 0, cajas: 0, envio: 0 });
+    },
+
+    updateStats() {
+        const totals = this._totals || this._computeTotals();
+        const totalVenta = totals.venta;
+        const totalBultos = totals.bultos;
+        const totalEnvio = totals.envio;
 
         const porcentaje = totalVenta > 0 ? (totalEnvio / totalVenta) * 100 : 0;
 

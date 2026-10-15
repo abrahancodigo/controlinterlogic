@@ -22,6 +22,8 @@ const Liquidacion = {
     selected: new Set(),
     unsub: { rutas: null, queue: null, dels: null },
     _planRows: 0,
+    _historyCache: null,
+    _dayDelsCache: null,
 
     cleanup() {
         this._renderToken = null;
@@ -253,6 +255,11 @@ const Liquidacion = {
     // antes (una sola desigualdad sobre createdAt), no requiere índices nuevos.
     async _fetchHistory() {
         if (this._historyLoading) return;
+        if (this._historyCache && Date.now() - this._historyCache.at < 3 * 60 * 1000) {
+            this._historyRecords = this._historyCache.records;
+            this._mergeRecords();
+            return;
+        }
         this._historyLoading = true;
         const db = firebase.firestore();
         const cutoff = new Date();
@@ -264,6 +271,7 @@ const Liquidacion = {
             .orderBy('createdAt', 'desc');
         try {
             this._historyRecords = await fetchAllChunked(baseQuery, { chunkSize: 1000, maxRecords: 5000 });
+            this._historyCache = { at: Date.now(), records: this._historyRecords };
         } catch (e) {
             console.error('[Liquidacion] error cargando histórico:', e);
             this._historyRecords = [];
@@ -292,6 +300,7 @@ const Liquidacion = {
         if (!this.selectedRouteId || this.selectedRouteId === 'all' || this.selectedRouteId === 'none') return;
         const db = firebase.firestore();
         this.unsub.dels = db.collection('rutaEntregas').where('rutaId', '==', this.selectedRouteId).onSnapshot(snap => {
+            this._dayDelsCache = null;
             this.routeDels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             this.routeDels.sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
             this._renderRouteBar();
@@ -419,6 +428,10 @@ const Liquidacion = {
             showToast('No hay datos filtrados para exportar', 'warning');
             return;
         }
+        try { await ensureLib('exceljs'); } catch (e) {
+            showToast('Librería Excel no disponible', 'error');
+            return;
+        }
         try {
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Liquidación', { views: [{ state: 'frozen', ySplit: 3 }] });
@@ -511,13 +524,13 @@ const Liquidacion = {
         }
     },
 
-    _exportPdf() {
+    async _exportPdf() {
         const data = this._exportData();
         if (data.length === 0) {
             showToast('No hay datos filtrados para exportar', 'warning');
             return;
         }
-        if (!window.jspdf || !window.jspdf.jsPDF) {
+        try { await ensureLib('jspdf'); } catch (e) {
             showToast('Librería PDF no disponible', 'error');
             return;
         }
@@ -696,13 +709,20 @@ const Liquidacion = {
         panel.innerHTML = '<p style="font-size:0.8rem;color:var(--text-tertiary);">Cargando cierre del día...</p>';
         const db = firebase.firestore();
         const ids = dayRoutes.map(r => r.id);
+        const dayDelsKey = this.dayFilter + '|' + ids.join(',');
         let dels = [];
-        try {
-            for (let i = 0; i < ids.length; i += 10) {
-                const snap = await db.collection('rutaEntregas').where('rutaId', 'in', ids.slice(i, i + 10)).get();
-                snap.docs.forEach(d => dels.push({ id: d.id, ...d.data() }));
-            }
-        } catch (e) { }
+        const cachedDels = this._dayDelsCache;
+        if (cachedDels && cachedDels.key === dayDelsKey && Date.now() - cachedDels.at < 10000) {
+            dels = cachedDels.dels;
+        } else {
+            try {
+                for (let i = 0; i < ids.length; i += 10) {
+                    const snap = await db.collection('rutaEntregas').where('rutaId', 'in', ids.slice(i, i + 10)).get();
+                    snap.docs.forEach(d => dels.push({ id: d.id, ...d.data() }));
+                }
+            } catch (e) { }
+            this._dayDelsCache = { key: dayDelsKey, at: Date.now(), dels };
+        }
         this.dayDels = dels;
         let tFact = 0, tCodEsp = 0, tRec = 0, tFlete = 0, tCom = 0, tDep = 0, liqCount = 0;
         const rowsHtml = dayRoutes.map(rt => {

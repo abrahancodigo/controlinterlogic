@@ -219,8 +219,7 @@ const Clientes = {
   },
 
     destroy() {
-        // Sin listener que limpiar (usamos get()), solo liberar referencia
-        this._cacheExpiry = 0;
+        // Sin listener que limpiar (usamos get()); la caché conserva su TTL de 5 min
     },
 
     // Apply search and sort
@@ -575,8 +574,8 @@ const Clientes = {
     },
 
     // Export to Excel
-    exportToExcel() {
-        if (typeof XLSX === 'undefined') { showToast('Excel no disponible', 'error'); return; }
+    async exportToExcel() {
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible', 'error'); return; }
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos para exportar', 'error');
             return;
@@ -703,8 +702,9 @@ const Clientes = {
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = (evt) => {
+            reader.onload = async (evt) => {
                 try {
+                    await ensureLib('xlsx');
                     const workbook = XLSX.read(evt.target.result, { type: 'array' });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -774,14 +774,14 @@ const Clientes = {
                 let created = 0;
                 let updated = 0;
 
+                const existentes = new Map();
+                const snapExistentes = await db.collection('clientes').select('nombreNorm').get();
+                snapExistentes.docs.forEach(d => existentes.set(d.data().nombreNorm, d.id));
+
+                const writes = [];
                 for (const client of parsedData) {
                     const nombreNorm = client.nombre.toLowerCase().trim();
                     if (!nombreNorm) continue;
-
-                    const existing = await db.collection('clientes')
-                        .where('nombreNorm', '==', nombreNorm)
-                        .limit(1)
-                        .get();
 
                     const data = {
                         nombre: client.nombre,
@@ -796,15 +796,26 @@ const Clientes = {
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
 
-                    if (!existing.empty) {
-                        await db.collection('clientes').doc(existing.docs[0].id).update(data);
+                    const existingId = existentes.get(nombreNorm);
+                    if (existingId) {
+                        writes.push({ id: existingId, data });
                         updated++;
                     } else {
                         data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                         data.createdBy = uid;
-                        await db.collection('clientes').add(data);
+                        const ref = db.collection('clientes').doc();
+                        existentes.set(nombreNorm, ref.id);
+                        writes.push({ id: ref.id, data });
                         created++;
                     }
+                }
+
+                for (let i = 0; i < writes.length; i += 400) {
+                    const batch = db.batch();
+                    writes.slice(i, i + 400).forEach(w => {
+                        batch.set(db.collection('clientes').doc(w.id), w.data, { merge: true });
+                    });
+                    await batch.commit();
                 }
 
                 showToast(`✓ ${created} creados, ${updated} actualizados`, 'success');
@@ -986,8 +997,8 @@ const Clientes = {
         });
     },
 
-    mobileExportExcel() {
-        if (typeof XLSX === 'undefined') { showToast('Excel no disponible','error'); return; }
+    async mobileExportExcel() {
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible','error'); return; }
         if (!this.filteredRecords.length) { showToast('No hay datos','warning'); return; }
         var data = this.filteredRecords.map(function(c){return {Nombre:c.nombre||'',Teléfono:c.telefono||'',Empresa:c.empresa||'',Dirección:c.direccion||'',Depto:c.departamento||c.zona||'',Municipio:c.municipio||'',Vendedor:c.vendedor||'',CondPago:c.condicionPago||''};});
         var ws = XLSX.utils.json_to_sheet(data);

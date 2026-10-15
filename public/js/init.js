@@ -58,8 +58,14 @@
         }
 
         // Wait for Firebase SDK to load (increased timeout for mobile)
+        if (typeof firebase !== 'undefined') {
+            console.log('✅ Firebase SDK loaded');
+            initializeFirebase();
+            return;
+        }
+
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 250;
 
         const checkFirebase = setInterval(() => {
             attempts++;
@@ -70,12 +76,10 @@
                 initializeFirebase();
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkFirebase);
-                console.error('❌ Firebase SDK failed to load after', maxAttempts, 'attempts');
+                console.error('❌ Firebase SDK failed to load after', attempts, 'attempts');
                 showError('No se pudo cargar Firebase. Verifica tu conexión a internet.');
-            } else {
-                console.log('⏳ Waiting for Firebase SDK... attempt', attempts);
             }
-        }, 500);
+        }, 100);
     }
 
     function initializeFirebase() {
