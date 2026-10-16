@@ -93,7 +93,15 @@ const Liquidacion = {
         return 'Ruta #' + (rt.correlativo || rutaId.substring(0, 6));
     },
 
+    _requireWrite() {
+        if (AccessControl.level('liquidacion') === 'write') return true;
+        showToast('Este módulo está habilitado solo para consulta.', 'warning');
+        return false;
+    },
+
     async _commitChunks(ops) {
+        if (AccessControl.level('liquidacion') !== 'write') throw new Error('No tienes permiso para modificar Liquidación.');
+        if (ops.some(op => op.t === 'delete') && !window.permissions?.canDelete) throw new Error('Solo el administrador puede eliminar información o deshacer acciones que eliminan cobros.');
         const db = firebase.firestore();
         for (let i = 0; i < ops.length; i += 400) {
             const batch = db.batch();
@@ -139,6 +147,7 @@ const Liquidacion = {
     },
 
     async _openDrivers() {
+        if (!this._requireWrite()) return;
         await this._reloadRepartidores();
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
@@ -159,7 +168,10 @@ const Liquidacion = {
                     paint();
                 } catch (err) { showToast('Error: ' + err.message, 'error'); }
             }; });
-            list.querySelectorAll('[data-drv-del]').forEach(b => { b.onclick = async () => {
+            list.querySelectorAll('[data-drv-del]').forEach(b => {
+                b.disabled = !window.permissions?.canDelete;
+                b.onclick = async () => {
+                if (!window.permissions?.canDelete) return;
                 if (!await showConfirm('Eliminar repartidor', 'Esta acción no se puede deshacer.')) return;
                 try {
                     await firebase.firestore().collection('repartidores').doc(b.dataset.drvDel).delete();
@@ -335,6 +347,7 @@ const Liquidacion = {
         const el = e.target.closest('[data-act]');
         if (!el) return;
         const act = el.dataset.act;
+        if (['go', 'nodel', 'unassign', 'bulk-go', 'bulk-assign', 'new-route', 'drivers', 'liquidate', 'day-liq', 'undo', 'del-route'].includes(act) && !this._requireWrite()) return;
         const id = el.dataset.id;
         if (act === 'chip') { this.filters.estado = el.dataset.f; this._renderRouteBar(); this._renderList(); }
         else if (act === 'alerts') { this.filters.estado = 'vencidos'; this._renderRouteBar(); this._renderList(); }
@@ -926,6 +939,7 @@ const Liquidacion = {
     },
 
     _openDeliveryPayment(id) {
+        if (!this._requireWrite()) return;
         const r = this.queue.find(x => x.id === id);
         if (!r) return;
         const modal = document.createElement('div');
@@ -1058,6 +1072,7 @@ const Liquidacion = {
     },
 
     _openNoDeliver(id) {
+        if (!this._requireWrite()) return;
         const r = this.queue.find(x => x.id === id);
         if (!r) return;
         const modal = document.createElement('div');
@@ -1087,6 +1102,7 @@ const Liquidacion = {
     },
 
     _openPay(id) {
+        if (!this._requireWrite()) return;
         const r = this.queue.find(x => x.id === id);
         if (!r) { showToast('Registro no encontrado', 'error'); return; }
         const pendiente = this._pendiente(r);
@@ -1231,6 +1247,7 @@ const Liquidacion = {
     },
 
     _openAssign() {
+        if (!this._requireWrite()) return;
         const rows = this.queue.filter(r => this.selected.has(r.id));
         if (rows.length === 0) return;
         const total = rows.reduce((s, r) => s + (Number(r.venta) || 0), 0);
@@ -1296,6 +1313,7 @@ const Liquidacion = {
     },
 
     _openNewRoute() {
+        if (!this._requireWrite()) return;
         const reps = this.repartidores.filter(x => x.activo !== false);
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
@@ -1337,6 +1355,7 @@ const Liquidacion = {
     },
 
     _openLiquidate() {
+        if (!this._requireWrite()) return;
         const route = this.routes.find(r => r.id === this.selectedRouteId);
         if (!route) { showToast('Selecciona una ruta para liquidar', 'error'); return; }
         if (route.estado === 'liquidado') { showToast('Esta ruta ya está liquidada', 'error'); return; }
@@ -1517,6 +1536,7 @@ const Liquidacion = {
     },
 
     _fichaGestion(modal, cliente) {
+        if (!this._requireWrite()) return;
         const box = modal.querySelector('#liq-f-extra');
         box.innerHTML = '<h3 style="font-size:0.9rem;margin:0.5rem 0;">Nueva gestión</h3>' +
             '<form id="liq-f-gest-form"><div class="form-group"><label>Tipo</label><select id="liq-fg-tipo" style="width:100%;"><option>llamada</option><option>whatsapp</option><option>visita</option><option>email</option><option>carta</option><option>otro</option></select></div>' +
@@ -1540,6 +1560,7 @@ const Liquidacion = {
     },
 
     _fichaAjuste(modal, cliente, rows) {
+        if (!this._requireWrite()) return;
         const box = modal.querySelector('#liq-f-extra');
         box.innerHTML = '<h3 style="font-size:0.9rem;margin:0.5rem 0;">Nota de crédito / Ajuste</h3>' +
             '<form id="liq-f-nc-form"><div class="form-group"><label>Factura (guía)</label><select id="liq-fnc-guia" style="width:100%;"><option value="">Sin guía (solo registro)</option>' +

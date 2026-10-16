@@ -106,8 +106,8 @@ const Tarimas = {
                 <p style="font-size:0.78rem;color:var(--m-text-secondary);">Control de inventario</p>
             </div>
             <div class="m-actions-bar">
-                <button class="btn btn-primary" id="m-tarima-entrada" style="border-radius:20px;">📥 Entrada</button>
-                <button class="btn btn-secondary" id="m-tarima-salida" style="border-radius:20px;">📤 Salida</button>
+                <button class="btn btn-primary" id="m-tarima-entrada" ${!canCreate ? 'disabled' : ''} style="border-radius:20px;">📥 Entrada</button>
+                <button class="btn btn-secondary" id="m-tarima-salida" ${!canCreate ? 'disabled' : ''} style="border-radius:20px;">📤 Salida</button>
             </div>
             <div class="tarimas-stats" id="tarimas-stats" style="margin:8px 0;">
                 <div class="stat-card stat-card-total" style="padding:8px;">
@@ -326,6 +326,10 @@ const Tarimas = {
     },
 
     showForm(tipo, existingRecord) {
+        if (AccessControl.level('tarimas') !== 'write') {
+            showToast('No tienes permiso para modificar Tarimas Walmart.', 'warning');
+            return;
+        }
         const isEdit = !!existingRecord;
         const isIngreso = isEdit ? existingRecord.tipo === 'ingreso' : tipo === 'ingreso';
         const title = isEdit ? 'Editar Movimiento' : (isIngreso ? 'Registrar Entrada' : 'Registrar Salida');
@@ -468,6 +472,10 @@ const Tarimas = {
     },
 
     async saveMovimiento(tipo) {
+        if (AccessControl.level('tarimas') !== 'write') {
+            showToast('No tienes permiso para modificar Tarimas Walmart.', 'warning');
+            return;
+        }
         const cantidad = parseInt(document.getElementById('tarima-cantidad').value, 10);
         if (!cantidad || cantidad <= 0) {
             showToast('Ingresa una cantidad válida', 'error');
@@ -581,6 +589,10 @@ const Tarimas = {
     },
 
     async deleteMovimiento(id) {
+        if (!window.permissions?.canDelete) {
+            showToast('Solo el administrador puede eliminar movimientos.', 'warning');
+            return;
+        }
         const record = this.records.find(r => r.id === id);
         if (!record) return;
 

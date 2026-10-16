@@ -2,24 +2,27 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Helper functions for role checks (read from Firestore users collection)
+    function hasRole(roles) {
+      let user = firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+      return (!('active' in user) || user.active != false) && (('role' in user) ? user.role.lower() : 'user') in roles;
+    }
+
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && hasRole(['user', 'editor', 'admin']);
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return request.auth != null && hasRole(['admin']);
     }
 
-    function isEditor() {
-      return isAuthenticated() &&
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'editor';
+    function canWrite() {
+      return request.auth != null && hasRole(['editor', 'admin']);
     }
-
     // Reglas para entregas (existentes)
     match /deliveries/{imageId} {
       allow read: if isAuthenticated();
-      allow write: if (isAdmin() || isEditor())
+      allow delete: if isAdmin();
+      allow create, update: if canWrite()
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
@@ -29,22 +32,20 @@ service firebase.storage {
     // Solo imagenes (con null permitido por HEIC/iOS, mismo criterio que problemas)
     match /asistencia/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if (isAdmin() || isEditor())
+      allow delete: if isAdmin();
+      allow create, update: if canWrite()
                    && request.resource.size < 10 * 1024 * 1024
                    && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
 
     // Reglas para problemas
-    // Cualquier usuario autenticado puede subir imagenes de soporte de
-    // sus problemas. El doc de Firestore correspondiente exige rol
-    // admin/editor para crear, pero los editores en campo necesitan poder
-    // adjuntar evidencia fotografica sin friccion.
     // Nota: Aceptamos contentType null porque algunos navegadores/moviles
     // (especialmente iOS con HEIC) no envian el MIME type, aunque el
     // codigo JS fuerza un contentType via metadata en el upload.
     match /problemas/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
+      allow delete: if isAdmin();
+      allow create, update: if canWrite()
                    && request.resource.size < 5 * 1024 * 1024
                    && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
@@ -53,7 +54,8 @@ service firebase.storage {
     // Solo imagenes (con null permitido por HEIC/iOS, mismo criterio que problemas)
     match /vehiculos/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated()
+      allow delete: if isAdmin();
+      allow create, update: if canWrite()
                    && request.resource.size < 10 * 1024 * 1024
                    && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }

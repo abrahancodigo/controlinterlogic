@@ -9,70 +9,77 @@ service cloud.firestore {
     
     // Helper function to check if user is authenticated
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) != false;
     }
     
     // Helper function to check if user is admin
     function isAdmin() {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user').lower() == 'admin';
     }
 
     // Helper function to check if user is editor
     function isEditor() {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor';
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user').lower() == 'editor';
     }
     
     // Helper function to check if user owns the document
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
     
+    function canWrite() {
+      return isAdmin() || isEditor();
+    }
+
     // Users collection - only admins can modify roles
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() || isOwner(userId);
       allow create: if isAdmin();
-      allow update: if isAdmin() ||
-                    (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName']));
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
     
     // Deliveries collection
     match /deliveries/{deliveryId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
     
     // Interlogic collection
     match /interlogic/{recordId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
     
     // Clientes collection
     match /clientes/{clienteId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
     
     // KPI Evaluations collection
     match /kpiEvaluations/{evalId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
     
     // Config collection - for system settings
     match /config/{configId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin() || (configId in ['settings', 'dashboard', 'counters'] && canWrite());
+      allow delete: if isAdmin();
     }
     
     // User Registry - credential checks run in the trusted callable function.
@@ -88,7 +95,8 @@ service cloud.firestore {
     // Empleados collection
     match /empleados/{empId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
@@ -96,106 +104,120 @@ service cloud.firestore {
     // Asistencia collection
     match /asistencia/{docId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Problemas collection
     match /problemas/{problemaId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isEditor();
-      allow update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Notas de Crédito collection
     match /notasCredito/{ncId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Cobros collection (Cobranza)
     match /cobros/{cobroId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Gestiones collection (Cobranza)
     match /gestiones/{gestionId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Ajustes collection (Cobranza)
     match /ajustes/{ajusteId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Rutas collection
     match /rutas/{rutaId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Repartidores collection
     match /repartidores/{repartidorId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Ruta Entregas collection
     match /rutaEntregas/{entregaId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Liquidaciones collection
     match /liquidaciones/{liquidacionId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Vehiculos collection (Flota)
     match /vehiculos/{vehiculoId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Mantenimientos collection
     match /mantenimientos/{mantenimientoId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Ordenes de Trabajo collection
     match /ordenesTrabajo/{ordenId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Proveedores (Talleres/Mecanicos) collection
     match /proveedores/{proveedorId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
 
     // Tarimas Walmart collection
     match /tarimas_walmart/{movimientoId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || isEditor();
+      allow create: if canWrite();
+      allow update: if canWrite();
       allow delete: if isAdmin();
     }
   }

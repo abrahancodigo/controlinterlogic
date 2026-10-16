@@ -16,7 +16,7 @@ const Users = {
                 icon: 'users',
                 title: 'Gestión de Usuarios',
                 subtitle: 'Administra usuarios y sus roles',
-                actions: `<button class="btn btn-primary" id="btn-add-user">➕ Nuevo Usuario</button>`
+                actions: `<button class="btn btn-primary" id="btn-add-user" ${!window.permissions?.isAdmin ? 'disabled' : ''}>➕ Nuevo Usuario</button>`
             })}
             
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);' : ''}">
@@ -84,6 +84,23 @@ const Users = {
             return;
         }
 
+        if (!container.dataset.actionsBound) {
+            container.dataset.actionsBound = '1';
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action]');
+                if (!btn || btn.disabled || !window.permissions?.isAdmin) return;
+                const action = btn.dataset.action;
+                const uid = btn.dataset.uid;
+                if (action === 'toggle-role') Users.toggleRole(uid, btn.dataset.role);
+                else if (action === 'toggle-active') Users.toggleActive(uid, btn.dataset.active === 'true');
+                else if (action === 'delete-user') Users.deleteUser(uid, btn.dataset.username);
+
+            });
+        }
+
+        const disableActions = () => {
+            if (!window.permissions?.isAdmin) container.querySelectorAll('[data-action]').forEach(button => { button.disabled = true; });
+        };
         const currentUserId = firebase.auth().currentUser?.uid;
 
         if (this.isMobile) {
@@ -96,18 +113,19 @@ const Users = {
                     '</div>' +
                     '<div class="m-card-rows">' +
                     '<div class="m-card-row"><span class="m-card-label">Email</span><span class="m-card-value" style="font-size:0.78rem;">' + sanitizeHTML(user.email) + '</span></div>' +
-                    '<div class="m-card-row"><span class="m-card-label">Rol</span><span class="m-card-value">' + (user.role === 'admin' ? 'Administrador' : user.role === 'editor' ? 'Editor' : 'Usuario') + '</span></div>' +
+                    '<div class="m-card-row"><span class="m-card-label">Rol</span><span class="m-card-value">' + AccessControl.label(AccessControl.role(user)) + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Estado</span><span class="m-card-value" style="color:' + (user.active !== false ? '#10b981' : '#ef4444') + ';">' + (user.active !== false ? '● Activo' : '● Inactivo') + '</span></div>' +
                     '<div class="m-card-row"><span class="m-card-label">Registro</span><span class="m-card-value" style="font-size:0.75rem;">' + (user.createdAt ? formatDate(user.createdAt) : 'N/A') + '</span></div>' +
                     '</div>' +
-                    (user.id !== currentUserId ? '<div class="m-card-actions" onclick="event.stopPropagation()" style="justify-content:flex-start;">' +
+                    (user.id !== currentUserId ? '<div class="m-card-actions" style="justify-content:flex-start;">' +
                         '<button class="m-card-action" data-action="toggle-role" data-uid="' + sanitizeHTML(user.id) + '" data-role="' + sanitizeHTML(user.role) + '" title="Cambiar Rol" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔄 Rol</button>' +
-                        '<button class="m-card-action" data-action="privileges" data-uid="' + sanitizeHTML(user.id) + '" title="Privilegios" style="font-size:0.75rem;width:auto;padding:0 12px;border-radius:10px;background:var(--m-primary-light);color:var(--m-primary);">🔑</button>' +
+
                         '<button class="m-card-action" data-action="toggle-active" data-uid="' + sanitizeHTML(user.id) + '" data-active="' + (user.active !== false) + '" title="' + (user.active !== false ? 'Desactivar' : 'Activar') + '" style="background:' + (user.active !== false ? '#fef2f2' : '#d1fae5') + ';color:' + (user.active !== false ? '#ef4444' : '#10b981') + ';">' + (user.active !== false ? '🚫' : '✅') + '</button>' +
                         '<button class="m-card-action delete" data-action="delete-user" data-uid="' + sanitizeHTML(user.id) + '" data-username="' + sanitizeHTML(user.username || '') + '" title="Eliminar">🗑️</button>' +
                     '</div>' : '<div style="font-size:0.75rem;color:var(--m-text-secondary);text-align:center;padding-top:8px;border-top:0.5px solid var(--m-separator);">Eres tú</div>') +
                 '</div>';
             }).join('') + '</div>';
+            disableActions();
             return;
         }
 
@@ -134,7 +152,7 @@ const Users = {
                                 <td>${sanitizeHTML(user.email)}</td>
                                 <td>
                                     <span class="badge ${user.role === 'admin' ? 'badge-admin' : (user.role === 'editor' ? 'badge-editor' : 'badge-user')}">
-                                        ${user.role === 'admin' ? 'Administrador' : (user.role === 'editor' ? 'Editor' : 'Usuario')}
+                                        ${AccessControl.label(AccessControl.role(user))}
                                     </span>
                                 </td>
                                 <td>
@@ -147,19 +165,7 @@ const Users = {
                                 <td>
                                     ${user.id !== currentUserId ? `
                                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                            <button
-                                                class="btn btn-sm btn-secondary"
-                                                data-action="toggle-role" data-uid="${sanitizeHTML(user.id)}" data-role="${sanitizeHTML(user.role)}"
-                                            >
-                                                Cambiar Rol
-                                            </button>
-                                            <button
-                                                class="btn btn-sm btn-secondary"
-                                                data-action="privileges" data-uid="${sanitizeHTML(user.id)}"
-                                                title="Privilegios del usuario"
-                                            >
-                                                🔑 Privilegios
-                                            </button>
+                                            <button class="btn btn-sm btn-secondary" data-action="toggle-role" data-uid="${sanitizeHTML(user.id)}">Cambiar rol</button>
                                             <button 
                                                 class="btn btn-sm ${user.active !== false ? 'btn-danger' : 'btn-success'}" 
                                                 data-action="toggle-active" data-uid="${sanitizeHTML(user.id)}" data-active="${user.active !== false}"
@@ -184,120 +190,62 @@ const Users = {
         `;
 
         container.innerHTML = tableHTML;
+        disableActions();
 
-        if (!container.dataset.actionsBound) {
-            container.dataset.actionsBound = '1';
-            container.addEventListener('click', (e) => {
-                const btn = e.target.closest('[data-action]');
-                if (!btn) return;
-                const action = btn.dataset.action;
-                const uid = btn.dataset.uid;
-                if (action === 'toggle-role') Users.toggleRole(uid, btn.dataset.role);
-                else if (action === 'toggle-active') Users.toggleActive(uid, btn.dataset.active === 'true');
-                else if (action === 'delete-user') Users.deleteUser(uid, btn.dataset.username);
-                else if (action === 'privileges') Users.showPrivilegesModal(uid);
-            });
-        }
+
     },
 
     // Toggle user role (cycles through User -> Editor -> Admin)
-    async toggleRole(userId, currentRole) {
-        let newRole = 'user';
-        if (currentRole === 'user') newRole = 'editor';
-        else if (currentRole === 'editor') newRole = 'admin';
-        else newRole = 'user';
-
-        const roleLabels = {
-            'admin': 'Administrador',
-            'editor': 'Editor',
-            'user': 'Usuario (Vista)'
-        };
-
-        const roleName = roleLabels[newRole];
-
-        // Create custom confirmation modal
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5); display: flex;
-            align-items: center; justify-content: center; z-index: 10001; padding: 1rem;
-        `;
-        modal.innerHTML = `
-            <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; width: 100%; text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
-                <h3 style="margin-bottom: 1rem;">¿Cambiar Rol?</h3>
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">El usuario será cambiado a: <strong>${roleName}</strong></p>
-                <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button id="btn-cancel" class="btn btn-secondary">Cancelar</button>
-                    <button id="btn-confirm" class="btn btn-primary">Sí, Cambiar</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('btn-cancel').onclick = () => modal.remove();
-        document.getElementById('btn-confirm').onclick = async () => {
-            modal.remove();
-            try {
-                await firebase.firestore().collection('users').doc(userId).update({ role: newRole });
-                showToast('Rol actualizado exitosamente', 'success');
-                await this.loadUsers();
-            } catch (error) {
-                console.error('Error updating role:', error);
-                showToast('Error al actualizar rol: ' + error.message, 'error');
-            }
-        };
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-    },
-
-    showPrivilegesModal(userId) {
-        const user = this.users.find(u => u.id === userId);
+    async toggleRole(userId) {
+        if (!window.permissions?.isAdmin || userId === firebase.auth().currentUser?.uid) return;
+        const user = this.users.find(item => item.id === userId);
         if (!user) return;
-        const cat = window.PRIVILEGES || [];
-        const priv = user.privileges || {};
-        const isAdminUser = user.role === 'admin';
-
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 520px;">
-                <h2 style="margin-bottom: 0.5rem;">🔑 Privilegios</h2>
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.5rem;">Usuario: <strong>${sanitizeHTML(user.displayName || user.email || user.id)}</strong></p>
-                <p style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:1rem;">Activa o desactiva cada privilegio. Un Administrador siempre tendrá todo activo.</p>
-                <div>
-                    ${cat.map(p => `
-                        <label style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0;border-bottom:1px solid var(--border-color);font-size:0.9rem;color:var(--text-primary);cursor:${isAdminUser ? 'not-allowed' : 'pointer'};">
-                            <input type="checkbox" data-priv="${sanitizeHTML(p.key)}" ${isAdminUser ? 'checked disabled' : (typeof priv[p.key] === 'boolean' ? (priv[p.key] ? 'checked' : '') : (p.def ? 'checked' : ''))} style="width:18px;height:18px;accent-color:var(--brand);">
-                            <span>${sanitizeHTML(p.label)}</span>
-                        </label>`).join('') || '<p style="color:var(--text-tertiary);">No hay privilegios definidos.</p>'}
+            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="role-title" style="max-width:460px;">
+                <h2 id="role-title">Asignar rol</h2>
+                <p style="margin:0.75rem 0;">${sanitizeHTML(user.displayName || user.email || user.id)}</p>
+                <label for="user-role-select">Rol del usuario</label>
+                <select id="user-role-select" class="form-control" style="width:100%;margin:0.5rem 0 1rem;">
+                    ${[['user', 'Lector'], ['editor', 'Editor'], ['admin', 'Administrador']].map(([value, label]) => `<option value="${value}" ${AccessControl.role(user) === value ? 'selected' : ''}>${label}</option>`).join('')}
+                </select>
+                <p>Todos pueden ver el sistema completo.</p>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">Lector: solo consultar. Editor: crear y modificar información, sin gestionar usuarios. Administrador: acceso total y eliminación. El usuario debe volver a iniciar sesión para actualizar sus opciones.</p>
+                <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1rem;">
+                    <button type="button" class="btn btn-secondary" data-role-action="cancel">Cancelar</button>
+                    <button type="button" class="btn btn-primary" data-role-action="save">Guardar rol</button>
                 </div>
-                <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
-                    <button class="btn btn-secondary" id="priv-cancel">Cancelar</button>
-                    <button class="btn btn-primary" id="priv-save">Guardar</button>
-                </div>
-            </div>
-        `;
+            </div>`;
         document.body.appendChild(modal);
-        const close = () => modal.remove();
-        modal.addEventListener('click', e => { if (e.target === modal) close(); });
-        modal.querySelector('#priv-cancel').onclick = close;
-        modal.querySelector('#priv-save').onclick = async () => {
-            const values = {};
-            modal.querySelectorAll('[data-priv]').forEach(cb => { values[cb.dataset.priv] = cb.checked; });
+        modal.addEventListener('click', async event => {
+            const action = event.target.closest('[data-role-action]')?.dataset.roleAction;
+            if (modal.dataset.saving === '1') return;
+            if (event.target === modal || action === 'cancel') { modal.remove(); return; }
+            if (action !== 'save' || !window.permissions?.isAdmin) return;
+            const role = modal.querySelector('#user-role-select').value;
+            if (!['user', 'editor', 'admin'].includes(role)) return;
+            const button = modal.querySelector('[data-role-action="save"]');
+            button.disabled = true;
+            modal.dataset.saving = '1';
             try {
-                await firebase.firestore().collection('users').doc(userId).update({ privileges: values });
-                showToast('Privilegios actualizados', 'success');
+                await firebase.firestore().collection('users').doc(userId).update({ role });
+                showToast('Rol actualizado. El usuario debe volver a iniciar sesión.', 'success');
+                modal.remove();
                 await this.loadUsers();
-                close();
             } catch (error) {
-                console.error('Error updating privileges:', error);
-                showToast('Error al actualizar privilegios: ' + error.message, 'error');
+                console.error('Error updating role:', error);
+                showToast('No se pudo guardar el rol.', 'error');
+                button.disabled = false;
+                modal.dataset.saving = '0';
             }
-        };
+        });
+        modal.querySelector('#user-role-select').focus();
     },
 
     // Toggle user active status
     async toggleActive(userId, currentActive) {
+        if (!window.permissions?.isAdmin || userId === firebase.auth().currentUser?.uid) return;
         const newActive = !currentActive;
         const action = newActive ? 'Activar' : 'Desactivar';
 
@@ -338,6 +286,7 @@ const Users = {
 
     // Delete user completely
     async deleteUser(userId, username) {
+        if (!window.permissions?.isAdmin || userId === firebase.auth().currentUser?.uid) return;
         if (!await showConfirm('¿Eliminar usuario permanentemente?', 'Esta acción no se puede deshacer. Se borrará el usuario del sistema.')) {
             return;
         }
@@ -369,6 +318,7 @@ window.Users = Users;
 
 // Add AddUserForm functionality
 Users.showAddUserForm = function () {
+    if (!window.permissions?.isAdmin) return;
     const isMobile = window.innerWidth <= 768;
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop';
@@ -399,8 +349,8 @@ Users.showAddUserForm = function () {
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label ${isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : ''}>Rol del Usuario</label>
                     <select id="new-user-role" class="form-control" style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); ${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
-                        <option value="user">Usuario (Solo Ver)</option>
-                        <option value="editor">Editor (Puede crear)</option>
+                        <option value="user">Lector (Solo consultar)</option>
+                        <option value="editor">Editor (Sin gestión de usuarios)</option>
                         <option value="admin">Administrador (Control total)</option>
                     </select>
                 </div>

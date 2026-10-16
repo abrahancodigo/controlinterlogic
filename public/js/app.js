@@ -10,7 +10,10 @@ const App = {
         this.setupNavigation();
         this.setupSidebarToggle();
         this.setupMobileNav();
-        this.loadModule('dashboard');
+        AccessControl.syncNavigation();
+        const firstModule = AccessControl.modules.find(item => AccessControl.canView(item.key));
+        if (firstModule) this.loadModule(firstModule.key);
+        else document.getElementById('content-area').innerHTML = '<div class="card"><p>No tienes módulos habilitados. Contacta al administrador.</p></div>';
     },
 
     setupNavigation() {
@@ -21,8 +24,6 @@ const App = {
                 const module = item.dataset.module;
                 if (module) {
                     this.loadModule(module);
-                    navItems.forEach(nav => nav.classList.remove('active'));
-                    item.classList.add('active');
                     if (window.innerWidth <= 768) {
                         document.getElementById('sidebar').classList.remove('open');
                     }
@@ -95,7 +96,6 @@ const App = {
             item.addEventListener('click', () => {
                 const module = item.dataset.module;
                 this.loadModule(module);
-                this.updateBottomNavActive(module);
                 closeMore();
                 // Reset more button active state
                 if (moreBtn) moreBtn.classList.remove('active');
@@ -138,7 +138,6 @@ const App = {
                 if (item) {
                     const module = item.dataset.module;
                     this.loadModule(module);
-                    this.updateBottomNavActive(module);
                     closeMore();
                 }
             });
@@ -186,7 +185,7 @@ const App = {
         navItems.forEach(item => {
             const module = item.dataset.module;
             if (bottomModules.includes(module)) return;
-            if (item.classList.contains('admin-only') && (!window.permissions?.isAdmin || module === 'users')) return;
+            if (!AccessControl.canView(module)) return;
 
             const icon = item.querySelector('.nav-icon');
             const label = item.querySelector('.nav-text');
@@ -234,6 +233,10 @@ const App = {
     },
 
     async loadModule(moduleName) {
+        if (!AccessControl.canView(moduleName)) {
+            showToast('No tienes acceso a este módulo.', 'error');
+            return;
+        }
         if (this.currentModule === moduleName) return;
 
         if (this.currentModule === 'interlogic' && window.Interlogic && window.Interlogic.unsubscribe) {
@@ -270,6 +273,7 @@ const App = {
             if (window.Dashboard.destroy) { window.Dashboard.destroy(); }
         }
 
+        AccessControl.apply(moduleName);
         this.currentModule = moduleName;
         this.updateBottomNavActive(moduleName);
         const contentArea = document.getElementById('content-area');
@@ -287,17 +291,9 @@ const App = {
                     if (window.Interlogic && window.Interlogic.render) await window.Interlogic.render();
                     break;
                 case 'settings':
-                    if (!(await isAdmin())) {
-                        showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('dashboard'); return;
-                    }
                     if (window.Settings && window.Settings.init) await window.Settings.init();
                     break;
                 case 'users':
-                    if (!(await isAdmin())) {
-                        showToast('No tienes permisos para acceder a esta sección', 'error');
-                        this.loadModule('dashboard'); return;
-                    }
                     if (window.Users && window.Users.render) await window.Users.render();
                     break;
                 case 'liquidacion':

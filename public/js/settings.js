@@ -210,7 +210,14 @@ const Settings = {
         }
     },
 
+    _requireWrite() {
+        if (AccessControl.level('settings') === 'write') return true;
+        showToast('Tu rol es lector. No puedes modificar la configuración.', 'warning');
+        return false;
+    },
+
     async handleLogoUpload(event, logoNumber) {
+        if (!this._requireWrite()) return;
         const file = event.target.files[0];
         if (!file) return;
 
@@ -251,6 +258,7 @@ const Settings = {
     },
 
     removeLogo(logoNumber) {
+        if (!this._requireWrite()) return;
         if (logoNumber === 1) {
             this.settings.logo1 = '';
         } else {
@@ -262,6 +270,7 @@ const Settings = {
 
     async handleSubmit(e) {
         e.preventDefault();
+        if (!this._requireWrite()) return;
 
         const submitBtn = e.target.querySelector('button[type="submit"]');
         setButtonLoading(submitBtn, true);
@@ -294,6 +303,7 @@ const Settings = {
 
     async handleFinancialSubmit(e) {
         e.preventDefault();
+        if (!this._requireWrite()) return;
         const submitBtn = e.target.querySelector('button[type="submit"]');
         setButtonLoading(submitBtn, true);
         try {
