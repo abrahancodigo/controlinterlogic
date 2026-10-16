@@ -556,7 +556,6 @@ const Tarimas = {
         const db = firebase.firestore();
         const snapshot = await db.collection('tarimas_walmart')
             .orderBy('fecha', 'asc')
-            .select('tipo', 'cantidad', 'fecha', 'totalDespues')
             .get();
 
         const desdeMs = desdeFecha ? this._tsMs(desdeFecha) : null;
