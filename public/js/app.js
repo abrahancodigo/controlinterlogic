@@ -186,7 +186,7 @@ const App = {
         navItems.forEach(item => {
             const module = item.dataset.module;
             if (bottomModules.includes(module)) return;
-            if (item.style.display === 'none') return;
+            if (item.classList.contains('admin-only') && (!window.permissions?.isAdmin || module === 'users')) return;
 
             const icon = item.querySelector('.nav-icon');
             const label = item.querySelector('.nav-text');

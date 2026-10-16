@@ -354,13 +354,19 @@ const Dashboard = {
 </div>`;
 
         document.querySelectorAll('.dash-tabpanel').forEach(panel => { panel.hidden = false; });
-        await this.initCharts();
-        if (this._renderToken !== renderToken) return;
         this.setupEvents();
         this._renderDimFilters();
         this._loadDashboardConfig();
         document.querySelector('.dash')?.classList.add('dash-ready');
         this.subscribeToData();
+        this.initCharts().then(() => {
+            if (this._renderToken === renderToken && this.chartInit) this._scheduleRender();
+        }).catch(error => {
+            if (this._renderToken !== renderToken) return;
+            this._chartsLoading = false;
+            console.error('[Dashboard] Charts error:', error);
+            showToast('No se pudieron cargar los gráficos', 'warning');
+        });
     },
 
     applyCustomDates() {
@@ -1461,6 +1467,7 @@ const Dashboard = {
         this._chartsLoading = true;
         const renderToken = this._renderToken;
         try { await ensureLib('apexcharts'); } catch (e) { this._chartsLoading = false; showToast('Gráficos no disponibles (sin conexión al CDN)', 'warning'); return; }
+        if (this._renderToken !== renderToken) return;
         const theme = this.getChartTheme();
         const labelColor = theme === 'dark' ? '#e2e8f0' : '#0f172a';
         const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
@@ -1768,7 +1775,7 @@ const Dashboard = {
             .filter(c => c && typeof c.render === 'function')
             .map(c => c.render());
         await Promise.all(renderJobs);
-        if (this._renderToken !== renderToken) { this._chartsLoading = false; return; }
+        if (this._renderToken !== renderToken) return;
 
         this.chartInit = true;
         this._chartsLoading = false;
@@ -2985,6 +2992,9 @@ const Dashboard = {
     destroy() {
         this._renderToken = null;
         this._prevRequestKey = null;
+        clearTimeout(this._renderTimer);
+        this._renderTimer = null;
+        this._renderPending = false;
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         if (this.themeObserver) { this.themeObserver.disconnect(); this.themeObserver = null; }
         if (this._dashRO) { try{ this._dashRO.disconnect(); }catch(e){} this._dashRO = null; }

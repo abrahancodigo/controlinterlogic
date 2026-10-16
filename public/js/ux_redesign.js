@@ -115,7 +115,8 @@ _filterNav(q) {
 q = (q || '').toLowerCase().trim();
 document.querySelectorAll('.nav-item[data-module]').forEach(a => {
 const label = (a.getAttribute('data-ux-label') || a.textContent || '').toLowerCase();
-a.style.display = (!q || label.includes(q)) ? '' : 'none';
+const restricted = a.classList.contains('admin-only') && (!window.permissions?.isAdmin || a.dataset.module === 'users');
+a.style.display = !restricted && (!q || label.includes(q)) ? '' : 'none';
 });
 document.querySelectorAll('.nav-group-label').forEach(l => {
 l.style.display = q ? 'none' : '';

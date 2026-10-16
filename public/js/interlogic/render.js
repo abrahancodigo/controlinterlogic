@@ -3,6 +3,14 @@
 // ===================================
 
 const InterlogicRender = {
+    renderLoadError() {
+        this.loading = false;
+        clearTimeout(this._applyFiltersTimer);
+        const message = '<div class="ux-empty" role="alert"><span class="ux-empty-title">No se pudieron cargar los registros</span><span class="ux-empty-text">Revisa tu conexión e inténtalo de nuevo.</span><button type="button" class="btn btn-secondary" data-il-retry>Reintentar</button></div>';
+        const target = document.getElementById(this.isMobile ? 'm-data-list' : 'interlogic-table-body');
+        if (target) target.innerHTML = this.isMobile ? message : '<tr><td colspan="22">' + message + '</td></tr>';
+    },
+
     async render() {
         if (window.innerWidth <= 768) {
             return this.renderMobile();
@@ -406,6 +414,7 @@ const InterlogicRender = {
 
         if (!this.eventDelegationSetup) {
             contentArea.addEventListener('click', (e) => {
+                if (!this.isMobile && e.target.closest('[data-il-retry]')) { this.reloadListener(true); return; }
                 const pageBtnAll = e.target.closest('.page-btn-all');
                 if (pageBtnAll) {
                     this.showAll = pageBtnAll.dataset.mode === 'all';
@@ -502,6 +511,7 @@ const InterlogicRender = {
         if (!this._mobileDelegationSetup) {
             this._mobileDelegationSetup = true;
             contentArea.addEventListener('click', (e) => {
+                if (this.isMobile && e.target.closest('[data-il-retry]')) { this.reloadListener(true); return; }
                 const button = e.target.closest('button');
                 if (button?.disabled) return;
                 if (button?.id === 'm-btn-add') { this.showMobileForm(); return; }
@@ -766,6 +776,7 @@ const InterlogicRender = {
             if (tfoot) tfoot.innerHTML = '';
             const topPag = document.getElementById('il-pagination-top');
             if (topPag) topPag.innerHTML = '';
+            this.updateStats();
             return;
         }
 

@@ -65,7 +65,6 @@ const InterlogicCRUD = {
 
         try {
             this.unsubscribe = query.onSnapshot(snapshot => {
-                if (snapshot.docChanges().length === 0) return;
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -79,10 +78,12 @@ const InterlogicCRUD = {
                     this.loading = false;
                 }
             }, error => {
+                this.renderLoadError();
                 console.error('Error in real-time listener:', error);
                 showToast('Error en sincronización: ' + error.message, 'error');
             });
         } catch (e) {
+            this.renderLoadError();
             console.error('Error setting up listener:', e);
             showToast('Error al cargar datos. Verifica el índice de Firestore.', 'error');
             this._loadingRecords = false;
@@ -131,6 +132,7 @@ const InterlogicCRUD = {
             this.applyFilters();
             showToast('✓ Rango completo cargado (' + all.length.toLocaleString() + ' registros). Modo tiempo real desactivado.', 'success');
         } catch (err) {
+            this.renderLoadError();
             console.error('Error en loadFullRange:', err);
             showToast('Error al cargar el rango completo: ' + err.message, 'error');
         } finally {
