@@ -164,3 +164,9 @@ body.ux-compact .data-table thead th{padding:.45rem .55rem;}
 @keyframes uxShimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--ux-brand-2);outline-offset:2px;}
 input:not([type="checkbox"]):not([type="radio"]):focus,select:focus,textarea:focus{border-color:var(--ux-brand-2)!important;box-shadow:0 0 0 3px var(--ux-brand-soft)!important;}
+
+@media (max-width:768px){
+#app{display:block!important;}
+.ux-topbar{display:none!important;}
+.main-content{width:100%;}
+}
