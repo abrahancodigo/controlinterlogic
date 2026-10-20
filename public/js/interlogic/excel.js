@@ -45,6 +45,20 @@ const InterlogicExcel = {
         return parts.length > 0 ? parts.join('  |  ') : 'Sin filtros (todos los registros)';
     },
 
+    _ilColLetter(n) {
+        var s = '';
+        while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+        return s;
+    },
+
+    _ilCellDate(r) {
+        if (!r.fecha) return '';
+        try {
+            var d = r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha);
+            return isNaN(d.getTime()) ? '' : d;
+        } catch (e) { return ''; }
+    },
+
     async _exportIlExcel() {
         if (this.filteredRecords.length === 0) {
             showToast('No hay datos filtrados para exportar', 'warning');
@@ -55,88 +69,124 @@ const InterlogicExcel = {
             return;
         }
         try {
+            var self = this;
             var cols = this._ilVisibleCols();
             var totalCols = cols.length;
+            var lastCol = this._ilColLetter(totalCols);
             var workbook = new ExcelJS.Workbook();
-            var sheet = workbook.addWorksheet('Control Interlogic', { views: [{ state: 'frozen', ySplit: 3 }] });
-            var moneyFmt = '#,##0.00';
-            var center = { vertical: 'middle', horizontal: 'center', wrapText: true };
-            var left = { vertical: 'middle', horizontal: 'left', wrapText: true };
-            var right = { vertical: 'middle', horizontal: 'right', wrapText: true };
-            var thin = { style: 'thin', color: { argb: 'FFD1D5DB' } };
-            var border = { top: thin, bottom: thin, left: thin, right: thin };
-            sheet.mergeCells(1, 1, 1, totalCols);
-            var title = sheet.getCell(1, 1);
+            workbook.creator = 'Control Interlogic';
+            workbook.created = new Date();
+            var sheet = workbook.addWorksheet('Control Interlogic', { views: [{ state: 'frozen', ySplit: 4 }] });
+            sheet.properties.tabColor = { argb: 'FF1D4ED8' };
+            var line = { style: 'thin', color: { argb: 'FFE2E8F0' } };
+            sheet.mergeCells('A1:' + lastCol + '1');
+            var title = sheet.getCell('A1');
             title.value = 'Control Interlogic';
-            title.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF111111' } };
+            title.font = { name: 'Calibri', size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+            title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
             title.alignment = { vertical: 'middle', horizontal: 'center' };
-            sheet.getRow(1).height = 24;
-            sheet.mergeCells(2, 1, 2, totalCols);
-            var sub = sheet.getCell(2, 1);
-            sub.value = 'Registros: ' + this.filteredRecords.length + ' · ' + this._ilFilterLabel();
-            sub.font = { name: 'Arial', size: 10, color: { argb: 'FF6B7280' } };
+            sheet.getRow(1).height = 38;
+            sheet.mergeCells('A2:' + lastCol + '2');
+            var now = new Date();
+            var pad = function(x) { return String(x).padStart(2, '0'); };
+            var sub = sheet.getCell('A2');
+            sub.value = 'Registros: ' + this.filteredRecords.length + '  ·  ' + this._ilFilterLabel() + '  ·  Exportado: ' + pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+            sub.font = { name: 'Calibri', size: 10, color: { argb: 'FF475569' } };
+            sub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
             sub.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-            sheet.getRow(2).height = 28;
-            var self = this;
-            cols.forEach(function(c, i) {
-                var cell = sheet.getCell(3, i + 1);
-                cell.value = c.label;
-                cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-                cell.alignment = center;
-                cell.border = border;
-                var w = 16;
-                if (c.key === 'cliente' || c.key === 'observations') w = 30;
-                else if (c.key === 'guia' || c.key === 'docNum' || c.key === 'formaPago') w = 14;
-                sheet.getColumn(i + 1).width = w;
+            sheet.getRow(2).height = 30;
+            sheet.getRow(3).height = 8;
+            var widths = { guia: 13, empresa: 14, fecha: 13, doc: 9, docNum: 13, cliente: 32, departamento: 16, municipio: 16, vendedor: 16, condicionPago: 14, venta: 15, bultos: 10, cobrador: 10, costoEnvio: 13, costoPorcentaje: 11, observations: 42, entrega: 16, cobra: 16, encargado: 16, formaPago: 14 };
+            var tableCols = cols.map(function(c, i) {
+                var col = { name: c.label, filterButton: true };
+                if (i === 0) col.totalsRowLabel = 'TOTALES (' + self.filteredRecords.length + ' registros)';
+                if (c.key === 'venta' || c.key === 'bultos' || c.key === 'costoEnvio') col.totalsRowFunction = 'sum';
+                return col;
             });
-            sheet.getRow(3).height = 18;
-            sheet.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: totalCols } };
-            this.filteredRecords.forEach(function(r, idx) {
-                var n = idx + 4;
-                cols.forEach(function(c, i) {
-                    var cell = sheet.getCell(n, i + 1);
-                    cell.value = self._ilCellValue(r, c.key);
-                    cell.font = { name: 'Arial', size: 10, color: { argb: 'FF111111' } };
-                    cell.border = border;
-                    if (c.key === 'venta' || c.key === 'costoEnvio') { cell.numFmt = moneyFmt; cell.alignment = right; }
-                    else if (c.key === 'costoPorcentaje') { cell.numFmt = '0.00%'; cell.alignment = right; }
-                    else if (c.key === 'bultos') { cell.numFmt = '#,##0'; cell.alignment = right; }
-                    else if (c.key === 'cliente' || c.key === 'observations') cell.alignment = left;
-                    else cell.alignment = center;
-                    if (idx % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+            var rows = this.filteredRecords.map(function(r) {
+                return cols.map(function(c) {
+                    if (c.key === 'fecha') return self._ilCellDate(r);
+                    return self._ilCellValue(r, c.key);
                 });
-                sheet.getRow(n).height = 16;
             });
-            var tot = this.filteredRecords.length + 4;
-            var sums = { venta: 0, bultos: 0, costoEnvio: 0 };
-            this.filteredRecords.forEach(function(r) {
-                sums.venta += Number(self.signedAmount(r, 'venta')) || 0;
-                sums.bultos += Number(self.signedAmount(r, 'bultos')) || 0;
-                sums.costoEnvio += Number(self.signedAmount(r, 'costoEnvio')) || 0;
+            sheet.addTable({
+                name: 'ControlInterlogic',
+                ref: 'A4',
+                headerRow: true,
+                totalsRow: true,
+                style: { theme: 'TableStyleLight1', showRowStripes: false },
+                columns: tableCols,
+                rows: rows
             });
-            if (totalCols > 1) sheet.mergeCells(tot, 1, tot, Math.min(2, totalCols));
+            var firstData = 5;
+            var lastData = 4 + rows.length;
+            var totalsRow = lastData + 1;
+            var headerRow = 4;
             cols.forEach(function(c, i) {
-                var cell = sheet.getCell(tot, i + 1);
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-                cell.border = border;
-                if (c.key === 'venta' || c.key === 'bultos' || c.key === 'costoEnvio') {
-                    cell.value = Math.round(sums[c.key] * 100) / 100;
-                    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
-                    cell.alignment = right;
-                    cell.numFmt = c.key === 'bultos' ? '#,##0' : moneyFmt;
+                var head = sheet.getCell(headerRow, i + 1);
+                head.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+                head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D4ED8' } };
+                head.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                head.border = { top: line, bottom: { style: 'medium', color: { argb: 'FF0F172A' } }, left: line, right: line };
+                sheet.getColumn(i + 1).width = widths[c.key] || 15;
+            });
+            sheet.getRow(headerRow).height = 30;
+            var badge = function(value) {
+                var v = String(value || '').toUpperCase();
+                if (v === 'DALSE') return 'FF1E40AF';
+                if (v === 'INTERLOGISTIC') return 'FF7C3AED';
+                if (v === 'XPRESS') return 'FFD97706';
+                if (v === 'INCEDE') return 'FF059669';
+                return 'FFEC4899';
+            };
+            var condFill = { 'CONTADO': ['FF22C55E', 'FF0F172A'], 'CRÉDITO': ['FFF59E0B', 'FF0F172A'], 'CREDITO': ['FFF59E0B', 'FF0F172A'] };
+            cols.forEach(function(c, i) {
+                var numeric = c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos' || c.key === 'costoPorcentaje';
+                var isBadge = c.key === 'entrega' || c.key === 'cobra';
+                for (var n = firstData; n <= lastData; n++) {
+                    var cell = sheet.getCell(n, i + 1);
+                    var baseFill = (n - firstData) % 2 === 1 ? 'FFF8FAFC' : 'FFFFFFFF';
+                    cell.font = { name: 'Calibri', size: 11, color: { argb: 'FF0F172A' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: baseFill } };
+                    cell.border = { top: line, bottom: line, left: line, right: line };
+                    cell.alignment = { vertical: 'middle', wrapText: true, horizontal: numeric ? 'right' : (c.key === 'cliente' || c.key === 'observations' ? 'left' : 'center') };
+                    if (c.key === 'fecha' && cell.value instanceof Date) cell.numFmt = 'dd/mm/yyyy';
+                    else if (c.key === 'venta' || c.key === 'costoEnvio') cell.numFmt = '"$"#,##0.00;[Red]-"$"#,##0.00';
+                    else if (c.key === 'bultos') cell.numFmt = '#,##0';
+                    else if (c.key === 'costoPorcentaje') cell.numFmt = '0.00%';
+                    if (isBadge && String(cell.value || '').trim() !== '') {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: badge(cell.value) } };
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+                    }
+                    if (c.key === 'condicionPago' && condFill[String(cell.value || '').toUpperCase()]) {
+                        var cp = condFill[String(cell.value || '').toUpperCase()];
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cp[0] } };
+                        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: cp[1] } };
+                    }
                 }
             });
-            var totLabel = sheet.getCell(tot, 1);
-            totLabel.value = 'TOTALES (' + this.filteredRecords.length + ' registros)';
-            totLabel.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF111111' } };
-            totLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
-            totLabel.alignment = center;
-            totLabel.border = border;
-            sheet.getRow(tot).height = 18;
+            cols.forEach(function(c, i) {
+                var cell = sheet.getCell(totalsRow, i + 1);
+                cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF0F172A' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+                cell.border = { top: { style: 'medium', color: { argb: 'FF1D4ED8' } }, bottom: line, left: line, right: line };
+                if (c.key === 'venta' || c.key === 'costoEnvio') cell.numFmt = '"$"#,##0.00;[Red]-"$"#,##0.00';
+                else if (c.key === 'bultos') cell.numFmt = '#,##0';
+                cell.alignment = { vertical: 'middle', horizontal: i === 0 ? 'left' : (c.key === 'venta' || c.key === 'bultos' || c.key === 'costoEnvio' ? 'right' : 'center') };
+            });
+            sheet.getRow(totalsRow).height = 24;
+            this.filteredRecords.forEach(function(r, idx) {
+                if (r.anulado !== true) return;
+                var n = firstData + idx;
+                cols.forEach(function(c, i) {
+                    var cell = sheet.getCell(n, i + 1);
+                    cell.font = { name: 'Calibri', size: 11, strike: true, color: { argb: 'FF94A3B8' } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                });
+            });
             sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
             sheet.pageMargins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
-            sheet.printTitleRow = '1:3';
+            sheet.printTitleRow = '4:4';
             var buffer = await workbook.xlsx.writeBuffer();
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             var url = URL.createObjectURL(blob);
