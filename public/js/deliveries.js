@@ -872,32 +872,32 @@ const Deliveries = {
             await window.Settings.loadSettings();
         }
 
-        // Get company settings
         const settings = window.Settings?.settings || {};
         const companyName = settings.companyName || 'DALSE';
-        // Use logo2 for print, fallback to logo1 if logo2 not set
-        const printLogo = settings.logo2 || settings.logo1 || '';
-        const safeLogoUrl = sanitizeHTML(printLogo).replace(/"/g, '&quot;');
-
-        // Build logo HTML with onload handling
-        let logoHTML = '';
-        if (printLogo) {
-            logoHTML = `<img id="print-logo-img" src="${safeLogoUrl}" alt="Logo" style="max-height: 60px; max-width: 150px; object-fit: contain;">`;
-        }
+        const mainLogo = sanitizeHTML(settings.logo1 || '').replace(/"/g, '&quot;');
+        const secondaryLogo = sanitizeHTML(settings.logo2 || '').replace(/"/g, '&quot;');
 
         printArea.innerHTML = `
-            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; color: #000;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        ${logoHTML}
-                        <div>
-                            <h1 style="font-size: 1.8rem; margin: 0; color: #000;">${sanitizeHTML(companyName)}</h1>
-                            <p style="margin: 5px 0 0 0; color: #555;">Registro de Entrega de Muebles</p>
-                        </div>
+            <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; color: #172b4d; background: #fff; line-height: 1.4; overflow-wrap: anywhere;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; border-top: 5px solid #173b63; border-bottom: 1px solid #cbd5e1; padding: 22px 8px; margin-bottom: 20px; break-inside: avoid;">
+                    ${mainLogo
+                ? `<img src="${mainLogo}" alt="Logo DALSE" style="height: 82px; max-width: 220px; object-fit: contain;">`
+                : `<span style="font-size: 30px; letter-spacing: 3px; font-weight: bold; color: #173b63;">DALSE</span>`}
+                    ${secondaryLogo
+                ? `<img src="${secondaryLogo}" alt="Logo INCEDE" style="height: 82px; max-width: 220px; object-fit: contain;">`
+                : (companyName.trim().toUpperCase() !== 'DALSE'
+                    ? `<span style="font-size: 18px; font-weight: bold; color: #334155;">${sanitizeHTML(companyName)}</span>`
+                    : '')}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 16px; border: 1px solid #cbd5e1; border-left: 4px solid #173b63; border-radius: 6px; margin-bottom: 22px; break-inside: avoid;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 16px; color: #173b63;">REGISTRO DE ENTREGA</h2>
+                        <p style="margin: 4px 0 0; font-size: 11px; color: #526174;">Control de entrega y recepción de accesorios y muebles</p>
                     </div>
                     <div style="text-align: right;">
-                        <p style="margin: 0; font-weight: bold; font-size: 1.2rem;">Folio: ${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</p>
-                        <p style="margin: 5px 0 0 0;">Fecha: ${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</p>
+                        <p style="margin: 0; font-weight: bold; font-size: 15px;">Folio: ${sanitizeHTML(delivery.folio || delivery.id.substring(0, 8).toUpperCase())}</p>
+                        <p style="margin: 5px 0 0; font-size: 12px; color: #526174;">Fecha: ${delivery.fecha ? formatDate(delivery.fecha) : 'N/A'}</p>
                     </div>
                 </div>
                 
@@ -917,11 +917,11 @@ const Deliveries = {
                 </div>
                 
                 <div style="margin-bottom: 25px;">
-                    <h2 style="font-size: 1rem; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; color: var(--text-secondary);">Accesorios</h2>
+                    <h2 style="font-size: 13px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; color: #173b63;">Accesorios incluidos</h2>
                     <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; min-height: 80px; border: 1px solid #eee; white-space: pre-wrap; font-family: inherit; line-height: 1.5;">${sanitizeHTML(delivery.accesorios)}</div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 50px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; break-inside: avoid;">
                     <div style="text-align: center;">
                         <div style="height: 70px;"></div>
                         <div style="border-top: 1.5px solid #000; padding-top: 8px;">
@@ -942,24 +942,23 @@ const Deliveries = {
                     </div>
                 </div>
                 
-                <div style="margin-top: 40px; text-align: center; color: #888; font-size: 0.75rem; border-top: 1px dashed #eee; padding-top: 15px;">
-                    Registro generado el: ${new Date().toLocaleString()}
+                <div style="margin-top: 32px; text-align: center; color: #64748b; font-size: 10px; border-top: 1px solid #cbd5e1; padding-top: 12px;">
+                    <strong style="color: #173b63; letter-spacing: 1px;">DALSE</strong> · Registro de entrega de muebles<br>
+                    Documento generado el: ${new Date().toLocaleString('es-MX')}
                 </div>
             </div>
         `;
 
-        // Wait for logo image to load
-        const logoImg = document.getElementById('print-logo-img');
-        if (logoImg) {
-            await new Promise((resolve) => {
+        await Promise.all(Array.from(printArea.querySelectorAll('img')).map(logoImg =>
+            new Promise((resolve) => {
                 if (logoImg.complete) {
                     resolve();
                 } else {
                     logoImg.onload = resolve;
                     logoImg.onerror = resolve;
                 }
-            });
-        }
+            })
+        ));
 
         this.closeAllModals();
         // Create preview modal
@@ -1054,25 +1053,47 @@ const Deliveries = {
             const originalText = pdfBtn.innerHTML;
             pdfBtn.innerHTML = '⏳ Generando...';
             pdfBtn.disabled = true;
+            let pdfWrapper = null;
 
             try {
-                const element = previewModal.querySelector('[style*="width: 8.5in"]');
+                pdfWrapper = document.createElement('div');
+                pdfWrapper.style.cssText = 'position: fixed; left: -10000px; top: 0;';
+
+                const pdfSource = document.createElement('div');
+                pdfSource.style.cssText = 'width: 7.5in; background: #ffffff;';
+                pdfSource.innerHTML = printArea.innerHTML;
+                pdfWrapper.appendChild(pdfSource);
+                document.body.appendChild(pdfWrapper);
+
+                await Promise.all(Array.from(pdfSource.querySelectorAll('img')).map(img =>
+                    new Promise((resolve) => {
+                        if (img.complete) {
+                            resolve();
+                        } else {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                        }
+                    })
+                ));
+
                 const folio = delivery.folio || delivery.id.substring(0, 8).toUpperCase();
 
                 const opt = {
-                    margin: 0,
+                    margin: [0.5, 0.5, 0.5, 0.5],
                     filename: `Entrega_${folio}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'] }
                 };
 
-                await html2pdf().set(opt).from(element).save();
+                await html2pdf().set(opt).from(pdfSource).save();
                 showToast('PDF descargado exitosamente', 'success');
             } catch (error) {
                 console.error('Error generating PDF:', error);
                 showToast('Error al generar PDF', 'error');
             } finally {
+                if (pdfWrapper) pdfWrapper.remove();
                 pdfBtn.innerHTML = originalText;
                 pdfBtn.disabled = false;
             }

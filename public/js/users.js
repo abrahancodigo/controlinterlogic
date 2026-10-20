@@ -203,18 +203,32 @@ const Users = {
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
-            <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="role-title" style="max-width:460px;">
-                <h2 id="role-title">Asignar rol</h2>
-                <p style="margin:0.75rem 0;">${sanitizeHTML(user.displayName || user.email || user.id)}</p>
-                <label for="user-role-select">Rol del usuario</label>
-                <select id="user-role-select" class="form-control" style="width:100%;margin:0.5rem 0 1rem;">
-                    ${[['user', 'Lector'], ['editor', 'Editor'], ['admin', 'Administrador']].map(([value, label]) => `<option value="${value}" ${AccessControl.role(user) === value ? 'selected' : ''}>${label}</option>`).join('')}
-                </select>
-                <p>Todos pueden ver el sistema completo.</p>
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">Lector: solo consultar. Editor: crear y modificar información, sin gestionar usuarios. Administrador: acceso total y eliminación. El usuario debe volver a iniciar sesión para actualizar sus opciones.</p>
-                <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1rem;">
-                    <button type="button" class="btn btn-secondary" data-role-action="cancel">Cancelar</button>
-                    <button type="button" class="btn btn-primary" data-role-action="save">Guardar rol</button>
+            <div class="premium-modal" style="max-width:460px;" role="dialog" aria-modal="true" aria-labelledby="role-title">
+                <div class="premium-modal-header">
+                    <div class="premium-modal-title">
+                        <div class="premium-modal-icon">🛡️</div>
+                        <div>
+                            <h2 id="role-title">Asignar rol</h2>
+                            <p>${sanitizeHTML(user.displayName || user.email || user.id)}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="premium-close" data-role-action="cancel" aria-label="Cerrar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="premium-modal-body">
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label for="user-role-select">Rol del usuario</label>
+                        <select id="user-role-select" class="form-control" style="width:100%;">
+                            ${[['user', 'Lector'], ['editor', 'Editor'], ['admin', 'Administrador']].map(([value, label]) => `<option value="${value}" ${AccessControl.role(user) === value ? 'selected' : ''}>${label}</option>`).join('')}
+                        </select>
+                    </div>
+                    <p style="margin-bottom:0.5rem;">Todos pueden ver el sistema completo.</p>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);">Lector: solo consultar. Editor: crear y modificar información, sin gestionar usuarios. Administrador: acceso total y eliminación. El usuario debe volver a iniciar sesión para actualizar sus opciones.</p>
+                </div>
+                <div class="premium-modal-footer" style="${window.innerWidth <= 768 ? 'flex-direction:column;' : ''}">
+                    <button type="button" class="btn btn-secondary" data-role-action="cancel" style="${window.innerWidth <= 768 ? 'width:100%;min-height:44px;' : ''}">Cancelar</button>
+                    <button type="button" class="btn btn-gradient" data-role-action="save" style="${window.innerWidth <= 768 ? 'width:100%;min-height:44px;' : ''}">Guardar rol</button>
                 </div>
             </div>`;
         document.body.appendChild(modal);
@@ -249,39 +263,42 @@ const Users = {
         const newActive = !currentActive;
         const action = newActive ? 'Activar' : 'Desactivar';
 
-        // Create custom confirmation modal
         const modal = document.createElement('div');
-        modal.style.cssText = `
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5); display: flex;
-            align-items: center; justify-content: center; z-index: 10001; padding: 1rem;
-        `;
+        modal.className = 'modal-backdrop';
         modal.innerHTML = `
-            <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; width: 100%; text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">${newActive ? '✅' : '🚫'}</div>
-                <h3 style="margin-bottom: 1rem;">¿${action} Usuario?</h3>
-                <p style="color: #6b7280; margin-bottom: 1.5rem;">${newActive ? 'El usuario podrá acceder al sistema.' : 'El usuario no podrá acceder al sistema.'}</p>
+            <div class="modal-content modal-confirm" role="dialog" aria-modal="true" aria-labelledby="active-title">
+                <div class="icon">${newActive ? '✅' : '🚫'}</div>
+                <h2 id="active-title" style="margin-bottom: 0.5rem;">¿${action} Usuario?</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">${newActive ? 'El usuario podrá acceder al sistema.' : 'El usuario no podrá acceder al sistema.'}</p>
                 <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button id="btn-cancel-active" class="btn btn-secondary">Cancelar</button>
-                    <button id="btn-confirm-active" class="btn ${newActive ? 'btn-success' : 'btn-danger'}">Sí, ${action}</button>
+                    <button type="button" class="btn btn-secondary" data-active-action="cancel">Cancelar</button>
+                    <button type="button" class="btn ${newActive ? 'btn-success' : 'btn-danger'}" data-active-action="confirm">Sí, ${action}</button>
                 </div>
             </div>
         `;
         document.body.appendChild(modal);
 
-        document.getElementById('btn-cancel-active').onclick = () => modal.remove();
-        document.getElementById('btn-confirm-active').onclick = async () => {
-            modal.remove();
+        modal.addEventListener('click', async event => {
+            if (modal.dataset.saving === '1') return;
+            const button = event.target.closest('[data-active-action]');
+            const choice = button?.dataset.activeAction;
+            if (event.target === modal || choice === 'cancel') { modal.remove(); return; }
+            if (choice !== 'confirm' || !window.permissions?.isAdmin) return;
+            button.disabled = true;
+            modal.dataset.saving = '1';
             try {
                 await firebase.firestore().collection('users').doc(userId).update({ active: newActive });
+                modal.remove();
                 showToast(`Usuario ${newActive ? 'activado' : 'desactivado'} exitosamente`, 'success');
                 await this.loadUsers();
             } catch (error) {
                 console.error('Error updating user status:', error);
                 showToast('Error al actualizar estado: ' + error.message, 'error');
+                button.disabled = false;
+                modal.dataset.saving = '0';
             }
-        };
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        });
+        modal.querySelector('[data-active-action="cancel"]').focus();
     },
 
     // Delete user completely
@@ -320,45 +337,57 @@ window.Users = Users;
 Users.showAddUserForm = function () {
     if (!window.permissions?.isAdmin) return;
     const isMobile = window.innerWidth <= 768;
+    const labelStyle = isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : '';
+    const fieldStyle = isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : '';
+    const btnStyle = isMobile ? 'width:100%;min-height:44px;border-radius:10px;' : '';
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop';
-    if (isMobile) {
-        modal.style.alignItems = 'flex-end';
-        modal.style.padding = '0';
-    }
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px; ${isMobile ? 'max-height:92vh;border-radius:var(--radius-xl) var(--radius-xl) 0 0;margin-bottom:0;padding:var(--spacing-lg);' : ''}">
-            <h2 style="margin-bottom: 1.5rem; ${isMobile ? 'font-size:1.1rem;' : ''}">👥 Nuevo Usuario</h2>
-            <form id="add-user-form">
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label ${isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : ''}>Nombre Completo</label>
-                    <input type="text" id="new-user-name" required placeholder="Ej. Juan Pérez" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
-                </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label ${isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : ''}>Nombre de Usuario</label>
-                    <input type="text" id="new-user-username" required placeholder="Ej. jhon_doe" style="${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
-                </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label ${isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : ''}>Contraseña</label>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="password" id="new-user-password" required minlength="6" style="flex: 1; ${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
-                        <button type="button" class="btn btn-secondary" style="${isMobile ? 'min-height:44px;min-width:44px;border-radius:10px;' : ''}" onclick="document.getElementById('new-user-password').type = document.getElementById('new-user-password').type === 'password' ? 'text' : 'password'">👁️</button>
+        <div class="premium-modal" style="max-width:500px;" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
+            <div class="premium-modal-header">
+                <div class="premium-modal-title">
+                    <div class="premium-modal-icon">👥</div>
+                    <div>
+                        <h2 id="add-user-title">Nuevo Usuario</h2>
+                        <p>Crea la cuenta con usuario, contraseña y rol</p>
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label ${isMobile ? 'style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;"' : ''}>Rol del Usuario</label>
-                    <select id="new-user-role" class="form-control" style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); ${isMobile ? 'min-height:44px;font-size:0.95rem;border-radius:10px;' : ''}">
-                        <option value="user">Lector (Solo consultar)</option>
-                        <option value="editor">Editor (Sin gestión de usuarios)</option>
-                        <option value="admin">Administrador (Control total)</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; ${isMobile ? 'flex-direction:column;' : ''}">
-                    <button type="button" class="btn btn-secondary" id="close-user-modal" style="${isMobile ? 'width:100%;min-height:44px;border-radius:10px;' : ''}">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="${isMobile ? 'width:100%;min-height:44px;border-radius:10px;' : ''}">Crear Usuario</button>
-                </div>
-            </form>
+                <button type="button" class="premium-close" data-user-action="close" aria-label="Cerrar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="premium-modal-body">
+                <form id="add-user-form">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label ${labelStyle}>Nombre Completo</label>
+                        <input type="text" id="new-user-name" required placeholder="Ej. Juan Pérez" style="${fieldStyle}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label ${labelStyle}>Nombre de Usuario</label>
+                        <input type="text" id="new-user-username" required placeholder="Ej. jhon_doe" style="${fieldStyle}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label ${labelStyle}>Contraseña</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="password" id="new-user-password" required minlength="6" style="flex: 1; ${fieldStyle}">
+                            <button type="button" class="btn btn-secondary" style="${isMobile ? 'min-height:44px;min-width:44px;border-radius:10px;' : ''}" onclick="document.getElementById('new-user-password').type = document.getElementById('new-user-password').type === 'password' ? 'text' : 'password'">👁️</button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label ${labelStyle}>Rol del Usuario</label>
+                        <select id="new-user-role" class="form-control" style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); ${fieldStyle}">
+                            <option value="user">Lector (Solo consultar)</option>
+                            <option value="editor">Editor (Sin gestión de usuarios)</option>
+                            <option value="admin">Administrador (Control total)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="premium-modal-footer" style="${isMobile ? 'flex-direction:column;' : ''}">
+                <button type="button" class="btn btn-secondary" data-user-action="close" style="${btnStyle}">Cancelar</button>
+                <button type="submit" class="btn btn-gradient" form="add-user-form" style="${btnStyle}">Crear Usuario</button>
+            </div>
         </div>
     `;
 
@@ -368,7 +397,7 @@ Users.showAddUserForm = function () {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-        const submitBtn = form.querySelector('button[type="submit"]');
+        const submitBtn = modal.querySelector('button[type="submit"]');
         setButtonLoading(submitBtn, true);
 
         const name = document.getElementById('new-user-name').value.trim();
@@ -421,8 +450,9 @@ Users.showAddUserForm = function () {
         }
     };
 
-    document.getElementById('close-user-modal').onclick = () => modal.remove();
-    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.closest('[data-user-action="close"]')) modal.remove();
+    });
 };
 
 
