@@ -8,6 +8,51 @@
 const RT_MAX_RECORDS = 800;
 
 const InterlogicCRUD = {
+    _normalizeClientName(value) {
+        return String(value || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/\s+/g, ' ').trim();
+    },
+
+    _setClientObservation(divId, client) {
+        const obsDiv = document.getElementById(divId);
+        if (!obsDiv) return;
+        const obs = String((client && client.observacionEntrega) || '').trim();
+        if (obs) {
+            obsDiv.textContent = '📦 ' + obs;
+            obsDiv.style.display = 'block';
+        } else {
+            obsDiv.textContent = '';
+            obsDiv.style.display = 'none';
+        }
+    },
+
+    async _findClientByName(name) {
+        const target = this._normalizeClientName(name);
+        if (!target) return null;
+        const findLocal = (list) => (list || []).find(c =>
+            this._normalizeClientName(c.nombre) === target ||
+            this._normalizeClientName(c.nombreNorm) === target
+        ) || null;
+        let client = findLocal(window.Clientes?.records);
+        if (client) return client;
+        if (window.Clientes?.loadRecords) {
+            try { await window.Clientes.loadRecords(); } catch (e) { }
+            client = findLocal(window.Clientes?.records);
+            if (client) return client;
+        }
+        try {
+            const snap = await firebase.firestore().collection('clientes')
+                .where('nombreNorm', '==', String(name || '').toLowerCase().trim()).limit(1).get();
+            if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
+        } catch (e) { }
+        return null;
+    },
+
+    async _showClientObservation(divId, name) {
+        this._setClientObservation(divId, await this._findClientByName(name));
+    },
+
     // Tiempo real estricto solo para el día actual (listener pequeño y barato).
     // Cualquier rango histórico (meses atrás) se carga una sola vez con get()
     // vía loadFullRange(): mismo resultado, sin fan-out de lecturas.
@@ -409,15 +454,7 @@ const InterlogicCRUD = {
         };
 
         if (record && record.cliente) {
-            var clientName = record.cliente.toLowerCase().trim();
-            var matchedClient = (window.Clientes?.records || []).find(function(c) {
-                return (c.nombre || '').toLowerCase().trim() === clientName;
-            });
-            var obsDiv = document.getElementById('il-cliente-observacion');
-            if (obsDiv && matchedClient && matchedClient.observacionEntrega) {
-                obsDiv.textContent = '📦 ' + matchedClient.observacionEntrega;
-                obsDiv.style.display = 'block';
-            }
+            self._showClientObservation('il-cliente-observacion', record.cliente);
         }
 
         var plazoGroup = document.getElementById('il-plazo-group');
@@ -629,6 +666,7 @@ const InterlogicCRUD = {
         const searchClients = async (query) => {
             if (query.length < 1) {
                 suggestionsBox.style.display = 'none';
+                self._setClientObservation('il-cliente-observacion', null);
                 return;
             }
 
@@ -662,6 +700,9 @@ const InterlogicCRUD = {
                     return queryWords.every(word => clientName.includes(word));
                 }).slice(0, 10);
 
+                const exactClient = await self._findClientByName(query);
+                self._setClientObservation('il-cliente-observacion', exactClient);
+
                 renderSuggestions(matches);
             } catch (error) {
                 console.error('Error searching clients:', error);
@@ -686,6 +727,10 @@ const InterlogicCRUD = {
 
         clienteInput.addEventListener('blur', () => {
             setTimeout(() => { suggestionsBox.style.display = 'none'; }, 200);
+        });
+
+        clienteInput.addEventListener('change', () => {
+            self._showClientObservation('il-cliente-observacion', clienteInput.value);
         });
 
         const saveAnotherBtn = document.getElementById('btn-il-save-another');
@@ -1635,15 +1680,7 @@ const InterlogicCRUD = {
         sheet.querySelector('.m-sheet-close').focus({ preventScroll: true });
 
         if (record && record.cliente) {
-            var mobileClientName = record.cliente.toLowerCase().trim();
-            var mobileMatchedClient = (window.Clientes?.records || []).find(function(c) {
-                return (c.nombre || '').toLowerCase().trim() === mobileClientName;
-            });
-            var mobileObsDiv = document.getElementById('mf-cliente-observacion');
-            if (mobileObsDiv && mobileMatchedClient && mobileMatchedClient.observacionEntrega) {
-                mobileObsDiv.textContent = '📦 ' + mobileMatchedClient.observacionEntrega;
-                mobileObsDiv.style.display = 'block';
-            }
+            this._showClientObservation('mf-cliente-observacion', record.cliente);
         }
 
         var mfDoc = document.getElementById('mf-doc');
@@ -1697,23 +1734,7 @@ const InterlogicCRUD = {
                 if (mfDoc.value === 'NC' && mfNcAfecta && mfNcAfecta.value === 'si') {
                     mfPopulateCCFList();
                 }
-                var clientName = mfClienteInput.value.trim().toLowerCase();
-                var obsDiv = document.getElementById('mf-cliente-observacion');
-                if (obsDiv && clientName) {
-                    var matchedClient = (window.Clientes?.records || []).find(function(c) {
-                        return (c.nombre || '').toLowerCase().trim() === clientName;
-                    });
-                    if (matchedClient && matchedClient.observacionEntrega) {
-                        obsDiv.textContent = '📦 ' + matchedClient.observacionEntrega;
-                        obsDiv.style.display = 'block';
-                    } else {
-                        obsDiv.textContent = '';
-                        obsDiv.style.display = 'none';
-                    }
-                } else if (obsDiv) {
-                    obsDiv.textContent = '';
-                    obsDiv.style.display = 'none';
-                }
+                self._showClientObservation('mf-cliente-observacion', mfClienteInput.value);
             });
         }
 

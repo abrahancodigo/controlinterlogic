@@ -689,6 +689,11 @@ const InterlogicRender = {
         return map[String(value || '').toUpperCase()] || 'badge-ghost';
     },
 
+    _badgeCobra(value) {
+        const cls = this._badgeTransportista(value);
+        return cls === 'badge-ghost' ? 'badge-cobra' : cls;
+    },
+
     renderTable() {
         if (this._renderScheduled) return;
         this._renderScheduled = true;
@@ -815,7 +820,7 @@ const InterlogicRender = {
                     <span class="badge ${this._badgeTransportista(record.entrega)}">${sanitizeHTML(record.entrega || '—')}</span>
                 </td>
                 <td data-label="Cobra" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="cobra" title="Clic para cambiar">
-                    <span class="badge ${this._badgeTransportista(record.cobra)}">${sanitizeHTML(record.cobra || '—')}</span>
+                    <span class="badge ${this._badgeCobra(record.cobra)}">${sanitizeHTML(record.cobra || '—')}</span>
                 </td>
                 <td data-label="Encargado" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="encargado" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
                 <td data-label="Forma Pago">

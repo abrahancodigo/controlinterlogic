@@ -1990,6 +1990,11 @@ tbody tr:hover {
     color: #0f172a;
 }
 
+.badge-cobra {
+    background: #f472b6;
+    color: #0f172a;
+}
+
 .mfp-btn {
     padding: 1rem 0.5rem;
     border: 2px solid #d1d5db;
@@ -7315,6 +7320,11 @@ tbody tr:hover {
 
 [data-theme="dark"] .badge-incede {
     background: #a78bfa;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .badge-cobra {
+    background: #ec4899;
     color: #0f172a;
 }
 
