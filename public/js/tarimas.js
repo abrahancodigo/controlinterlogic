@@ -93,6 +93,7 @@ const Tarimas = {
             });
             this._listenerAdded = true;
         }
+        this._bindObsPreview(tableContainer);
     },
 
     async renderMobile() {
@@ -255,7 +256,7 @@ const Tarimas = {
                     <td class="tarima-td-cantidad ${cantidadClass}">${cantidadSign}${formatNumber(record.cantidad || 0)}</td>
                     <td>${destino}</td>
                     <td>${formatNumber(record.totalDespues || 0)}</td>
-                    <td class="tarima-td-obs" title="${obs}">${obs.length > 40 ? obs.substring(0, 40) + '...' : obs}</td>
+                    <td class="tarima-td-obs${obs ? ' has-obs-preview' : ''}"${obs ? ` tabindex="0" data-full="${obs}"` : ''}>${obs.length > 40 ? obs.substring(0, 40) + '...' : obs}</td>
                     <td>${usuario}</td>
                     <td style="white-space:nowrap;">
                         ${canCreate ? `<button class="tarima-btn tarima-btn-edit" data-id="${sanitizeHTML(record.id)}" title="Editar">
@@ -508,6 +509,12 @@ const Tarimas = {
             const user = firebase.auth().currentUser;
             const isEdit = !!this.editingId;
 
+            const saldoFinal = await this._validarSaldoFinal(fechaTs, cantidad, tipo, isEdit ? this.editingId : null);
+            if (saldoFinal < 0) {
+                showToast('No se puede guardar: las existencias quedarían en ' + saldoFinal + '. Verifica las salidas registradas.', 'error', 6000);
+                return;
+            }
+
             if (isEdit) {
                 const previo = this.records.find(r => r.id === this.editingId);
                 await db.collection('tarimas_walmart').doc(this.editingId).update({
@@ -550,6 +557,23 @@ const Tarimas = {
 
     _tsMs(fecha) {
         return fecha && typeof fecha.toMillis === 'function' ? fecha.toMillis() : new Date(fecha).getTime();
+    },
+
+    async _validarSaldoFinal(fechaTs, cantidad, tipo, excludeId) {
+        const db = firebase.firestore();
+        const snapshot = await db.collection('tarimas_walmart').orderBy('fecha', 'asc').get();
+        const candidato = { tipo: tipo, cantidad: Number(cantidad) || 0, fecha: fechaTs };
+        const items = snapshot.docs
+            .filter(d => d.id !== excludeId)
+            .map(d => d.data())
+            .concat([candidato]);
+        items.sort((a, b) => this._tsMs(a.fecha) - this._tsMs(b.fecha));
+        let acumulado = 0;
+        for (const data of items) {
+            acumulado += data.tipo === 'ingreso' ? (data.cantidad || 0) : -(data.cantidad || 0);
+            if (acumulado < 0) return acumulado;
+        }
+        return acumulado;
     },
 
     async recalcularTotales(desdeFecha, nuevo) {
@@ -600,6 +624,11 @@ const Tarimas = {
 
         try {
             const db = firebase.firestore();
+            const saldoFinal = await this._validarSaldoFinal(null, 0, 'ingreso', id);
+            if (saldoFinal < 0) {
+                showToast('No se puede eliminar: las existencias quedarían en ' + saldoFinal + '. Elimina primero las salidas posteriores.', 'error', 6000);
+                return;
+            }
             await db.collection('tarimas_walmart').doc(id).delete();
             await this.recalcularTotales(record.fecha || null);
             showToast('Movimiento eliminado', 'success');
@@ -614,6 +643,60 @@ const Tarimas = {
             this.unsubscribe();
             this.unsubscribe = null;
         }
+        this._hideObsPreview();
+    },
+
+    _bindObsPreview(container) {
+        if (!container || container.dataset.obsPreviewBound) return;
+        container.dataset.obsPreviewBound = '1';
+        container.addEventListener('mouseover', (e) => {
+            const cell = e.target.closest('.tarima-td-obs.has-obs-preview');
+            if (cell) this._showObsPreview(cell);
+        });
+        container.addEventListener('mouseout', (e) => {
+            const cell = e.target.closest('.tarima-td-obs.has-obs-preview');
+            if (cell && !cell.contains(e.relatedTarget)) this._hideObsPreview();
+        });
+        container.addEventListener('focusin', (e) => {
+            const cell = e.target.closest('.tarima-td-obs.has-obs-preview');
+            if (cell) this._showObsPreview(cell);
+        });
+        container.addEventListener('focusout', () => this._hideObsPreview());
+        if (!this._obsWindowBound) {
+            this._obsWindowBound = true;
+            window.addEventListener('scroll', () => this._hideObsPreview(), { passive: true });
+            window.addEventListener('resize', () => this._hideObsPreview(), { passive: true });
+        }
+    },
+
+    _showObsPreview(cell) {
+        const texto = cell.dataset.full || '';
+        if (!texto) return;
+        let tip = document.getElementById('tarima-obs-tip');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.id = 'tarima-obs-tip';
+            tip.className = 'tarima-obs-tip';
+            tip.setAttribute('role', 'tooltip');
+            document.body.appendChild(tip);
+        }
+        tip.textContent = texto;
+        tip.classList.add('show');
+        const rect = cell.getBoundingClientRect();
+        const margen = 12;
+        const tipRect = tip.getBoundingClientRect();
+        let top = rect.top - tipRect.height - margen;
+        if (top < margen) top = rect.bottom + margen;
+        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+        const maxLeft = window.innerWidth - tipRect.width - margen;
+        left = Math.max(margen, Math.min(left, maxLeft));
+        tip.style.top = Math.round(top) + 'px';
+        tip.style.left = Math.round(left) + 'px';
+    },
+
+    _hideObsPreview() {
+        const tip = document.getElementById('tarima-obs-tip');
+        if (tip) tip.classList.remove('show');
     }
 };
 
