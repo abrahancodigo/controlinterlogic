@@ -95,7 +95,7 @@ const InterlogicRoutes = {
                 const routeData = {
                     fecha: fbDate,
                     repartidorId: repId,
-                    repartidorNombre: repOpt ? repOpt.dataset.nombre : '',
+                    repartidorNombre: (repOpt && repOpt.dataset.nombre) || '',
                     vehiculo: vehiculo,
                     zona: zona,
                     estado: 'pendiente',

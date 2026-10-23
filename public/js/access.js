@@ -14,8 +14,9 @@ const AccessControl = {
         { key: 'users', label: 'Gestión de Usuarios' }
     ],
 
-    role(user = window.currentUserData) {
-        const role = String(user?.role || 'user').toLowerCase();
+    role(user) {
+        const current = user === undefined ? this.currentUser() : user;
+        const role = String(current?.role || 'user').toLowerCase();
         return ['admin', 'editor', 'user'].includes(role) ? role : 'user';
     },
 
@@ -23,24 +24,33 @@ const AccessControl = {
         return role === 'admin' ? 'Administrador' : role === 'editor' ? 'Editor' : 'Lector';
     },
 
-    level(moduleName, user = window.currentUserData) {
+    level(moduleName, user) {
         const module = this.modules.find(item => item.key === moduleName);
-        if (!module || !user || user.active === false) return 'hidden';
-        return this.role(user) === 'user' || (moduleName === 'users' && this.role(user) !== 'admin') ? 'read' : 'write';
+        const current = user === undefined ? this.currentUser() : user;
+        if (!module || !current || current.active === false) return 'hidden';
+        return this.role(current) === 'user' || (moduleName === 'users' && this.role(current) !== 'admin') ? 'read' : 'write';
     },
 
-    canView(moduleName, user = window.currentUserData) {
+    currentUser() {
+        return Auth && Auth.userData ? Auth.userData : null;
+    },
+
+    canView(moduleName, user) {
         return this.level(moduleName, user) !== 'hidden';
     },
 
     apply(moduleName) {
-        const role = this.role();
-        const canWrite = this.level(moduleName) === 'write';
-        window.permissions = {
+        const user = this.currentUser();
+        const role = this.role(user);
+        const canWrite = this.level(moduleName, user) === 'write';
+        const priv = (user && user.privileges) || {};
+        const granted = (key, fallback) => typeof priv[key] === 'boolean' ? priv[key] : fallback;
+        window.permissions = Object.assign({}, window.permissions, {
             isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
             canCreate: canWrite, canEdit: canWrite, canDelete: canWrite && role === 'admin',
-            manageMetas: canWrite, exportData: true
-        };
+            manageMetas: granted('manageMetas', canWrite),
+            exportData: granted('exportData', true)
+        });
         const roleLabel = document.getElementById('user-role');
         if (roleLabel) roleLabel.textContent = this.label(role);
     },

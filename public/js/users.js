@@ -406,39 +406,20 @@ Users.showAddUserForm = function () {
         const role = document.getElementById('new-user-role').value;
 
         try {
-            // 1. Check if username already exists in registry
-            const userRegistryRef = firebase.firestore().collection('user_registry').doc(username);
-            const userRegistryDoc = await userRegistryRef.get();
-
-            if (userRegistryDoc.exists) {
-                showToast('Ese nombre de usuario ya existe', 'error');
+            const createUser = firebase.functions().httpsCallable('createManagedUser');
+            try {
+                await createUser({ displayName: name, username, password, role });
+            } catch (error) {
+                const messages = {
+                    'functions/already-exists': 'Ese nombre de usuario ya existe',
+                    'functions/invalid-argument': error.message || 'Datos no válidos',
+                    'functions/permission-denied': 'Solo un administrador puede crear usuarios',
+                    'functions/not-found': 'Falta desplegar la función createManagedUser'
+                };
+                showToast(messages[error.code] || 'Error al crear usuario: ' + error.message, 'error');
                 setButtonLoading(submitBtn, false);
                 return;
             }
-
-            // 2. Save to user_registry (this will be used by login)
-            // Note: We don't create the Firebase Auth user yet to avoid logging out the admin.
-            // The Firebase Auth user will be created on the first login of this new user.
-            const passwordHash = await hashPassword(password);
-
-            await userRegistryRef.set({
-                username: username,
-                passwordHash: passwordHash,
-                displayName: name,
-                role: role,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                active: true,
-                internalEmail: `${username}@dalse.local`
-            });
-            // Also create a document in the 'users' collection so it appears immediately in the admin UI
-            await firebase.firestore().collection('users').add({
-                displayName: name,
-                email: `${username}@dalse.local`,
-                role: role,
-                active: true,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                createdBy: firebase.auth().currentUser?.uid || null
-            });
 
             showToast('Usuario creado correctamente', 'success');
             modal.remove();

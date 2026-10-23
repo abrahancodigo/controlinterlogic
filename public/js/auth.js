@@ -167,6 +167,7 @@ const Auth = {
             }
 
             window.currentUserData = userData;
+            this.userData = userData;
             this.updateUserUI(userData);
 
             const loadingScreen = document.getElementById('loading-screen');
@@ -179,6 +180,7 @@ const Auth = {
             if (window.Settings && window.Settings.loadSettings) {
                 await window.Settings.loadSettings();
             }
+            this.watchProfile(user.uid);
             if (window.App && window.App.init) {
                 window.App.init();
             }
@@ -189,7 +191,34 @@ const Auth = {
         }
     },
 
+    watchProfile(uid) {
+        if (this.unsubProfile) { this.unsubProfile(); this.unsubProfile = null; }
+        this.unsubProfile = firebase.firestore().collection('users').doc(uid).onSnapshot(snap => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            if (!window.currentUserData) return;
+            const prevRole = String(window.currentUserData.role || '').toLowerCase();
+            window.currentUserData = data;
+            Auth.userData = data;
+            if (data.active === false) {
+                showToast('Tu cuenta ha sido desactivada.', 'error');
+                this.logout();
+                return;
+            }
+            const nextRole = String(data.role || '').toLowerCase();
+            this.updateUserUI(data);
+            if (window.AccessControl) {
+                if (nextRole !== prevRole) AccessControl.syncNavigation();
+                if (window.App && window.App.currentModule) AccessControl.apply(window.App.currentModule);
+            }
+        }, error => {
+            console.error('Error watching profile:', error);
+        });
+    },
+
     handleUserLogout() {
+        if (this.unsubProfile) { this.unsubProfile(); this.unsubProfile = null; }
+        this.userData = null;
         window.currentUserData = null;
         if (window.Deliveries) { window.Deliveries.userIsAdmin = false; window.Deliveries.deliveries = []; }
         if (window.App) { window.App.currentModule = null; }
@@ -249,6 +278,8 @@ const Auth = {
     },
 
     async logout() {
+        if (this.unsubProfile) { this.unsubProfile(); this.unsubProfile = null; }
+        this.userData = null;
         try {
             await firebase.auth().signOut();
         } catch (error) {
