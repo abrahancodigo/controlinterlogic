@@ -173,6 +173,7 @@ const FlotaOrders = {
                     showToast('Orden actualizada', 'success');
                 } else {
                     data.fechaCreacion = firebase.firestore.FieldValue.serverTimestamp();
+                    data.fecha = firebase.firestore.FieldValue.serverTimestamp();
                     data.numero = 'OT-' + Date.now();
                     await firebase.firestore().collection('ordenesTrabajo').add(data);
                     showToast('Orden creada', 'success');

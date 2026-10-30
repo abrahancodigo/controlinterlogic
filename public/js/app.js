@@ -239,39 +239,10 @@ const App = {
         }
         if (this.currentModule === moduleName) return;
 
-        if (this.currentModule === 'interlogic' && window.Interlogic && window.Interlogic.unsubscribe) {
-            window.Interlogic.unsubscribe(); window.Interlogic.unsubscribe = null;
-            window.Interlogic.selectedRecords.clear();
-        }
-        if (this.currentModule === 'liquidacion' && window.Liquidacion) {
-            if (window.Liquidacion.cleanup) window.Liquidacion.cleanup();
-        }
-        if (this.currentModule === 'kpi' && window.KpiEvaluation && window.KpiEvaluation.unsubscribe) {
-            window.KpiEvaluation.unsubscribe(); window.KpiEvaluation.unsubscribe = null;
-        }
-        if (this.currentModule === 'clientes' && window.Clientes) {
-            window.Clientes._cacheExpiry = 0; // invalida caché al salir
-            window.Clientes.selectedRecords.clear();
-        }
-        if (this.currentModule === 'problemas' && window.Problemas && window.Problemas.unsubscribe) {
-            window.Problemas.unsubscribe(); window.Problemas.unsubscribe = null;
-        }
-        if (this.currentModule === 'flota' && window.Flota) {
-            if (window.Flota.unsubscribeVehiculos) { window.Flota.unsubscribeVehiculos(); window.Flota.unsubscribeVehiculos = null; }
-            if (window.Flota.unsubscribeMantenimientos) { window.Flota.unsubscribeMantenimientos(); window.Flota.unsubscribeMantenimientos = null; }
-            if (window.Flota.unsubscribeOT) { window.Flota.unsubscribeOT(); window.Flota.unsubscribeOT = null; }
-            if (window.Flota.unsubscribeProveedores) { window.Flota.unsubscribeProveedores(); window.Flota.unsubscribeProveedores = null; }
-        }
-        if (this.currentModule === 'tarimas' && window.Tarimas) {
-            if (window.Tarimas.cleanup) window.Tarimas.cleanup();
-        }
+        if (window.ModuleRegistry) ModuleRegistry.cleanup(this.currentModule);
 
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
-
-        if (this.currentModule === 'dashboard' && window.Dashboard) {
-            if (window.Dashboard.destroy) { window.Dashboard.destroy(); }
-        }
 
         AccessControl.apply(moduleName);
         this.currentModule = moduleName;
@@ -280,46 +251,8 @@ const App = {
         if (contentArea) contentArea.dataset.visualModule = moduleName;
 
         try {
-            switch (moduleName) {
-                case 'dashboard':
-                    if (window.Dashboard && window.Dashboard.render) await window.Dashboard.render();
-                    break;
-                case 'deliveries':
-                    if (window.Deliveries && window.Deliveries.render) await window.Deliveries.render();
-                    break;
-                case 'interlogic':
-                    if (window.Interlogic && window.Interlogic.render) await window.Interlogic.render();
-                    break;
-                case 'settings':
-                    if (window.Settings && window.Settings.init) await window.Settings.init();
-                    break;
-                case 'users':
-                    if (window.Users && window.Users.render) await window.Users.render();
-                    break;
-                case 'liquidacion':
-                    if (window.Liquidacion && window.Liquidacion.render) await window.Liquidacion.render();
-                    break;
-                                case 'kpi':
-                    if (window.KpiEvaluation && window.KpiEvaluation.render) await window.KpiEvaluation.render();
-                    break;
-
-                case 'clientes':
-                    if (window.Clientes && window.Clientes.render) await window.Clientes.render();
-                    break;
-                case 'problemas':
-                    if (window.Problemas && window.Problemas.render) await window.Problemas.render();
-                    break;
-                case 'flota':
-                    if (window.Flota && window.Flota.render) await window.Flota.render();
-                    break;
-                case 'asistencia':
-                    if (window.Asistencia && window.Asistencia.render) await window.Asistencia.render();
-                    break;
-                case 'tarimas':
-                    if (window.Tarimas && window.Tarimas.render) await window.Tarimas.render();
-                    break;
-                default:
-                    console.warn(`Unknown module: ${moduleName}`);
+            if (!window.ModuleRegistry || !await ModuleRegistry.render(moduleName)) {
+                console.warn(`Unknown module: ${moduleName}`);
             }
         } catch (error) {
             console.error(`Error loading module ${moduleName}:`, error);

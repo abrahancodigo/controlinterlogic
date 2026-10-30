@@ -424,3 +424,24 @@
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
 }
+
+/* ---- Fila anulada: rojo puro con texto blanco ---- */
+#il-data-table tbody tr.il-row-anulada,
+#il-data-table tbody tr.il-row-anulada:nth-child(even) {
+    background: #dc2626 !important;
+    border-left: 4px solid #991b1b;
+}
+
+#il-data-table tbody tr.il-row-anulada:hover,
+#il-data-table tbody tr.il-row-anulada:active {
+    background: #b91c1c !important;
+}
+
+#il-data-table tbody tr.il-row-anulada td {
+    color: #fff !important;
+    border-bottom-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+#il-data-table tbody tr.il-row-anulada td input[type="checkbox"] {
+    accent-color: #991b1b;
+}

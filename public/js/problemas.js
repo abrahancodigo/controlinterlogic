@@ -247,12 +247,15 @@ const Problemas = {
                             ${imgCount} imagen${imgCount > 1 ? 'es' : ''}
                         </span>
                         <div class="prob-images-mini">
-                            ${record.imagenes.slice(0, 4).map((url, idx) => `
+                            ${record.imagenes.slice(0, 4).map((url, idx) => {
+                                const safeUrl = sanitizeUrl(url) || '';
+                                return `
                                 <div class="prob-img-mini" data-id="${record.id}" data-idx="${idx}">
-                                    <img src="${url}" alt="Imagen" loading="lazy">
+                                    <img src="${safeUrl}" alt="Imagen" loading="lazy">
                                     ${idx === 3 && imgCount > 4 ? `<div class="prob-img-more">+${imgCount - 4}</div>` : ''}
                                 </div>
-                            `).join('')}
+                            `;
+                            }).join('')}
                         </div>
                         <button class="prob-btn-images" data-id="${record.id}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -864,13 +867,13 @@ const Problemas = {
                 <div class="lightbox-thumbs" id="lightbox-thumbs">
                     ${record.imagenes.map((url, idx) => `
                         <div class="lightbox-thumb ${idx === currentIndex ? 'active' : ''}" data-index="${idx}">
-                            <img src="${sanitizeHTML(url)}" alt="Thumb ${idx + 1}">
+                            <img src="${sanitizeUrl(url) || ''}" alt="Thumb ${idx + 1}">
                         </div>
                     `).join('')}
                 </div>
                 ` : `
                 <div class="lightbox-single-actions">
-                    <a href="${sanitizeHTML(record.imagenes[0])}" target="_blank" class="btn btn-gradient btn-sm">
+                    <a href="${sanitizeHref(record.imagenes[0])}" target="_blank" rel="noopener noreferrer" class="btn btn-gradient btn-sm">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                         Abrir en tamaño completo
                     </a>
@@ -926,7 +929,7 @@ const Problemas = {
         const thumbs = document.querySelectorAll('.lightbox-thumb');
         
         if (slideArea) {
-            slideArea.innerHTML = `<div class="lightbox-slide"><img src="${record.imagenes[this._lightboxIndex]}" alt="Imagen"></div>`;
+            slideArea.innerHTML = `<div class="lightbox-slide"><img src="${sanitizeUrl(record.imagenes[this._lightboxIndex]) || ''}" alt="Imagen"></div>`;
         }
         if (counter) counter.textContent = `${this._lightboxIndex + 1} / ${record.imagenes.length}`;
         thumbs.forEach((thumb, idx) => {
@@ -955,3 +958,14 @@ const Problemas = {
 };
 
 window.Problemas = Problemas;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'problemas',
+        label: 'Problemas',
+        render: () => Problemas.render(),
+        cleanup: () => {
+            if (Problemas.unsubscribe) { Problemas.unsubscribe(); Problemas.unsubscribe = null; }
+        }
+    });
+}

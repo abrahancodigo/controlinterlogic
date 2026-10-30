@@ -35,9 +35,11 @@ service cloud.firestore {
       return isAdmin() || isEditor();
     }
 
-    // Users collection - only admins can modify roles
+    // Users collection: solo un admin puede leer todo, cada usuario solo el suyo.
+    // Con esta regla queda bloqueada la escalada N01 (lector que muta currentUserData.role
+    // en el navegador y lee la colección entera).
     match /users/{userId} {
-      allow read: if isAuthenticated() || isOwner(userId);
+      allow read: if isAdmin() || isOwner(userId);
       allow create: if isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -75,10 +77,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Config collection - for system settings
+    // Config collection - for system settings (settings is admin-only)
     match /config/{configId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() || (configId in ['settings', 'dashboard', 'counters'] && canWrite());
+      allow create, update: if isAdmin() || (configId in ['dashboard', 'counters'] && canWrite());
       allow delete: if isAdmin();
     }
     
@@ -91,15 +93,6 @@ service cloud.firestore {
     match /login_attempt_limits/{attemptId} {
       allow read, write: if false;
     }
-
-    // Empleados collection
-    match /empleados/{empId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
-    }
-
 
     // Asistencia collection
     match /asistencia/{docId} {
@@ -125,30 +118,6 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Cobros collection (Cobranza)
-    match /cobros/{cobroId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
-    }
-
-    // Gestiones collection (Cobranza)
-    match /gestiones/{gestionId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
-    }
-
-    // Ajustes collection (Cobranza)
-    match /ajustes/{ajusteId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
-    }
-
     // Rutas collection
     match /rutas/{rutaId} {
       allow read: if isAuthenticated();
@@ -167,14 +136,6 @@ service cloud.firestore {
 
     // Ruta Entregas collection
     match /rutaEntregas/{entregaId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
-    }
-
-    // Liquidaciones collection
-    match /liquidaciones/{liquidacionId} {
       allow read: if isAuthenticated();
       allow create: if canWrite();
       allow update: if canWrite();

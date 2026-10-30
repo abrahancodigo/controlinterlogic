@@ -921,3 +921,86 @@
     .dash > .dash-kpi-grid .dash-kpi-card:first-child .dash-kpi-total-value { font-size: clamp(1.5rem, 7vw, 1.9rem) !important; }
     .dash > .dash-kpi-grid .dash-kpi-card:first-child .dash-kpi-total-value[data-long="true"] { font-size: clamp(1.2rem, 5.8vw, 1.5rem) !important; }
 }
+
+/* ── Gráficas: acabado premium (degradados, brillo y profundidad) ── */
+.dash .dash-chart-body {
+    position: relative;
+    isolation: isolate;
+}
+
+.dash .dash-chart-body::before {
+    content: "";
+    position: absolute;
+    inset: 4% 6% auto 6%;
+    height: 60%;
+    background:
+        radial-gradient(60% 90% at 30% 0%, rgba(139, 92, 246, 0.16), transparent 70%),
+        radial-gradient(55% 85% at 75% 0%, rgba(34, 211, 238, 0.13), transparent 72%);
+    filter: blur(18px);
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: -1;
+    transition: opacity 0.45s ease, transform 0.6s ease;
+}
+
+[data-theme="dark"] .dash .dash-chart-body::before {
+    background:
+        radial-gradient(60% 90% at 30% 0%, rgba(139, 92, 246, 0.32), transparent 70%),
+        radial-gradient(55% 85% at 75% 0%, rgba(56, 189, 248, 0.24), transparent 72%);
+}
+
+@media (min-width: 769px) {
+    .dash .dash-chart-card:hover .dash-chart-body::before {
+        opacity: 1;
+        transform: scale(1.03);
+    }
+}
+
+#dash-donut-chart,
+#dash-incede-chart,
+#dash-acum-chart {
+    position: relative;
+}
+
+#dash-donut-chart::after,
+#dash-incede-chart::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 52%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.22), rgba(245, 158, 11, 0.12) 55%, transparent 72%);
+    filter: blur(10px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+#dash-incede-chart::after {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.24), rgba(239, 68, 68, 0.12) 55%, transparent 72%);
+}
+
+[data-theme="dark"] #dash-donut-chart::after {
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.34), rgba(245, 158, 11, 0.16) 55%, transparent 72%);
+}
+
+[data-theme="dark"] #dash-incede-chart::after {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.36), rgba(239, 68, 68, 0.18) 55%, transparent 72%);
+}
+
+#dash-donut-chart .apexcharts-canvas,
+#dash-incede-chart .apexcharts-canvas {
+    position: relative;
+    z-index: 1;
+}
+
+.dash .apexcharts-tooltip {
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+.dash .apexcharts-legend-marker {
+    border-radius: 999px;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.25);
+}

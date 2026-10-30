@@ -1,4 +1,4 @@
-﻿// ===================================
+// ===================================
 // Clientes (Client Management) Module
 // ===================================
 
@@ -740,7 +740,7 @@ const Clientes = {
                                         <tr>
                                             <td>${sanitizeHTML(d.nombre)}</td>
                                             <td>${sanitizeHTML(d.direccion)}</td>
-                                            <td>${d.telefono}</td>
+                                            <td>${sanitizeHTML(d.telefono)}</td>
                                             <td>${sanitizeHTML(d.departamento)}</td>
                                             <td>${sanitizeHTML(d.municipio)}</td>
                                         </tr>
@@ -789,6 +789,7 @@ const Clientes = {
                         direccion: client.direccion,
                         telefono: client.telefono,
                         departamento: client.departamento,
+                        zona: client.departamento,
                         municipio: client.municipio,
                         vendedor: client.vendedor,
                         empresa: client.empresa,
@@ -818,6 +819,8 @@ const Clientes = {
                     await batch.commit();
                 }
 
+                this._cacheExpiry = 0;
+                await this.loadRecords();
                 showToast(`✓ ${created} creados, ${updated} actualizados`, 'success');
                 modal.remove();
             } catch (error) {
@@ -977,7 +980,7 @@ const Clientes = {
                 var nombre = document.getElementById('mcf-nombre').value.trim();
                 if (!nombre) { showToast('El nombre es obligatorio', 'error'); btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; return; }
                 var deptVal = document.getElementById('mcf-departamento').value.trim();
-                var data = { nombre: nombre, telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: deptVal, zona: deptVal, municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                var data = { nombre: nombre, nombreNorm: nombre.toLowerCase().trim(), telefono: document.getElementById('mcf-telefono').value.trim(), empresa: document.getElementById('mcf-empresa').value.trim(), direccion: document.getElementById('mcf-direccion').value.trim(), departamento: deptVal, zona: deptVal, municipio: document.getElementById('mcf-municipio').value.trim(), vendedor: document.getElementById('mcf-vendedor').value.trim(), condicionPago: document.getElementById('mcf-condicion').value, limiteCredito: parseFloat(document.getElementById('mcf-limite').value)||0, plazoPago: parseInt(document.getElementById('mcf-plazo').value)||30, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
                 var db = firebase.firestore();
                 if (isEdit) {
                     await db.collection('clientes').doc(id).update(data);
@@ -1009,5 +1012,17 @@ const Clientes = {
     }
 };
 
-// Make available globally
 window.Clientes = Clientes;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'clientes',
+        label: 'Clientes',
+        render: () => Clientes.render(),
+        cleanup: () => {
+            Clientes._cacheExpiry = 0;
+            Clientes._mobileListListener = false;
+            Clientes.selectedRecords.clear();
+        }
+    });
+}

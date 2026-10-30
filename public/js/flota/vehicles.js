@@ -195,24 +195,20 @@ const FlotaVehicles = {
                         <h4 style="margin:0 0 0.5rem;">Fotos del Vehiculo</h4>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                             ${fotosVehiculo.length === 0 ? '<span style="font-size:0.8rem;color:#8e8e93;">Sin fotos</span>' :
-                            fotosVehiculo.map((url, i) => `
-                                <div class="dv-foto-thumb" data-url="${url}" style="cursor:pointer;">
-                                    <img src="${url}" alt="Foto vehiculo ${i+1}" loading="lazy" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;">
-                                    <span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;">${i+1}</span>
-                                </div>
-                            `).join('')}
+                            fotosVehiculo.map((url, i) => {
+                                const safe = sanitizeUrl(url) || '';
+                                return '<div class="dv-foto-thumb" data-url="' + safe + '" style="cursor:pointer;"><img src="' + safe + '" alt="Foto vehiculo ' + (i+1) + '" loading="lazy" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;">' + (i+1) + '</span></div>';
+                            }).join('')}
                         </div>
                     </div>
                     <div>
                         <h4 style="margin:0 0 0.5rem;">Fotos Tarjeta de Circulacion</h4>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                             ${fotosTarjeta.length === 0 ? '<span style="font-size:0.8rem;color:#8e8e93;">Sin fotos</span>' :
-                            fotosTarjeta.map((url, i) => `
-                                <div class="dv-foto-thumb" data-url="${url}" style="cursor:pointer;">
-                                    <img src="${url}" alt="Foto tarjeta ${i+1}" loading="lazy" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;">
-                                    <span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;">${i+1}</span>
-                                </div>
-                            `).join('')}
+                            fotosTarjeta.map((url, i) => {
+                                const safe2 = sanitizeUrl(url) || '';
+                                return '<div class="dv-foto-thumb" data-url="' + safe2 + '" style="cursor:pointer;"><img src="' + safe2 + '" alt="Foto tarjeta ' + (i+1) + '" loading="lazy" style="width:100%;height:70px;object-fit:cover;border-radius:6px;border:1px solid #e5e5ea;"><span style="display:block;text-align:center;font-size:0.65rem;color:#8e8e93;">' + (i+1) + '</span></div>';
+                            }).join('')}
                         </div>
                     </div>
                 </div>

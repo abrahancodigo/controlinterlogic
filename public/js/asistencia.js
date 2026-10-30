@@ -82,6 +82,7 @@ const Asistencia = {
     async loadFromFirestore() {
         const db = firebase.firestore();
         const pk = this.currentPeriodKey();
+        this._loadFailed = false;
         try {
             const configDoc = await db.collection('asistencia').doc('_config').get();
             if (configDoc.exists && configDoc.data().employees?.length) {
@@ -91,6 +92,7 @@ const Asistencia = {
             }
         } catch(e) {
             console.warn('Error loading config:', e);
+            this._loadFailed = true;
             this.employees = [];
         }
         try {
@@ -104,6 +106,7 @@ const Asistencia = {
             }
         } catch(e) {
             console.warn('Error loading period:', e);
+            this._loadFailed = true;
             this.byEmployee = {};
         }
         this.dateColumns = this.getDateColumns(this.year, this.month, this.periodHalf);
@@ -111,6 +114,11 @@ const Asistencia = {
     },
 
     async saveToFirestore() {
+        if (this._loadFailed) {
+            this.updateStatus('No se guardó: falló la carga del período', 'error');
+            if (typeof showToast === 'function') showToast('No se guardó: recarga la página', 'error');
+            return false;
+        }
         const db = firebase.firestore();
         const pk = this.currentPeriodKey();
         const empList = this.employees.map(e => ({ id:e.id, name:e.name }));
@@ -124,10 +132,12 @@ const Asistencia = {
             this.dirty = false;
             this.updateStatus('Guardado correctamente', 'ok');
             if (typeof showToast === 'function') showToast('Asistencia guardada','success');
+            return true;
         } catch(e) {
             console.error('Error saving:', e);
             this.updateStatus('Error al guardar', 'error');
             if (typeof showToast === 'function') showToast('Error al guardar asistencia','error');
+            return false;
         }
     },
 
@@ -533,9 +543,10 @@ const Asistencia = {
     },
 
     async changePeriod(y, m, h) {
+        if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
         if (this.dirty) {
             const ok = confirm('Hay cambios sin guardar. ¿Guardar antes de cambiar?');
-            if (ok) await this.saveToFirestore();
+            if (ok) { if (!(await this.saveToFirestore())) return; }
             else if (!confirm('¿Continuar sin guardar?')) return;
         }
         this.year = y; this.month = m; this.periodHalf = h;
@@ -554,10 +565,8 @@ const Asistencia = {
             this.changePeriod(y, m, h);
         });
 
-        document.getElementById('asis-btn-save')?.addEventListener('click', async () => {
-            await this.saveToFirestore();
-            this.updateStatus('Guardado correctamente');
-            if (typeof showToast === 'function') showToast('Guardado','success');
+        document.getElementById('asis-btn-save')?.addEventListener('click', () => {
+            this.saveToFirestore();
         });
 
         document.getElementById('asis-btn-add')?.addEventListener('click', () => {
@@ -801,3 +810,15 @@ const Asistencia = {
 };
 
 window.Asistencia = Asistencia;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'asistencia',
+        label: 'Asistencia',
+        render: () => Asistencia.render(),
+        cleanup: () => {
+            if (Asistencia.saveTimer) { clearTimeout(Asistencia.saveTimer); Asistencia.saveTimer = null; }
+            if (Asistencia.dirty) Asistencia.saveToFirestore();
+        }
+    });
+}

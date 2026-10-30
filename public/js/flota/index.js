@@ -95,3 +95,18 @@ const FlotaApp = {
 };
 
 window.Flota = FlotaApp;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'flota',
+        label: 'Flota y Mantenimiento',
+        render: () => FlotaApp.render(),
+        cleanup: () => {
+            ['unsubscribeVehiculos', 'unsubscribeMantenimientos', 'unsubscribeOT', 'unsubscribeProveedores'].forEach(name => {
+                if (FlotaApp[name]) { FlotaApp[name](); FlotaApp[name] = null; }
+            });
+            FlotaApp.currentView = 'vehiculos';
+            FlotaApp.selectedVehiculoId = null;
+        }
+    });
+}

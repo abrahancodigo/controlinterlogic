@@ -238,6 +238,7 @@ const InterlogicCRUD = {
         const customEntrega = !!val('entrega') && !entregaOptions.includes(val('entrega'));
         const customCobra = !!val('cobra') && !cobraOptions.includes(val('cobra'));
 
+        var self = this;
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
 
@@ -251,7 +252,7 @@ const InterlogicCRUD = {
                             <p>${record ? 'Modifica los datos de este envío' : (sourceRecord ? 'Crea una copia de un registro existente' : 'Completa los datos del nuevo envío')}</p>
                         </div>
                     </div>
-                    <button class="premium-close" onclick="this.closest('.modal-backdrop').remove()" type="button">
+                    <button class="premium-close" data-il-close type="button">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                 </div>
@@ -279,8 +280,8 @@ const InterlogicCRUD = {
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
                                 <div class="form-group">
-                                    <label>Fecha</label>
-                                    <input type="date" id="il-fecha" value="${dateValue}">
+                                    <label for="il-fecha">Fecha *</label>
+                                    <input type="date" id="il-fecha" value="${dateValue}" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Documento</label>
@@ -303,8 +304,8 @@ const InterlogicCRUD = {
                                 <h3>Información del Cliente</h3>
                             </div>
                             <div class="form-group" style="position: relative;">
-                                <label>Cliente</label>
-                                <input type="text" id="il-cliente" autocomplete="off" value="${sourceRecord ? sanitizeHTML(sourceRecord.cliente || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.cliente || '').replace(/"/g, '&quot;') : '')}">
+                                <label for="il-cliente">Cliente *</label>
+                                <input type="text" id="il-cliente" autocomplete="off" required value="${sourceRecord ? sanitizeHTML(sourceRecord.cliente || '').replace(/"/g, '&quot;') : (record ? sanitizeHTML(record.cliente || '').replace(/"/g, '&quot;') : '')}">
                                 <div id="il-cliente-suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--gray-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 1300; max-height: 200px; overflow-y: auto;"></div>
                             </div>
                             <div id="il-cliente-observacion" class="cliente-observacion" style="display: none; margin-top: 0.5rem; padding: 0.6rem 0.75rem; background: #fef2f2; border: 1px solid #fca5a5; border-radius: var(--radius-md); color: #dc2626; font-size: 0.85rem; font-weight: 600; line-height: 1.4;"></div>
@@ -342,8 +343,8 @@ const InterlogicCRUD = {
                                     <input type="text" id="il-vendedor" value="${sanitizeHTML(val('vendedor')).replace(/"/g, '&quot;')}">
                                 </div>
                                 <div class="form-group">
-                                    <label for="il-venta">Venta ($)</label>
-                                    <input type="number" id="il-venta" step="0.01" value="${sourceRecord ? (sourceRecord.venta || '') : (record ? record.venta : '')}">
+                                    <label for="il-venta">Venta ($) *</label>
+                                    <input type="number" id="il-venta" step="0.01" required value="${sourceRecord ? (sourceRecord.venta || '') : (record ? record.venta : '')}">
                                 </div>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
@@ -432,14 +433,17 @@ const InterlogicCRUD = {
                 <div class="premium-modal-footer">
                     ${!recordId ? '<button type="button" class="btn btn-secondary" id="btn-il-save-another">💾+ Guardar y Agregar Otro</button>' : ''}
                     <button type="submit" class="btn btn-primary" id="btn-il-save" form="interlogic-form">💾 Guardar Registro</button>
-                    <button type="button" class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+                    <button type="button" class="btn btn-ghost" data-il-cancel>Cancelar</button>
                 </div>
             </div>
     `;
 
-        document.body.appendChild(modal);
+        const closeModal = () => { self._saveAndAddAnother = false; modal.remove(); };
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.closest('[data-il-close]') || e.target.closest('[data-il-cancel]')) closeModal();
+        });
 
-        var self = this;
+        document.body.appendChild(modal);
 
         modal.addEventListener('change', function(e) {
             var select = e.target.closest('select[data-custom-input]');
@@ -743,6 +747,8 @@ const InterlogicCRUD = {
 
         document.getElementById('interlogic-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const form = document.getElementById('interlogic-form');
+            if (!form.reportValidity()) return;
             const saveBtn = document.getElementById('btn-il-save');
             if (saveBtn.disabled) return;
             setButtonLoading(saveBtn, true);
@@ -1097,9 +1103,10 @@ const InterlogicCRUD = {
                     this.applyFilters();
                 }
             });
-            document.addEventListener('click', (e) => {
+            this._bulkDocHandler = (e) => {
                 if (!container.contains(e.target)) container.querySelectorAll('[data-bulk-menu]').forEach(menu => { menu.style.display = 'none'; });
-            });
+            };
+            document.addEventListener('click', this._bulkDocHandler);
             document.body.appendChild(container);
         }
 
@@ -1495,6 +1502,10 @@ const InterlogicCRUD = {
                         <div style="font-weight: 700; color: #9a3412;">Abono</div>
                     </button>
                 </div>
+                <div class="form-group" style="margin:0 0 1rem;">
+                    <label for="mfp-nota">Nota / observación (opcional)</label>
+                    <textarea id="mfp-nota" rows="3" placeholder="Ej. Era contado, se dejó al crédito. Pago por cheque."></textarea>
+                </div>
                 <div style="position: relative; text-align: center; margin-bottom: 0.8rem;">
                     <hr style="border: none; border-top: 1px solid var(--gray-200);"><span style="position: absolute; top: -0.6rem; left: 50%; transform: translateX(-50%); background: var(--bg-primary, #fff); padding: 0 0.6rem; font-size: 0.75rem; color: var(--text-secondary);">o</span>
                 </div>
@@ -1512,6 +1523,7 @@ const InterlogicCRUD = {
             const btns = ['mfp-efectivo', 'mfp-cheque', 'mfp-transferencia', 'mfp-abono', 'mfp-solo-entregada'].map(id => document.getElementById(id));
             btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.5'; } });
 
+            const notaEntrega = document.getElementById('mfp-nota').value.trim();
             const ids = selected.map(record => record.id);
             try {
                 await self._commitInChunks(ids, (batch, ref) => {
@@ -1522,6 +1534,8 @@ const InterlogicCRUD = {
                     };
                     if (formaPago) update.formaPago = formaPago;
                     else update.formaPago = firebase.firestore.FieldValue.delete();
+                    if (notaEntrega) update.notaEntrega = notaEntrega;
+                    else update.notaEntrega = firebase.firestore.FieldValue.delete();
                     batch.update(ref, update);
                 });
 
@@ -1530,6 +1544,8 @@ const InterlogicCRUD = {
                         r.entregado = true;
                         if (formaPago) r.formaPago = formaPago;
                         else delete r.formaPago;
+                        if (notaEntrega) r.notaEntrega = notaEntrega;
+                        else delete r.notaEntrega;
                     }
                 });
                 self.selectedRecords.clear();

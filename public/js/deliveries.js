@@ -267,6 +267,12 @@ const Deliveries = {
                 }
             }
 
+            const folioExistente = await db.collection('deliveries').where('folio', '==', folio).limit(1).get();
+            if (!folioExistente.empty) {
+                showToast('El folio ' + folio + ' ya existe. Usa otro.', 'error');
+                return;
+            }
+
             // Parse date correctly to avoid timezone issues
             // The input gives us "YYYY-MM-DD", we need to treat this as local date
             const dateInput = document.getElementById('delivery-fecha').value;
@@ -306,7 +312,8 @@ const Deliveries = {
                 const storageRef = storage.ref(fileName);
 
                 try {
-                    const snapshot = await storageRef.put(file);
+                    const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
+                    const snapshot = await storageRef.put(file.slice(0, file.size, mimeType), { contentType: mimeType });
                     const downloadURL = await snapshot.ref.getDownloadURL();
                     deliveryData.imageUrl = downloadURL;
                     deliveryData.imagePath = fileName;
@@ -788,7 +795,8 @@ const Deliveries = {
                     const fileName = `deliveries/${updatedData.folio}_${Date.now()}.${fileExt}`;
                     const storageRef = storage.ref(fileName);
 
-                    const snapshot = await storageRef.put(file);
+                    const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
+                    const snapshot = await storageRef.put(file.slice(0, file.size, mimeType), { contentType: mimeType });
                     const downloadURL = await snapshot.ref.getDownloadURL();
 
                     updatedData.imageUrl = downloadURL;
@@ -1186,8 +1194,16 @@ const Deliveries = {
         this.closeAllModals();
         const sheet = document.createElement('div');
         this.activeModals.push(sheet);
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + (d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + (d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? formatDateForInput(d.fecha.toDate()) : String(d.fecha).split('T')[0]) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + (d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="Deliveries.closeAllModals()">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mdf-backdrop"></div><div class="m-bottom-sheet show" id="mdf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Entrega' : 'Nueva Entrega') + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Cliente</label><input type="text" id="mdf-cliente" value="' + sanitizeHTML(d?.cliente || '') + '"></div><div class="m-form-row"><div class="m-form-group"><label>Tienda</label><input type="text" id="mdf-tienda" value="' + sanitizeHTML(d?.tienda || '') + '"></div><div class="m-form-group"><label>Fecha</label><input type="date" id="mdf-fecha" value="' + (d?.fecha ? (typeof d.fecha === 'string' ? d.fecha.split('T')[0] : typeof d.fecha.toDate === 'function' ? formatDateForInput(d.fecha.toDate()) : String(d.fecha).split('T')[0]) : formatDateForInput(new Date())) + '"></div></div><div class="m-form-group"><label>Tipo de Mueble</label><select id="mdf-tipoMueble"><option>Sala</option><option>Comedor</option><option>Recámara</option><option>Colchón</option><option>Estufa</option><option>Refrigerador</option><option>Lavadora</option><option>Otro</option></select></div><div class="m-form-group"><label>Accesorios</label><textarea id="mdf-accesorios" rows="2">' + sanitizeHTML(d?.accesorios || '') + '</textarea></div></div><div class="m-sheet-footer"><button class="btn" onclick="Deliveries.closeAllModals()">Cancelar</button><button class="btn btn-primary" id="mdf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
+
+        var tipoSelect = document.getElementById('mdf-tipoMueble');
+        if (isEdit && d?.tipoMueble && tipoSelect) {
+            if (!Array.from(tipoSelect.options).some(function (o) { return o.value === d.tipoMueble; })) {
+                tipoSelect.appendChild(new Option(d.tipoMueble, d.tipoMueble));
+            }
+            tipoSelect.value = d.tipoMueble;
+        }
 
         document.getElementById('mdf-submit').addEventListener('click', async () => {
             const btn = document.getElementById('mdf-submit');
@@ -1230,3 +1246,17 @@ const Deliveries = {
 
 // Make Deliveries available globally
 window.Deliveries = Deliveries;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'deliveries',
+        label: 'Entrega de Muebles',
+        render: () => Deliveries.render(),
+        cleanup: () => {
+            Deliveries.closeAllModals();
+            Deliveries.deliveries = [];
+            const printArea = document.getElementById('print-area');
+            if (printArea) printArea.innerHTML = '';
+        }
+    });
+}

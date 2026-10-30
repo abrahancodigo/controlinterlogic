@@ -17,7 +17,11 @@ const FlotaCore = {
     _sanitizeUrl(url) {
         if (!url) return '';
         if (url.startsWith('data:image/')) return url;
-        try { const u = new URL(url); return u.href; } catch (e) { return ''; }
+        try {
+            const u = new URL(url, location.origin);
+            if (['http:', 'https:'].includes(u.protocol)) return u.href;
+            return '';
+        } catch (e) { return ''; }
     },
 
     async loadData() {

@@ -360,7 +360,7 @@ const InterlogicFilters = {
 
                 if (activeValues && (Array.isArray(activeValues) ? activeValues.length > 0 : activeValues)) {
                     if (f === 'search') {
-                        const searchFields = ['guia', 'empresa', 'cliente', 'departamento', 'municipio', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations', 'encargado'];
+                        const searchFields = ['guia', 'empresa', 'cliente', 'departamento', 'municipio', 'vendedor', 'doc', 'docNum', 'cobrador', 'condicionPago', 'direccion', 'observations', 'entrega', 'cobra', 'encargado'];
                         const match = searchFields.some(sf => String(record[sf] || '').toLowerCase().includes(activeValues.toLowerCase()));
                         if (!match) return false;
                         continue;

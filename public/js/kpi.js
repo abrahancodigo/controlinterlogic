@@ -32,6 +32,7 @@ const KpiEvaluation = {
 
         const canCreate = window.permissions?.canCreate;
         const canDelete = window.permissions?.canDelete;
+        this.isMobile = false;
         this._tableListenerAdded = false;
 
         contentArea.innerHTML = `
@@ -89,11 +90,11 @@ const KpiEvaluation = {
         // Event listeners
         document.getElementById('kpi-filter-start').addEventListener('change', (e) => {
             this.filters.startDate = e.target.value;
-            this.applyFilters();
+            this.loadRecords();
         });
         document.getElementById('kpi-filter-end').addEventListener('change', (e) => {
             this.filters.endDate = e.target.value;
-            this.applyFilters();
+            this.loadRecords();
         });
         document.getElementById('btn-add-kpi').addEventListener('click', () => {
             if (canCreate) this.showForm();
@@ -114,19 +115,22 @@ const KpiEvaluation = {
                 this.unsubscribe = null;
             }
 
-            this.unsubscribe = db.collection('kpiEvaluations')
-                .orderBy('fecha', 'desc')
-                .limit(500)
-                .onSnapshot(snapshot => {
-                    this.records = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    this.applyFilters();
-                }, error => {
-                    console.error('Error loading KPI records:', error);
-                    showToast('Error al cargar evaluaciones', 'error');
-                });
+            const tsIni = this.filters.startDate ? firebase.firestore.Timestamp.fromDate(new Date(this.filters.startDate + 'T00:00:00')) : null;
+            const tsFin = this.filters.endDate ? firebase.firestore.Timestamp.fromDate(new Date(this.filters.endDate + 'T23:59:59.999')) : null;
+            let query = db.collection('kpiEvaluations').orderBy('fecha', 'desc');
+            if (tsIni) query = query.where('fecha', '>=', tsIni);
+            if (tsFin) query = query.where('fecha', '<=', tsFin);
+
+            this.unsubscribe = query.limit(500).onSnapshot(snapshot => {
+                this.records = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                this.applyFilters();
+            }, error => {
+                console.error('Error loading KPI records:', error);
+                showToast('Error al cargar evaluaciones', 'error');
+            });
         } catch (error) {
             console.error('Error setting up KPI listener:', error);
             showToast('Error al conectar con la base de datos', 'error');
@@ -509,8 +513,8 @@ const KpiEvaluation = {
             </div>
         `;
 
-        document.getElementById('mkpi-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.applyFilters(); });
-        document.getElementById('mkpi-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.applyFilters(); });
+        document.getElementById('mkpi-start').addEventListener('change', e => { this.filters.startDate = e.target.value; this.loadRecords(); });
+        document.getElementById('mkpi-end').addEventListener('change', e => { this.filters.endDate = e.target.value; this.loadRecords(); });
         document.getElementById('mkpi-btn-add').addEventListener('click', () => { if (canCreate) this.showForm(); });
         document.getElementById('mkpi-btn-export').addEventListener('click', () => this.exportToExcel());
 
@@ -594,3 +598,14 @@ const KpiEvaluation = {
 };
 
 window.KpiEvaluation = KpiEvaluation;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'kpi',
+        label: 'Evaluación KPI',
+        render: () => KpiEvaluation.render(),
+        cleanup: () => {
+            if (KpiEvaluation.unsubscribe) { KpiEvaluation.unsubscribe(); KpiEvaluation.unsubscribe = null; }
+        }
+    });
+}

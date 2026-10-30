@@ -10,7 +10,7 @@ this._syncTopbar();
 this._bindGlobal();
 },
 _moduleName(key) {
-const names = { dashboard:'Resumen', interlogic:'Control Interlogic', problemas:'Problemas', clientes:'Clientes', flota:'Flota y Mantenimiento', liquidacion:'Liquidación', deliveries:'Entrega de Muebles', kpi:'Evaluación KPI', asistencia:'Asistencia', tarimas:'Tarimas Walmart', settings:'Configuraciones', users:'Gestión de Usuarios' };
+const names = { dashboard:'Resumen', interlogic:'Control Interlogic', entregas:'Entregas', problemas:'Problemas', clientes:'Clientes', flota:'Flota y Mantenimiento', deliveries:'Entrega de Muebles', kpi:'Evaluación KPI', asistencia:'Asistencia', tarimas:'Tarimas Walmart', settings:'Configuraciones', users:'Gestión de Usuarios' };
 return names[key] || key;
 },
 _injectTopbar() {

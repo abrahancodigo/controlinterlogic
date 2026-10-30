@@ -220,6 +220,10 @@ const Auth = {
         if (this.unsubProfile) { this.unsubProfile(); this.unsubProfile = null; }
         this.userData = null;
         window.currentUserData = null;
+        window.permissions = {};
+        if (window.ModuleRegistry && window.App && window.App.currentModule) {
+            try { ModuleRegistry.cleanup(window.App.currentModule); } catch {}
+        }
         if (window.Deliveries) { window.Deliveries.userIsAdmin = false; window.Deliveries.deliveries = []; }
         if (window.App) { window.App.currentModule = null; }
 
@@ -303,26 +307,6 @@ const Auth = {
     }
 };
 
-// ===================================
-// Password Hashing Helper
-// ===================================
-
-async function hashPassword(password) {
-    if (crypto.subtle && crypto.subtle.digest) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-        const chr = password.charCodeAt(i);
-        hash = ((hash << 5) - hash) + chr;
-        hash |= 0;
-    }
-    return 'legacy_' + Math.abs(hash).toString(36);
-}
 
 function initAuthWhenReady() {
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {

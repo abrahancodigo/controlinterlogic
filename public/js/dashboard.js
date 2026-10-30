@@ -33,19 +33,7 @@ const Dashboard = {
 
     /* ── Period helpers ── */
     getPeriodDates(period) {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        let s = new Date(now), e = new Date(now);
-        e.setHours(23, 59, 59, 999);
-        if (period === 'today') { /* default */ }
-        else if (period === 'week') {
-            s.setDate(s.getDate() - s.getDay());
-        } else if (period === 'month') {
-            s.setDate(1);
-        } else if (period === 'quarter') {
-            s.setMonth(Math.floor(s.getMonth() / 3) * 3, 1);
-        }
-        return { inicio: s, fin: e };
+        return getPeriodDates(period);
     },
 
     getPrevPeriod(inicio, fin) {
@@ -62,6 +50,7 @@ const Dashboard = {
         if (!area) return;
         const renderToken = this._renderToken = {};
         this.init();
+        const modAvailable = key => window.ModuleRegistry ? ModuleRegistry.has(key) : true;
 
         const dateInicio = formatDateForInput(this.fechaInicio);
         const dateFin = formatDateForInput(this.fechaFin);
@@ -72,14 +61,13 @@ const Dashboard = {
     <section class="mobile-home" aria-label="Tu operación">
         <div class="mobile-home-heading"><p class="mf-eyebrow">TU OPERACIÓN, A MANO</p><h1>Todo listo para avanzar.</h1><p>Revisa tus entregas y organiza el siguiente paso.</p></div>
         <div class="mobile-work-grid">
-            <button type="button" class="mobile-work-card" data-home-action="pending"><span class="mobile-work-icon">${this._kpiIcon('credito')}</span><strong id="home-pending">—</strong><span>Pendientes de entrega</span><small>Ver registros <span aria-hidden="true">↗</span></small></button>
-            <button type="button" class="mobile-work-card delivered" data-home-action="delivered"><span class="mobile-work-icon">${this._kpiIcon('dalse')}</span><strong id="home-delivered">—</strong><span>Entregadas</span><small>Consultar detalle <span aria-hidden="true">↗</span></small></button>
+            ${modAvailable('interlogic') ? `<button type="button" class="mobile-work-card" data-home-action="pending"><span class="mobile-work-icon">${this._kpiIcon('credito')}</span><strong id="home-pending">—</strong><span>Pendientes de entrega</span><small>Ver registros <span aria-hidden="true">↗</span></small></button>` : ''}
+            ${modAvailable('interlogic') ? `<button type="button" class="mobile-work-card delivered" data-home-action="delivered"><span class="mobile-work-icon">${this._kpiIcon('dalse')}</span><strong id="home-delivered">—</strong><span>Entregadas</span><small>Consultar detalle <span aria-hidden="true">↗</span></small></button>` : ''}
         </div>
         <p class="mobile-scope" id="home-scope">Cargando el período seleccionado…</p>
         <div class="mobile-home-actions">
-            ${window.permissions?.canCreate ? '<button type="button" class="btn btn-primary" data-home-action="new">+ Nuevo registro</button>' : ''}
-            <button type="button" class="btn" data-home-action="route">Ver ruta</button>
-            <button type="button" class="mobile-incident-link" data-home-action="problems">Revisar incidencias <span aria-hidden="true">→</span></button>
+            ${window.permissions?.canCreate && modAvailable('interlogic') ? '<button type="button" class="btn btn-primary" data-home-action="new">+ Nuevo registro</button>' : ''}
+            ${modAvailable('problemas') ? '<button type="button" class="mobile-incident-link" data-home-action="problems">Revisar incidencias <span aria-hidden="true">→</span></button>' : ''}
         </div>
     </section>
     <div class="dash-topbar">
@@ -455,21 +443,21 @@ const Dashboard = {
                 }
                 const start = formatDateForInput(this.fechaInicio), end = formatDateForInput(this.fechaFin);
                 if (['pending', 'delivered', 'new'].includes(action)) {
-                    if (!window.Interlogic) return;
-                    Interlogic.filters.startDate = start;
-                    Interlogic.filters.endDate = end;
-                    Interlogic.filters.search = '';
-                    Object.keys(Interlogic.filters).forEach(key => {
-                        if (Array.isArray(Interlogic.filters[key])) Interlogic.filters[key] = [];
-                    });
-                    Interlogic.mobileStatus = action === 'new' ? 'all' : action;
                     button.disabled = true;
                     try {
+                        if (window.Interlogic) {
+                            Interlogic.filters.startDate = start;
+                            Interlogic.filters.endDate = end;
+                            Interlogic.filters.search = '';
+                            Object.keys(Interlogic.filters).forEach(key => {
+                                if (Array.isArray(Interlogic.filters[key])) Interlogic.filters[key] = [];
+                            });
+                            Interlogic.mobileStatus = action === 'new' ? 'all' : action;
+                        }
                         await App.loadModule('interlogic');
-                        if (action === 'new' && App.currentModule === 'interlogic') Interlogic.showMobileForm();
+                        if (action === 'new' && window.Interlogic && App.currentModule === 'interlogic') Interlogic.showMobileForm();
                     } finally { button.disabled = false; }
-                } else if (action === 'route') App.loadModule('liquidacion');
-                else if (action === 'problems') App.loadModule('problemas');
+                } else if (action === 'problems') App.loadModule('problemas');
             });
         }
 
@@ -1176,7 +1164,7 @@ const Dashboard = {
 
     /* ── Evolución mensual (tendencia) ── */
     async _loadMonthlyTrend() {
-        const key = formatDateForInput(this.fechaFin);
+        const key = formatDateForInput(this.fechaFin) + '|' + JSON.stringify(this.dimFilters);
         if (this._trendKey === key) { this._renderTrendTable(); return; }
         const box = document.getElementById('dash-trend-chart');
         if (box) box.innerHTML = '';
@@ -1184,13 +1172,12 @@ const Dashboard = {
         const end = new Date(this.fechaFin);
         const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1, 0, 0, 0);
         try {
-            const snap = await firebase.firestore().collection('interlogic')
+            const base = firebase.firestore().collection('interlogic')
                 .where('fecha', '>=', start)
                 .where('fecha', '<=', end)
-                .orderBy('fecha', 'desc')
-                .limit(3000)
-                .get();
-            let recs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.anulado !== true);
+                .orderBy('fecha', 'desc');
+            const all = await fetchAllChunked(base, { chunkSize: 2000 });
+            let recs = all.filter(r => r.anulado !== true);
             recs = this._applyDimFilters(recs);
             const buckets = [];
             for (let i = 0; i < months; i++) {
@@ -1229,7 +1216,7 @@ const Dashboard = {
             this.charts.trend.updateOptions({
                 xaxis: { categories: buckets.map(b => b.label) },
                 series: [
-                    { name: 'Total', data: buckets.map(b => Math.round(b.total)) },
+                    { name: 'Total', type: 'area', data: buckets.map(b => Math.round(b.total)) },
                     { name: 'Contado', data: buckets.map(b => Math.round(b.contado)) },
                     { name: 'Crédito', data: buckets.map(b => Math.round(b.credito)) }
                 ]
@@ -1473,14 +1460,16 @@ const Dashboard = {
         const mutedColor = theme === 'dark' ? '#94a3b8' : '#64748b';
 
         const donutOptions = {
-            chart: { type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('contado'); else if (idx === 1) this.showDetailModal('credito'); } } },
+            chart: { background: 'transparent', type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, animations: { enabled: true, speed: 900, animateGradually: { enabled: true, delay: 120 } }, dropShadow: { enabled: true, top: 10, left: 0, blur: 18, color: theme === 'dark' ? '#000000' : '#7c3aed', opacity: theme === 'dark' ? 0.38 : 0.15 }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('contado'); else if (idx === 1) this.showDetailModal('credito'); } } },
             series: [0, 0],
             labels: ['Contado', 'Crédito'],
-            colors: ['#10b981', '#f59e0b'],
+            colors: ['#22c55e', '#f59e0b'],
+            fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#16a34a', '#d97706'], opacityFrom: 1, opacityTo: 0.86, stops: [0, 100] } },
             plotOptions: {
                 pie: {
+                    customScale: 1.04,
                     donut: {
-                        size: '72%',
+                        size: '74%',
                         labels: {
                             show: true,
                             name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
@@ -1490,7 +1479,7 @@ const Dashboard = {
                     }
                 }
             },
-            stroke: { width: 4, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
+            stroke: { width: 5, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
             states: {
                 hover: {
                     filter: {
@@ -1499,7 +1488,7 @@ const Dashboard = {
                     }
                 }
             },
-            dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
+            dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: true, top: 1, left: 0, blur: 3, color: '#000000', opacity: 0.28 } },
             legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
             tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
             theme: { mode: theme },
@@ -1507,16 +1496,16 @@ const Dashboard = {
         };
 
         const barOptions = {
-            chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, height: 448, animations: { enabled: true, easing: 'easeout', speed: 750, animateGradually: { enabled: true, delay: 70 } }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._barChartNames || []; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
+            chart: { background: 'transparent', type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, height: 448, animations: { enabled: true, easing: 'easeout', speed: 750, animateGradually: { enabled: true, delay: 70 } }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._barChartNames || []; if (names[idx]) this.showCarrierDetailModal(names[idx]); } } },
             series: [{ name: 'Ventas', data: [] }],
             xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } }, crosshairs: { show: false } },
             yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif', colors: mutedColor } } },
-            colors: ['#7c3aed', '#2563eb', '#db2777'],
+            colors: ['#ef4444', '#3b82f6', '#22c55e'],
             plotOptions: {
                 bar: {
-                    borderRadius: 14,
+                    borderRadius: 16,
                     borderRadiusApplication: 'end',
-                    columnWidth: '55%',
+                    columnWidth: '52%',
                     distributed: true,
                     dataLabels: { position: 'top', maxItems: 8 },
                     colors: {
@@ -1526,17 +1515,7 @@ const Dashboard = {
                     }
                 }
             },
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shade: 'light',
-                    type: 'vertical',
-                    gradientToColors: ['#c4b5fd', '#93c5fd', '#f9a8d4'],
-                    opacityFrom: 0.98,
-                    opacityTo: 0.78,
-                    stops: [0, 100]
-                }
-            },
+            fill: { type: 'solid' },
             dataLabels: {
                 enabled: true,
                 formatter: function(val) {
@@ -1546,7 +1525,7 @@ const Dashboard = {
                 },
                 style: { fontSize: '13px', fontWeight: 800, fontFamily: 'Inter, sans-serif', colors: [labelColor] },
                 offsetY: -22,
-                dropShadow: { enabled: false }
+                dropShadow: { enabled: true, top: 1, left: 0, blur: 3, color: '#000000', opacity: 0.30 }
             },
             tooltip: {
                 custom: ({ series, seriesIndex, dataPointIndex, w }) => {
@@ -1582,14 +1561,16 @@ const Dashboard = {
         /* ── Dalse vs Incede chart (donut) ── */
         if (incedeEl) {
             const incedeOptions = {
-                chart: { type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('dalse'); else if (idx === 1) this.showIncedeDetailModal(); } } },
+                chart: { background: 'transparent', type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, animations: { enabled: true, speed: 900, animateGradually: { enabled: true, delay: 120 } }, dropShadow: { enabled: true, top: 10, left: 0, blur: 18, color: theme === 'dark' ? '#000000' : '#06b6d4', opacity: theme === 'dark' ? 0.38 : 0.15 }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('dalse'); else if (idx === 1) this.showIncedeDetailModal(); } } },
                 series: [0, 0],
                 labels: ['Dalse', 'Incede'],
-                colors: ['#06b6d4', '#f43f5e'],
+                colors: ['#3b82f6', '#ef4444'],
+                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#1d4ed8', '#dc2626'], opacityFrom: 1, opacityTo: 0.86, stops: [0, 100] } },
                 plotOptions: {
                     pie: {
+                        customScale: 1.04,
                         donut: {
-                            size: '72%',
+                            size: '74%',
                             labels: {
                                 show: true,
                                 name: { show: true, fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', color: mutedColor },
@@ -1599,7 +1580,7 @@ const Dashboard = {
                         }
                     }
                 },
-            stroke: { width: 4, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
+            stroke: { width: 5, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
             states: {
                 hover: {
                     filter: {
@@ -1608,7 +1589,7 @@ const Dashboard = {
                     }
                 }
             },
-                dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: false } },
+                dataLabels: { enabled: true, formatter: v => v.toFixed(1) + '%', style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif' }, dropShadow: { enabled: true, top: 1, left: 0, blur: 3, color: '#000000', opacity: 0.28 } },
                 legend: { position: 'bottom', fontSize: '14px', fontWeight: 600, fontFamily: 'Inter, sans-serif', labels: { colors: labelColor }, markers: { size: 8, strokeWidth: 0 } },
                 tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }, style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } },
                 theme: { mode: theme },
@@ -1623,31 +1604,28 @@ const Dashboard = {
         const vendedorEl = document.getElementById('dash-vendedor-chart');
         if (vendedorEl) {
             const vendedorOptions = {
-                chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._vendedorChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
+                chart: { background: 'transparent', type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._vendedorChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
                 series: [{ name: 'Ventas', data: [] }],
                 plotOptions: {
                     bar: {
-                        borderRadius: 10,
+                        borderRadius: 12,
                         borderRadiusApplication: 'end',
                         horizontal: true,
                         barHeight: '58%',
                         distributed: true,
+                        colors: {
+                            backgroundBarColors: [theme === 'dark' ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.09)'],
+                            backgroundBarOpacity: 1,
+                            backgroundBarRadius: 12
+                        },
                         dataLabels: { position: 'top', maxItems: 10 }
                     }
                 },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#38bdf8'],
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        type: 'horizontal',
-                        gradientToColors: ['#60a5fa'],
-                        opacityFrom: 0.96,
-                        opacityTo: 0.82,
-                        stops: [0, 100]
-                    }
-                },
+                colors: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#eab308'],
+                fill: { type: 'solid' },
+                dropShadow: { enabled: true, top: 4, left: 0, blur: 9, color: '#000000', opacity: theme === 'dark' ? 0.42 : 0.16 },
                 dataLabels: {
                     enabled: true,
                     formatter: v => v > 0 ? '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
@@ -1667,31 +1645,28 @@ const Dashboard = {
         const zonaEl = document.getElementById('dash-zona-chart');
         if (zonaEl) {
             const zonaOptions = {
-                chart: { type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._zonaChartNames || []; if (names[idx]) this.showZonaDetailModal(names[idx]); } } },
+                chart: { background: 'transparent', type: 'bar', fontFamily: 'Inter, sans-serif', toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard?._zonaChartNames || []; if (names[idx]) this.showZonaDetailModal(names[idx]); } } },
                 series: [{ name: 'Ventas', data: [] }],
                 plotOptions: {
                     bar: {
-                        borderRadius: 10,
+                        borderRadius: 12,
                         borderRadiusApplication: 'end',
                         horizontal: true,
                         barHeight: '58%',
                         distributed: true,
+                        colors: {
+                            backgroundBarColors: [theme === 'dark' ? 'rgba(148, 163, 184, 0.14)' : 'rgba(100, 116, 139, 0.09)'],
+                            backgroundBarOpacity: 1,
+                            backgroundBarRadius: 12
+                        },
                         dataLabels: { position: 'top', maxItems: 10 }
                     }
                 },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#0f766e', '#14b8a6', '#06b6d4', '#0891b2', '#0284c7'],
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        type: 'horizontal',
-                        gradientToColors: ['#67e8f9'],
-                        opacityFrom: 0.96,
-                        opacityTo: 0.82,
-                        stops: [0, 100]
-                    }
-                },
+                colors: ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#14b8a6', '#eab308'],
+                fill: { type: 'solid' },
+                dropShadow: { enabled: true, top: 4, left: 0, blur: 9, color: '#000000', opacity: theme === 'dark' ? 0.42 : 0.16 },
                 dataLabels: {
                     enabled: true,
                     formatter: v => v > 0 ? '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
@@ -1711,10 +1686,13 @@ const Dashboard = {
         const acumEl = document.getElementById('dash-acum-chart');
         if (acumEl) {
             const acumOptions = {
-                chart: { type: 'pie', fontFamily: 'Inter, sans-serif', height: 494, toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
+                chart: { background: 'transparent', type: 'pie', fontFamily: 'Inter, sans-serif', height: 494, toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
                 series: [],
                 labels: [],
-                colors: ['#7c3aed','#8b5cf6','#6366f1','#9333ea','#3b82f6','#06b6d4','#10b981','#f59e0b','#ec4899','#84cc16','#f97316','#ef4444','#14b8a6','#d946ef','#fb923c'],
+                colors: ['#3b82f6','#22c55e','#ef4444','#eab308','#f97316','#8b5cf6','#ec4899','#06b6d4','#14b8a6','#a855f7','#84cc16','#0ea5e9','#f43f5e','#f59e0b','#fb7185'],
+                fill: { type: 'solid' },
+                stroke: { width: 2, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
+                dropShadow: { enabled: true, top: 8, left: 0, blur: 16, color: theme === 'dark' ? '#000000' : '#7c3aed', opacity: theme === 'dark' ? 0.42 : 0.18 },
                 plotOptions: {
                     pie: {
                         expandOnClick: true,
@@ -1751,19 +1729,20 @@ const Dashboard = {
         const trendEl = document.getElementById('dash-trend-chart');
         if (trendEl) {
             const trendOptions = {
-                chart: { type: 'line', fontFamily: 'Inter, sans-serif', height: 380, toolbar: { show: false }, zoom: { enabled: false } },
+                chart: { background: 'transparent', type: 'line', fontFamily: 'Inter, sans-serif', height: 380, toolbar: { show: false }, zoom: { enabled: false }, animations: { enabled: true, speed: 950, dynamicAnimation: { enabled: true, speed: 550 } }, dropShadow: { enabled: true, top: 6, left: 0, blur: 12, color: theme === 'dark' ? '#000000' : '#7c3aed', opacity: theme === 'dark' ? 0.45 : 0.20 } },
                 series: [
-                    { name: 'Total', data: [] },
+                    { name: 'Total', type: 'area', data: [] },
                     { name: 'Contado', data: [] },
                     { name: 'Crédito', data: [] }
                 ],
-                colors: ['#7c3aed', '#10b981', '#f59e0b'],
-                stroke: { curve: 'smooth', width: 3 },
-                markers: { size: 5 },
+                colors: ['#3b82f6', '#22c55e', '#f59e0b'],
+                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'vertical', opacityFrom: 0.52, opacityTo: 0.04, stops: [0, 92] } },
+                stroke: { curve: 'smooth', width: [4, 2.5, 2.5], lineCap: 'round' },
+                markers: { size: 0, strokeWidth: 2, strokeColors: theme === 'dark' ? '#0f172a' : '#ffffff', hover: { size: 6, sizeOffset: 2 } },
                 xaxis: { categories: [], labels: { style: { colors: mutedColor, fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US'), style: { colors: labelColor, fontFamily: 'Inter, sans-serif' } } },
-                grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0' },
-                legend: { position: 'top', horizontalAlign: 'right', labels: { colors: labelColor }, fontFamily: 'Inter, sans-serif' },
+                grid: { borderColor: theme === 'dark' ? '#334155' : '#e2e8f0', strokeDashArray: 6, padding: { left: 10, right: 14 } },
+                legend: { position: 'top', horizontalAlign: 'right', labels: { colors: labelColor }, fontFamily: 'Inter, sans-serif', fontWeight: 600, markers: { size: 7, strokeWidth: 0, offsetX: -2 } },
                 dataLabels: { enabled: false },
                 tooltip: { y: { formatter: v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } },
                 theme: { mode: theme }
@@ -1846,21 +1825,19 @@ const Dashboard = {
             const barMax = step;
             window.Dashboard.barTotal = total;
             window.Dashboard._barChartNames = data.bar.categories;
-            const carrierGradients = {
-                DALSE: ['#7c3aed', '#c4b5fd'],
-                INTERLOGISTIC: ['#2563eb', '#93c5fd'],
-                XPRESS: ['#db2777', '#f9a8d4'],
-                INCEDE: ['#e11d48', '#fda4af']
+            const carrierColors = {
+                DALSE: '#8b5cf6',
+                INTERLOGISTIC: '#3b82f6',
+                XPRESS: '#ef4444',
+                INCEDE: '#f59e0b'
             };
-            const palette = [['#7c3aed', '#c4b5fd'], ['#2563eb', '#93c5fd'], ['#db2777', '#f9a8d4'], ['#e11d48', '#fda4af'], ['#0891b2', '#67e8f9'], ['#059669', '#6ee7b7'], ['#d97706', '#fcd34d']];
-            const barPairs = data.bar.categories.map((n, i) => carrierGradients[n] || palette[i % palette.length]);
-            const barColors = barPairs.map(p => p[0]);
-            const barGradientTo = barPairs.map(p => p[1]);
+            const palette = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
+            const barColors = data.bar.categories.map((n, i) => carrierColors[n] || palette[i % palette.length]);
             const barHeight = Math.max(448, data.bar.categories.length * 145);
             this.charts.bar.updateOptions({
                 chart: { height: barHeight },
                 colors: barColors,
-                fill: { type: 'gradient', gradient: { gradientToColors: barGradientTo } },
+                fill: { type: 'solid' },
                 xaxis: { categories: data.bar.categories },
                 yaxis: { min: 0, max: barMax || 10, tickAmount: 5, forceNiceScale: false },
                 series: [{ data: data.bar.data }]
@@ -2102,10 +2079,8 @@ const Dashboard = {
         return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
     _getAcumColor(i) {
-        const hue = (i * 137.508) % 360;
-        const sat = 72 + (i % 3) * 7;
-        const light = 52 + (i % 4) * 3;
-        return this._acumHslToHex(hue, sat, light);
+        const palette = ['#3b82f6', '#22c55e', '#ef4444', '#eab308', '#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#a855f7', '#84cc16', '#0ea5e9', '#f43f5e', '#f59e0b', '#fb7185'];
+        return palette[i % palette.length];
     },
 
     updateAcumuladoVendedor(vendedorStats) {
@@ -2544,7 +2519,7 @@ const Dashboard = {
     showCarrierDetailModal(carrierName) {
         const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
         const title = carrierName;
-        const colors = { DALSE: '#7c3aed', INTERLOGISTIC: '#1d4ed8', XPRESS: '#be185d', INCEDE: '#be123c' };
+        const colors = { DALSE: '#8b5cf6', INTERLOGISTIC: '#3b82f6', XPRESS: '#ef4444', INCEDE: '#f59e0b' };
         const color = colors[carrierName] || '#6b7280';
         this._renderDetailModal(filtered, title, color);
     },
@@ -3019,3 +2994,12 @@ const Dashboard = {
 };
 
 window.Dashboard = Dashboard;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'dashboard',
+        label: 'Dashboard',
+        render: () => Dashboard.render(),
+        cleanup: () => Dashboard.destroy()
+    });
+}

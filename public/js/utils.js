@@ -67,6 +67,21 @@ function toDateKey(date) {
     return `${year}-${month}-${day}`;
 }
 
+function getPeriodDates(period) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    let s = new Date(now), e = new Date(now);
+    e.setHours(23, 59, 59, 999);
+    if (period === 'week') {
+        s.setDate(s.getDate() - s.getDay());
+    } else if (period === 'month') {
+        s.setDate(1);
+    } else if (period === 'quarter') {
+        s.setMonth(Math.floor(s.getMonth() / 3) * 3, 1);
+    }
+    return { inicio: s, fin: e };
+}
+
 /**
  * Format a number with commas for thousands separator
  */
@@ -181,6 +196,25 @@ function showToast(message, type = 'info', duration = 4000) {
 function isValidEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '';
+    try {
+        const u = new URL(url, location.origin);
+        if (['http:', 'https:'].includes(u.protocol)) return u.href;
+        if (u.protocol === 'data:' && url.startsWith('data:image/')) return url;
+    } catch {}
+    return '';
+}
+
+function sanitizeHref(url) {
+    if (!url) return '';
+    try {
+        const u = new URL(url, location.origin);
+        if (['http:', 'https:'].includes(u.protocol)) return u.href;
+    } catch {}
+    return '#';
 }
 
 /**

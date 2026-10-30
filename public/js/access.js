@@ -2,11 +2,11 @@ const AccessControl = {
     modules: [
         { key: 'dashboard', label: 'Dashboard' },
         { key: 'interlogic', label: 'Control Interlogic' },
+        { key: 'entregas', label: 'Entregas' },
         { key: 'tarimas', label: 'Tarimas Walmart' },
         { key: 'problemas', label: 'Problemas' },
         { key: 'clientes', label: 'Clientes' },
         { key: 'flota', label: 'Flota y Mantenimiento' },
-        { key: 'liquidacion', label: 'Liquidación' },
         { key: 'deliveries', label: 'Entrega de Muebles' },
         { key: 'kpi', label: 'Evaluación KPI' },
         { key: 'asistencia', label: 'Asistencia' },
@@ -25,6 +25,7 @@ const AccessControl = {
     },
 
     level(moduleName, user) {
+        if (window.ModuleRegistry && !ModuleRegistry.has(moduleName)) return 'hidden';
         const module = this.modules.find(item => item.key === moduleName);
         const current = user === undefined ? this.currentUser() : user;
         if (!module || !current || current.active === false) return 'hidden';

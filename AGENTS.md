@@ -24,24 +24,27 @@ Orden de carga (lo importante):
 ```
 CDNs:        apexcharts, exceljs, xlsx, html2pdf
 Firebase:    app / auth / firestore / storage / functions (compat 10.7.1)
-Nucleo:      theme.js  ->  init.js  ->  utils.js  ->  shared/components.js
-             ->  dashboard.js  ->  app.js
+Nucleo:      theme.js  ->  init.js  ->  utils.js  ->  access.js  ->  modules.js
+             ->  shared/components.js  ->  dashboard.js  ->  app.js
              auth.js  ->  users.js  ->  settings.js  ->  deliveries.js
 Interlogic:  interlogic/core.js -> render.js -> filters.js -> crud.js
              -> excel.js -> routes.js -> index.js
-Otros:       problemas.js, clientes.js, liquidacion.js, kpi.js, asistencia.js
+Otros:       entregas.js, problemas.js, clientes.js, kpi.js, asistencia.js, tarimas.js
 Flota:       flota/core.js -> vehicles.js -> maintenance.js -> orders.js -> index.js
 ```
 
-Modulos del nav (`data-module`): dashboard, interlogic, problemas, clientes,
-flota, liquidacion, deliveries, kpi, asistencia, settings, users.
+Modulos del nav (`data-module`): dashboard, interlogic, entregas, tarimas,
+problemas, clientes, flota, deliveries, kpi, asistencia, settings, users.
+`liquidacion` fue eliminado; `entregas` (reporte sobre `interlogic`) y
+`deliveries` (Entrega de Muebles) son modulos distintos — no los confundas.
 
 Notas:
 - `js/signature-pad.js` existe en disco pero **no se carga** en `index.html`.
   No lo agregues al HTML sin peticion explicita.
 - No existe el modulo `cobranza/`: se elimino en `96bd1ae` (2026-09-09), junto
-  con `entregas.js` y `repartidores.js`. `firestore.rules` todavia declara sus
-  colecciones (`cobros`, `gestiones`, `ajustes`) aunque no hay interfaz que las use.
+  con `entregas.js` y `repartidores.js`. Las colecciones huerfanas
+  (`cobros`, `gestiones`, `ajustes`, `liquidaciones`, `empleados`) fueron
+  removidas de `firestore.rules`.
 
 - Cada modulo se inicializa cuando el usuario abre su seccion (no todo de una vez).
 - `core.js` de cada subcarpeta es la base del modulo: **no lo cambies salvo que sea

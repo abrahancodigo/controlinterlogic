@@ -83,6 +83,20 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "interlogic",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "cliente",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "condicionPago",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

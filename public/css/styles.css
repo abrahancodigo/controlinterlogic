@@ -1995,6 +1995,26 @@ tbody tr:hover {
     color: #0f172a;
 }
 
+.badge-ent-xpress {
+    background: #22c55e;
+    color: #052e16;
+}
+
+.badge-ent-interlogic {
+    background: #fb923c;
+    color: #431407;
+}
+
+.badge-ent-dalse {
+    background: #38bdf8;
+    color: #0c1b33;
+}
+
+.badge-ent-incede {
+    background: #c084fc;
+    color: #2e1065;
+}
+
 .mfp-btn {
     padding: 1rem 0.5rem;
     border: 2px solid #d1d5db;

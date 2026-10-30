@@ -570,7 +570,7 @@ const Tarimas = {
         items.sort((a, b) => this._tsMs(a.fecha) - this._tsMs(b.fecha));
         let acumulado = 0;
         for (const data of items) {
-            acumulado += data.tipo === 'ingreso' ? (data.cantidad || 0) : -(data.cantidad || 0);
+            acumulado += data.tipo === 'ingreso' ? (Number(data.cantidad) || 0) : -(Number(data.cantidad) || 0);
             if (acumulado < 0) return acumulado;
         }
         return acumulado;
@@ -592,8 +592,8 @@ const Tarimas = {
         const updates = [];
         items.forEach(item => {
             const data = item.data;
-            if (data.tipo === 'ingreso') acumulado += (data.cantidad || 0);
-            else acumulado -= (data.cantidad || 0);
+            if (data.tipo === 'ingreso') acumulado += (Number(data.cantidad) || 0);
+            else acumulado -= (Number(data.cantidad) || 0);
             if (desdeMs !== null && this._tsMs(data.fecha) < desdeMs) return;
             if (!item.isNew && (data.totalDespues || 0) === acumulado) return;
             updates.push(item.isNew
@@ -701,3 +701,12 @@ const Tarimas = {
 };
 
 window.Tarimas = Tarimas;
+
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'tarimas',
+        label: 'Tarimas Walmart',
+        render: () => Tarimas.render(),
+        cleanup: () => { if (Tarimas.cleanup) Tarimas.cleanup(); }
+    });
+}

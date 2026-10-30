@@ -436,4 +436,12 @@ Users.showAddUserForm = function () {
     });
 };
 
+if (window.ModuleRegistry) {
+    ModuleRegistry.register({
+        key: 'users',
+        label: 'Gestión de Usuarios',
+        render: () => Users.render()
+    });
+}
+
 

@@ -315,15 +315,26 @@ const InterlogicRender = {
                                         </div>
                                     </div>
                                 </th>
+                                <th>
+                                    <div class="filter-header" onclick="Interlogic.toggleFilter(event, 'formaPago')">
+                                        Forma Pago <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="filter-popup-formaPago" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..."
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Interlogic.searchInFilter('formaPago', this.value)">
+                                            <div class="filter-options-list" id="filter-options-formaPago"></div>
+                                        </div>
+                                    </div>
+                                </th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="interlogic-table-body">
-                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 98%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 92%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 96%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 88%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="21"><span class="il-skeleton-bar" style="width: 94%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 98%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 92%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 96%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 88%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 94%;"></span></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -335,10 +346,18 @@ const InterlogicRender = {
 
         document.getElementById('filter-start-date').addEventListener('change', (e) => {
             this.filters.startDate = e.target.value;
+            if (this.filters.startDate && this.filters.endDate && this.filters.startDate > this.filters.endDate) {
+                showToast('La fecha inicial no puede ser mayor que la final', 'warning');
+                return;
+            }
             this.reloadListener(true);
         });
         document.getElementById('filter-end-date').addEventListener('change', (e) => {
             this.filters.endDate = e.target.value;
+            if (this.filters.startDate && this.filters.endDate && this.filters.startDate > this.filters.endDate) {
+                showToast('La fecha inicial no puede ser mayor que la final', 'warning');
+                return;
+            }
             this.reloadListener(true);
         });
         document.getElementById('btn-add-record').addEventListener('click', () => {
@@ -348,8 +367,14 @@ const InterlogicRender = {
             if (canCreate) this.showImportExcel();
         });
         document.getElementById('btn-clear-all-filters').addEventListener('click', () => this.clearAllFilters());
-        document.getElementById('btn-export-excel').addEventListener('click', () => this.exportToExcel());
-        document.getElementById('btn-export-pdf').addEventListener('click', () => this._exportIlPdf());
+        document.getElementById('btn-export-excel').addEventListener('click', () => {
+            if (window.permissions?.exportData === false) { showToast('No tienes permiso para exportar', 'warning'); return; }
+            this.exportToExcel();
+        });
+        document.getElementById('btn-export-pdf').addEventListener('click', () => {
+            if (window.permissions?.exportData === false) { showToast('No tienes permiso para exportar', 'warning'); return; }
+            this._exportIlPdf();
+        });
 
         let searchTimer;
         document.getElementById('global-search').addEventListener('input', (e) => {
@@ -566,7 +591,7 @@ const InterlogicRender = {
 
     setMobilePeriod(period) {
         if (period === 'custom') { this.showMobileFilters(); return; }
-        const dates = Dashboard.getPeriodDates(period);
+        const dates = getPeriodDates(period);
         this.filters.startDate = formatDateForInput(dates.inicio);
         this.filters.endDate = formatDateForInput(dates.fin);
         this.updateMobileControls();
@@ -581,7 +606,7 @@ const InterlogicRender = {
         });
         let selectedPeriod = 'custom';
         for (const period of ['month', 'week', 'today']) {
-            const range = Dashboard.getPeriodDates(period);
+            const range = getPeriodDates(period);
             if (this.filters.startDate === formatDateForInput(range.inicio) && this.filters.endDate === formatDateForInput(range.fin)) selectedPeriod = period;
         }
         document.querySelectorAll('[data-m-period]').forEach(btn => {
@@ -690,8 +715,12 @@ const InterlogicRender = {
     },
 
     _badgeCobra(value) {
-        const cls = this._badgeTransportista(value);
-        return cls === 'badge-ghost' ? 'badge-cobra' : cls;
+        return this._badgeEntCobra(value);
+    },
+
+    _badgeEntCobra(value) {
+        const map = { DALSE: 'badge-ent-dalse', INTERLOGISTIC: 'badge-ent-interlogic', XPRESS: 'badge-ent-xpress', INCEDE: 'badge-ent-incede' };
+        return map[String(value || '').toUpperCase()] || '';
     },
 
     renderTable() {
@@ -768,7 +797,7 @@ const InterlogicRender = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="21" style="padding: 0;">
+                    <td colspan="22" style="padding: 0;">
                         <div class="ux-empty">
                             <span class="ux-empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
                             <span class="ux-empty-title">Sin registros</span>
@@ -798,30 +827,26 @@ const InterlogicRender = {
         const pageRecords = this.showAll ? this.filteredRecords : this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         tableBody.innerHTML = pageRecords.map(record => `
-            <tr style="${record.anulado === true ? 'background: #fef2f2; border-left: 4px solid #dc2626; color: #dc2626;' : (record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : '')}">
+            <tr class="${record.anulado === true ? 'il-row-anulada' : ''}" style="${record.anulado === true ? '' : (record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : '')}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
                 <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
-                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: #6b7280;">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
+                <td data-label="Cliente">${sanitizeHTML(record.cliente || '')}${record.direccion ? '<br><span style="font-size: 0.8rem; color: ' + (record.anulado === true ? 'rgba(255,255,255,0.85)' : '#6b7280') + ';">📍 ' + sanitizeHTML(record.direccion) + '</span>' : ''}</td>
                 <td data-label="Departamento">${sanitizeHTML(record.departamento || '')}</td>
                 <td data-label="Municipio">${sanitizeHTML(record.municipio || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>
-                <td data-label="Venta" style="${record.doc === 'NC' ? 'color: #ef4444; font-weight: 700;' : ''}">${formatCurrency(record.venta || 0)}</td>
+                <td data-label="Venta" style="${record.doc === 'NC' && record.anulado !== true ? 'color: #ef4444; font-weight: 700;' : ''}">${formatCurrency(record.venta || 0)}</td>
                 <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
                 <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
                 <td data-label="% Costo">${formatNumber(record.costoPorcentaje || 0, 2)}%</td>
                 <td data-label="Observaciones" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sanitizeHTML(record.observations || '')}">${sanitizeHTML(record.observations || '')}</td>
-                <td data-label="Entrega" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="entrega" title="Clic para cambiar">
-                    <span class="badge ${this._badgeTransportista(record.entrega)}">${sanitizeHTML(record.entrega || '—')}</span>
-                </td>
-                <td data-label="Cobra" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="cobra" title="Clic para cambiar">
-                    <span class="badge ${this._badgeCobra(record.cobra)}">${sanitizeHTML(record.cobra || '—')}</span>
-                </td>
+                <td data-label="Entrega" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="entrega" title="Clic para cambiar">${record.entrega ? '<span class="badge ' + this._badgeEntCobra(record.entrega) + '">' + sanitizeHTML(record.entrega) + '</span>' : ''}</td>
+                <td data-label="Cobra" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="cobra" title="Clic para cambiar">${record.cobra ? '<span class="badge ' + this._badgeEntCobra(record.cobra) + '">' + sanitizeHTML(record.cobra) + '</span>' : ''}</td>
                 <td data-label="Encargado" style="cursor: pointer;" class="il-editable-cell" data-record-id="${record.id}" data-field="encargado" title="Clic para cambiar">${sanitizeHTML(record.encargado || '')}</td>
                 <td data-label="Forma Pago">
                     ${record.formaPago ? '<span class="badge ' + (record.formaPago === 'Efectivo' ? 'badge-success' : record.formaPago === 'Cheque' ? 'badge-primary' : record.formaPago === 'Transferencia' ? 'badge-purple' : 'badge-warning') + '">' + (record.formaPago === 'Efectivo' ? '💵 ' : record.formaPago === 'Cheque' ? '🏦 ' : record.formaPago === 'Transferencia' ? '📱 ' : '📝 ') + sanitizeHTML(record.formaPago) + '</span>' : '<span class="badge badge-ghost">—</span>'}
@@ -855,8 +880,8 @@ const InterlogicRender = {
         if (topPagEl) topPagEl.innerHTML = this._paginationBarHTML();
 
         const truncNotice = this._truncated
-            ? '<tr><td colspan="21" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
-            : (this._fullMode ? '<tr><td colspan="21" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
+            ? '<tr><td colspan="22" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
+            : (this._fullMode ? '<tr><td colspan="22" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
 
         tfoot.innerHTML = `
             ${truncNotice}
@@ -870,9 +895,9 @@ const InterlogicRender = {
                 <td>${formatNumber(totalPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
-            ${this._truncated ? '<tr><td colspan="21" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
+            ${this._truncated ? '<tr><td colspan="22" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
-                <td colspan="21" style="padding: 0.5rem 0;">
+                <td colspan="22" style="padding: 0.5rem 0;">
                     ${this._paginationBarHTML()}
                 </td>
             </tr>

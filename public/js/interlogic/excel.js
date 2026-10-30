@@ -89,8 +89,9 @@ const InterlogicExcel = {
             sheet.mergeCells('A2:' + lastCol + '2');
             var now = new Date();
             var pad = function(x) { return String(x).padStart(2, '0'); };
+            var truncTag = this._truncated ? '  ·  ⚠ Parcial (tope ' + this.records.length.toLocaleString() + ' — usa "Cargar todo el rango")' : '';
             var sub = sheet.getCell('A2');
-            sub.value = 'Registros: ' + this.filteredRecords.length + '  ·  ' + this._ilFilterLabel() + '  ·  Exportado: ' + pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+            sub.value = 'Registros: ' + this.filteredRecords.length + truncTag + '  ·  ' + this._ilFilterLabel() + '  ·  Exportado: ' + pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
             sub.font = { name: 'Calibri', size: 10, color: { argb: 'FF475569' } };
             sub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
             sub.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -251,7 +252,8 @@ const InterlogicExcel = {
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(8);
                 doc.setTextColor(100, 100, 100);
-                doc.text('Registros: ' + self.filteredRecords.length + '  -  ' + self._ilFilterLabel(), PW / 2, y + 11, { align: 'center', maxWidth: W });
+                var truncTag = self._truncated ? '  -  Parcial (tope ' + self.records.length.toLocaleString() + ')' : '';
+                doc.text('Registros: ' + self.filteredRecords.length + truncTag + '  -  ' + self._ilFilterLabel(), PW / 2, y + 11, { align: 'center', maxWidth: W });
                 y += 16;
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(7.5);
