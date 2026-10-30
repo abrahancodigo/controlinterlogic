@@ -719,6 +719,7 @@ const InterlogicRender = {
     },
 
     _badgeEntCobra(value) {
+        if (/\bIVETTE\b/i.test(String(value || '').trim())) return 'badge-cobra';
         const map = { DALSE: 'badge-ent-dalse', INTERLOGISTIC: 'badge-ent-interlogic', XPRESS: 'badge-ent-xpress', INCEDE: 'badge-ent-incede' };
         return map[String(value || '').toUpperCase()] || '';
     },
