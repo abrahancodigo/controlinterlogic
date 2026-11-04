@@ -651,8 +651,7 @@ const Dashboard = {
         const topV = Object.entries(ctx.vendedorStats).filter(([n]) => n && n !== 'Sin vendedor').sort((a, b) => b[1].monto - a[1].monto)[0];
         if (topV) items.push({ icon: this._insightIcon('trophy'), cls: 'info', title: 'Top vendedor', text: topV[0] + ' · ' + this.formatMoney(topV[1].monto) });
         const credShare = ctx.stats.total > 0 ? (ctx.stats.credito / ctx.stats.total) * 100 : 0;
-        const ticket = ctx.stats.totalCount > 0 ? ctx.stats.total / ctx.stats.totalCount : 0;
-        items.push({ icon: this._insightIcon(credShare >= 60 ? 'alert' : 'card'), cls: credShare >= 60 ? 'warn' : 'info', title: 'Crédito del total', text: credShare.toFixed(0) + '% · ticket ' + this.formatMoney(ticket) });
+        items.push({ icon: this._insightIcon(credShare >= 60 ? 'alert' : 'card'), cls: credShare >= 60 ? 'warn' : 'info', title: 'Crédito del total', text: credShare.toFixed(0) + '% del total' });
         box.innerHTML = items.map(i => '<div class="dash-insight dash-insight-' + i.cls + '"><span class="dash-insight-icon">' + i.icon + '</span><div><div class="dash-insight-title">' + i.title + '</div><div class="dash-insight-text">' + this._escapeHtml(i.text) + '</div></div></div>').join('');
     },
 
@@ -855,6 +854,9 @@ const Dashboard = {
         if (pillCount) pillCount.textContent = `${stats.totalCount} ent.`;
         // Mobile polish: ajusta tipografía larga y marca scrollables
         this._fitKpiValues();
+        const trendPanel = document.querySelector('.dash-tabpanel[data-panel="tendencia"]');
+        if (trendPanel && trendPanel.hidden === false) this._loadMonthlyTrend();
+        else this._trendKey = null;
     },
 
     /* ── Update KPI cards ── */
@@ -1229,8 +1231,8 @@ const Dashboard = {
         const box = document.getElementById('dash-trend-table');
         if (!box || !this._trendMonths) return;
         box.innerHTML = `<div class="table-container" style="overflow-x:auto;"><table class="data-table" style="font-size:0.85rem;">
-            <thead><tr><th>Mes</th><th style="text-align:right;">Ventas</th><th style="text-align:right;">Entregas</th><th style="text-align:right;">Ticket prom.</th></tr></thead>
-            <tbody>${this._trendMonths.map(b => `<tr><td>${b.label}</td><td style="text-align:right;">${this.formatMoney(b.total)}</td><td style="text-align:right;">${b.count}</td><td style="text-align:right;">${b.count ? this.formatMoney(b.total / b.count) : '-'}</td></tr>`).join('')}</tbody>
+            <thead><tr><th>Mes</th><th style="text-align:right;">Ventas</th><th style="text-align:right;">Entregas</th></tr></thead>
+            <tbody>${this._trendMonths.map(b => `<tr><td>${b.label}</td><td style="text-align:right;">${this.formatMoney(b.total)}</td><td style="text-align:right;">${b.count}</td></tr>`).join('')}</tbody>
         </table></div>`;
     },
 
@@ -1252,8 +1254,7 @@ const Dashboard = {
             'Ventas': d.monto,
             'Entregas': d.count,
             'Contado': d.contado,
-            'Crédito': d.credito,
-            'Ticket Prom.': d.count ? d.monto / d.count : 0
+            'Crédito': d.credito
         }));
         this._writeXlsx(rows, title, 'Resumen');
     },
@@ -1282,8 +1283,7 @@ const Dashboard = {
             'Ventas': b.total,
             'Entregas': b.count,
             'Contado': b.contado,
-            'Crédito': b.credito,
-            'Ticket Prom.': b.count ? b.total / b.count : 0
+            'Crédito': b.credito
         }));
         this._writeXlsx(rows, 'Tendencia mensual', 'Tendencia');
     },
@@ -1296,7 +1296,7 @@ const Dashboard = {
             const ws = XLSX.utils.json_to_sheet(rows);
             ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.max(k.length, ...rows.map(r => String(r[k] == null ? '' : r[k]).length)) + 2 }));
             XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Datos');
-            const fechaStr = formatDateForInput(this.fechaInicio);
+            const fechaStr = formatDateForInput(this.fechaInicio) + '_' + formatDateForInput(this.fechaFin);
             XLSX.writeFile(wb, `${String(title).replace(/[^a-zA-Z0-9]/g, '_')}_${fechaStr}.xlsx`);
             showToast('Excel exportado exitosamente', 'success');
         } catch (err) {
@@ -1326,7 +1326,7 @@ const Dashboard = {
         if (e('dash-dalse-count')) e('dash-dalse-count').textContent = s.dalseCount === 0 ? 'Sin entregas' : `${s.dalseCount} entrega${s.dalseCount !== 1 ? 's' : ''}`;
         if (e('dash-incede-count')) e('dash-incede-count').textContent = s.incedeCount === 0 ? 'Sin entregas' : `${s.incedeCount} entrega${s.incedeCount !== 1 ? 's' : ''}`;
 
-        sub('dash-total-sub', s.totalCount > 0 ? 'Ticket prom. ' + this.formatMoney(s.total / s.totalCount) : '');
+        sub('dash-total-sub', '');
         sub('dash-contado-sub', s.total > 0 ? ((s.contado / s.total) * 100).toFixed(0) + '% del total' : '');
         sub('dash-credito-sub', s.total > 0 ? ((s.credito / s.total) * 100).toFixed(0) + '% del total' : '');
         sub('dash-dalse-sub', s.total > 0 ? ((s.dalse / s.total) * 100).toFixed(0) + '% del total' : '');
@@ -1358,8 +1358,8 @@ const Dashboard = {
 
     /* ── Update deltas ── */
     updateDeltas() {
-        const cur = this.computeTotals(this.records);
-        const prev = this.computeTotals(this.prevRecords);
+        const cur = this.computeTotals(this._applyDimFilters(this.records));
+        const prev = this.computeTotals(this._applyDimFilters(this.prevRecords));
 
         const deltaEls = {
             total: 'dash-total-delta',
@@ -1887,7 +1887,6 @@ const Dashboard = {
 
         grid.innerHTML = vendedores.map(([name, d], index) => {
             const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
-            const avg = d.count > 0 ? d.monto / d.count : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
             const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
@@ -1908,7 +1907,6 @@ const Dashboard = {
                     </div>
                     <div class="dash-vendedor-meta">
                         <span class="dash-rank-metric"><strong>${d.count}</strong><small>Entregas</small></span>
-                        <span class="dash-rank-metric"><strong>${this.formatMoney(avg)}</strong><small>Promedio</small></span>
                         <span class="dash-rank-metric"><strong>${pct}%</strong><small>Del total</small></span>
                         ${this._rankDeltaHtml(name, 'vendedor')}
                     </div>
@@ -1961,7 +1959,6 @@ const Dashboard = {
 
         grid.innerHTML = zonas.map(([name, d], index) => {
             const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
-            const avg = d.count > 0 ? d.monto / d.count : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
             const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
@@ -1978,7 +1975,6 @@ const Dashboard = {
                     </div>
                     <div class="dash-zona-meta">
                         <span class="dash-rank-metric"><strong>${d.count}</strong><small>Entregas</small></span>
-                        <span class="dash-rank-metric"><strong>${this.formatMoney(avg)}</strong><small>Promedio</small></span>
                         <span class="dash-rank-metric"><strong>${pct}%</strong><small>Del total</small></span>
                         ${this._rankDeltaHtml(name, 'zona')}
                     </div>
@@ -2028,7 +2024,6 @@ const Dashboard = {
         const showAll = this._rankState[dimKey];
         grid.innerHTML = rows.map(([name, d], index) => {
             const pct = totalMonto > 0 ? ((d.monto / totalMonto) * 100).toFixed(1) : '0';
-            const avg = d.count > 0 ? d.monto / d.count : 0;
             const ctPct = d.monto > 0 ? (d.contado / d.monto) * 100 : 0;
             const crPct = d.monto > 0 ? (d.credito / d.monto) * 100 : 0;
             const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `<span class="dash-rank-num">${index + 1}</span>`;
@@ -2040,7 +2035,7 @@ const Dashboard = {
                         <div class="dash-zona-body">
                             <div class="dash-zona-name">${this._escapeHtml(name.length > 24 ? name.substring(0, 23) + '\u2026' : name)}</div>
                             <div class="dash-zona-amount">${this.formatMoney(d.monto)}</div>
-                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>avg ${this.formatMoney(avg)}</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span></div>
+                            <div class="dash-zona-meta"><span>${d.count} ent.</span><span class="dash-zona-sep">·</span><span>${pct}% del total</span></div>
                         </div>
                     </div>
                     <div class="dash-zona-bar-wrap">
@@ -2342,7 +2337,7 @@ const Dashboard = {
 
     /* ── Detail modal: Vendedor ── */
     showVendedorDetailModal(vendedorName) {
-        const filtered = this.records.filter(r => {
+        const filtered = this._applyDimFilters(this.records).filter(r => {
             const v = (r.vendedor || '').trim();
             return v && (v === vendedorName || (v === 'Sin vendedor' && vendedorName === 'Sin vendedor'));
         });
@@ -2351,7 +2346,7 @@ const Dashboard = {
 
     /* ── Detail modal: Zona ── */
     showZonaDetailModal(zonaName) {
-        const filtered = this.records.filter(r => {
+        const filtered = this._applyDimFilters(this.records).filter(r => {
             const z = (r.departamento || r.zona || '').trim();
             return z && (z === zonaName || (z === 'Sin departamento' && zonaName === 'Sin departamento'));
         });
@@ -2360,7 +2355,7 @@ const Dashboard = {
 
     /* ── Detail modal: Vendedor×Zona ── */
     showVendedorZonaDetailModal(vendedorName, zonaName) {
-        const filtered = this.records.filter(r => {
+        const filtered = this._applyDimFilters(this.records).filter(r => {
             const v = (r.vendedor || '').trim();
             const z = (r.departamento || r.zona || '').trim();
             const matchV = v === vendedorName || (v === '' && vendedorName === 'Sin vendedor');
@@ -2493,7 +2488,7 @@ const Dashboard = {
         let title = '';
         let color = '';
 
-        this.records.forEach(r => {
+        this._applyDimFilters(this.records).forEach(r => {
             const cond = (r.condicionPago || '').toLowerCase().trim();
             const ent = (r.entrega || '').toUpperCase().trim();
 
@@ -2511,13 +2506,13 @@ const Dashboard = {
 
     /* ── Detail Modal: Incede ── */
     showIncedeDetailModal() {
-        const filtered = this.records.filter(r => (r.empresa || '').toUpperCase().trim() === 'INCEDE');
+        const filtered = this._applyDimFilters(this.records).filter(r => (r.empresa || '').toUpperCase().trim() === 'INCEDE');
         this._renderDetailModal(filtered, 'Incede', '#be123c');
     },
 
     /* ── Detail Modal for carrier bars ── */
     showCarrierDetailModal(carrierName) {
-        const filtered = this.records.filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
+        const filtered = this._applyDimFilters(this.records).filter(r => (r.entrega || '').toUpperCase().trim() === carrierName);
         const title = carrierName;
         const colors = { DALSE: '#8b5cf6', INTERLOGISTIC: '#3b82f6', XPRESS: '#ef4444', INCEDE: '#f59e0b' };
         const color = colors[carrierName] || '#6b7280';
@@ -2822,7 +2817,7 @@ const Dashboard = {
 
             XLSX.utils.book_append_sheet(wb, ws, 'Detalle');
 
-            const fechaStr = formatDateForInput(this.fechaInicio);
+            const fechaStr = formatDateForInput(this.fechaInicio) + '_' + formatDateForInput(this.fechaFin);
             XLSX.writeFile(wb, `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaStr}.xlsx`);
 
             showToast('Excel exportado exitosamente', 'success');

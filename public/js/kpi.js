@@ -63,6 +63,8 @@ const KpiEvaluation = {
                 { label: 'ASPECTO A MEJORAR', id: 'kpi-stat-worst', tag: 'small', style: 'font-size: 0.9rem;' }
             ], { containerStyle: 'margin-bottom: 1.5rem;' })}
 
+            <div id="kpi-truncated-warn" style="display:none;margin:-0.75rem 0 1rem;font-size:0.8rem;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;text-align:center;">⚠ Solo se muestran las 500 evaluaciones más recientes del rango; las estadísticas y el export se calculan sobre esas.</div>
+
             <div class="card">
                 <div class="table-container" style="overflow-x: auto;">
                     <table class="data-table" id="kpi-table">
@@ -122,6 +124,7 @@ const KpiEvaluation = {
             if (tsFin) query = query.where('fecha', '<=', tsFin);
 
             this.unsubscribe = query.limit(500).onSnapshot(snapshot => {
+                this._truncated = snapshot.size >= 500;
                 this.records = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
@@ -245,6 +248,8 @@ const KpiEvaluation = {
     },
 
     updateStats() {
+        const warnEl = document.getElementById('kpi-truncated-warn');
+        if (warnEl) warnEl.style.display = this._truncated ? 'block' : 'none';
         const total = this.filteredRecords.length;
         document.getElementById('kpi-stat-total').textContent = total;
 
@@ -574,7 +579,7 @@ const KpiEvaluation = {
         // Update stats
         var total = this.filteredRecords.length;
         var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
-        set('mkpi-total', total);
+        set('mkpi-total', this._truncated ? total + ' (tope 500)' : String(total));
 
         if (total > 0) {
             var aspectAvgs = this.kpiAspects.map(function(a) {

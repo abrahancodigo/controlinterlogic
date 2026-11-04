@@ -884,16 +884,36 @@ const InterlogicRender = {
             ? '<tr><td colspan="22" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
             : (this._fullMode ? '<tr><td colspan="22" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
 
+        const isAllAnulados = this.filteredRecords.length > 0 && this.filteredRecords.every(r => r.anulado === true);
+        let displayTotals = totals;
+        let displayPorcentaje = totalPorcentaje;
+        if (isAllAnulados) {
+            const raw = this.filteredRecords.reduce((a, r) => {
+                a.venta += Number(r.venta) || 0;
+                a.bultos += Number(r.bultos) || 0;
+                a.cajas += Number(r.cobrador) || 0;
+                a.envio += Number(r.costoEnvio) || 0;
+                return a;
+            }, { venta: 0, bultos: 0, cajas: 0, envio: 0 });
+            displayTotals = raw;
+            displayPorcentaje = raw.venta > 0 ? (raw.envio / raw.venta) * 100 : 0;
+        }
+        const totalsBg = isAllAnulados ? '#fef2f2' : 'var(--gray-50)';
+        const totalsColor = isAllAnulados ? '#dc2626' : '';
+        const totalsLabel = isAllAnulados ? 'TOTALES (ANULADOS)' : 'TOTALES';
+        const totalsBorder = isAllAnulados ? '1px solid #fecaca' : 'none';
+
         tfoot.innerHTML = `
+            ${isAllAnulados ? '<tr><td colspan="22" style="padding:6px 10px;text-align:center;font-size:0.78rem;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">⚠️ Filtraste solo pedidos ANULADOS — esta suma está en rojo y no se cuenta en los totales globales</td></tr>' : ''}
             ${truncNotice}
-            <tr style="font-weight: 700; background: var(--gray-50);">
+            <tr style="font-weight: 700; background: ${totalsBg}; color: ${totalsColor}; border: ${totalsBorder};">
                 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                <td style="text-align: right;">TOTALES</td>
-                <td>${formatCurrencySigned(totals.venta)}</td>
-                <td>${formatNumber(totals.bultos)}</td>
-                <td>${totals.cajas}</td>
-                <td>${formatCurrencySigned(totals.envio)}</td>
-                <td>${formatNumber(totalPorcentaje, 2)}%</td>
+                <td style="text-align: right; color: ${totalsColor};">${totalsLabel}</td>
+                <td style="color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
+                <td style="color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
+                <td style="color: ${totalsColor};">${displayTotals.cajas}</td>
+                <td style="color: ${totalsColor};">${formatCurrencySigned(displayTotals.envio)}</td>
+                <td style="color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
             ${this._truncated ? '<tr><td colspan="22" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}

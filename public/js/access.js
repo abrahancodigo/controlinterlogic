@@ -4,6 +4,7 @@ const AccessControl = {
         { key: 'interlogic', label: 'Control Interlogic' },
         { key: 'entregas', label: 'Entregas' },
         { key: 'tarimas', label: 'Tarimas Walmart' },
+        { key: 'ivette', label: 'Inventario Ivette' },
         { key: 'problemas', label: 'Problemas' },
         { key: 'clientes', label: 'Clientes' },
         { key: 'flota', label: 'Flota y Mantenimiento' },

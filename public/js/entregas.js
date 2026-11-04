@@ -27,14 +27,18 @@ const Entregas = {
         const card = this.isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);' : '';
         return `
             <div class="card" id="entregas-content" style="${card}">
-                <div class="card-header" style="${this.isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap;${this.isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
                     <div>
                         <h2 style="${this.isMobile ? 'font-size:1rem;' : ''}">Entregas</h2>
                         <p style="font-size:0.82rem;color:var(--text-secondary);margin:0.2rem 0 0;">Los resultados se actualizan al cambiar la fecha o los filtros de columna.</p>
                     </div>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-secondary" data-entregas-action="exportar-excel">📥 Excel</button>
+                        <button type="button" class="btn btn-secondary" data-entregas-action="exportar-pdf">📄 PDF</button>
+                    </div>
                 </div>
                 <div class="card-body" style="${this.isMobile ? 'padding:0;' : ''}">
-                    <div style="display:grid;grid-template-columns:${this.isMobile ? '1fr 1fr' : 'repeat(2, minmax(150px, 220px))'};gap:0.65rem;align-items:end;margin-bottom:1rem;">
+                    <div style="display:grid;grid-template-columns:${this.isMobile ? '1fr 1fr' : 'repeat(3, minmax(150px, 220px))'};gap:0.65rem;align-items:end;margin-bottom:1rem;">
                         <div class="form-group" style="margin:0;">
                             <label for="entregas-fecha-inicio">Desde</label>
                             <input type="date" id="entregas-fecha-inicio" value="${this.filters.startDate}">
@@ -42,6 +46,14 @@ const Entregas = {
                         <div class="form-group" style="margin:0;">
                             <label for="entregas-fecha-fin">Hasta</label>
                             <input type="date" id="entregas-fecha-fin" value="${this.filters.endDate}">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="entregas-estado">Estado</label>
+                            <select id="entregas-estado">
+                                <option value="">Todas</option>
+                                <option value="entregadas" ${this.filters.estado === 'entregadas' ? 'selected' : ''}>Entregadas</option>
+                                <option value="pendientes" ${this.filters.estado === 'pendientes' ? 'selected' : ''}>Pendientes</option>
+                            </select>
                         </div>
                     </div>
                     <div id="entregas-resumen"></div>
@@ -55,6 +67,11 @@ const Entregas = {
         container.addEventListener('change', (event) => {
             if (event.target.id === 'entregas-fecha-inicio') this.filters.startDate = event.target.value;
             if (event.target.id === 'entregas-fecha-fin') this.filters.endDate = event.target.value;
+            if (event.target.id === 'entregas-estado') {
+                this.filters.estado = event.target.value;
+                this._renderResults();
+                return;
+            }
             this.load();
         });
         container.addEventListener('click', (event) => {
@@ -63,6 +80,8 @@ const Entregas = {
             const action = event.target.closest('[data-entregas-action]');
             if (!action) return;
             if (action.dataset.entregasAction === 'consultar') this.load();
+            if (action.dataset.entregasAction === 'exportar-excel') this._exportExcel();
+            if (action.dataset.entregasAction === 'exportar-pdf') this._exportPdf();
             if (action.dataset.entregasAction === 'editar') this.showEditModal(action.dataset.id);
         });
     },
@@ -136,6 +155,8 @@ const Entregas = {
 
     _filteredRecords() {
         return this.records.filter(record => {
+            if (this.filters.estado === 'entregadas' && record.entregado !== true) return false;
+            if (this.filters.estado === 'pendientes' && (record.entregado === true || record.doc === 'NC' || record.anulado === true)) return false;
             for (const [field, selected] of Object.entries(this.columnFilters)) {
                 if (selected && selected.size > 0 && !selected.has(String(record[field] ?? ''))) return false;
             }
@@ -162,7 +183,7 @@ const Entregas = {
         return {
             contado, credito, total,
             count: entregados,
-            pending: records.length - entregados,
+            pending: records.filter(r => r.entregado !== true && r.doc !== 'NC' && r.anulado !== true).length,
             avgDays: entregados ? days / entregados : 0
         };
     },
@@ -180,9 +201,8 @@ const Entregas = {
         if (list) list.innerHTML = '<div style="padding:1rem;text-align:center;color:#dc2626;">Error al cargar: ' + sanitizeHTML(error.message || '') + '</div>';
     },
 
-    _renderResults() {
+    _sortedFiltered() {
         let filtered = this._filteredRecords();
-        const summary = this._summary(filtered);
         if (this.sortField && this.sortDir) {
             const cols = this._columns();
             const column = cols.find(item => item.key === this.sortField);
@@ -192,6 +212,12 @@ const Entregas = {
                 return String(a[this.sortField] ?? '').localeCompare(String(b[this.sortField] ?? ''), 'es', { numeric: true }) * dir;
             });
         }
+        return filtered;
+    },
+
+    _renderResults() {
+        const filtered = this._sortedFiltered();
+        const summary = this._summary(filtered);
         const summaryEl = document.getElementById('entregas-resumen');
         if (summaryEl) {
             summaryEl.innerHTML = `
@@ -226,6 +252,139 @@ const Entregas = {
                 <div style="font-size:${this.isMobile ? '1rem' : '1.15rem'};font-weight:800;color:${color};margin-top:0.2rem;">${value}</div>
             </div>
         `;
+    },
+
+    _exportTotals(rows) {
+        let total = 0, contado = 0, credito = 0;
+        rows.forEach(record => {
+            const amount = signedAmount(record, 'venta');
+            total += amount;
+            if (record.condicionPago === 'Contado') contado += amount;
+            if (record.condicionPago === 'Crédito') credito += amount;
+        });
+        return { total, contado, credito };
+    },
+
+    _estadoLabel() {
+        if (this.filters.estado === 'entregadas') return 'Entregadas';
+        if (this.filters.estado === 'pendientes') return 'Pendientes';
+        return 'Todas';
+    },
+
+    _formatRange() {
+        const fmt = (v) => {
+            const [y, m, d] = String(v || '').split('-');
+            return (d && m && y) ? `${d}/${m}/${y}` : String(v || '');
+        };
+        return `${fmt(this.filters.startDate)} → ${fmt(this.filters.endDate)}`;
+    },
+
+    async _exportExcel() {
+        const rows = this._sortedFiltered();
+        if (!rows.length) { showToast('No hay datos para exportar', 'info'); return; }
+        try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
+        try {
+            const data = rows.map(r => ({
+                'Doc': r.doc || '',
+                'Doc #': r.docNum || '',
+                'Cliente': r.cliente || '',
+                'Condición': r.condicionPago || '',
+                'Venta': signedAmount(r, 'venta'),
+                'Entrega': r.entrega || '',
+                'Cobra': r.cobra || ''
+            }));
+            const totals = this._exportTotals(rows);
+            const ws = XLSX.utils.json_to_sheet(data);
+            ws['!cols'] = Object.keys(data[0]).map(k => ({ wch: Math.max(k.length + 2, ...data.map(r => String(r[k] == null ? '' : r[k]).length + 2)) }));
+            XLSX.utils.sheet_add_aoa(ws, [['', '', '', 'TOTAL', totals.total, '', '']], { origin: -1 });
+            XLSX.utils.sheet_add_aoa(ws, [['', '', '', 'Contado', totals.contado, '', '']], { origin: -1 });
+            XLSX.utils.sheet_add_aoa(ws, [['', '', '', 'Crédito', totals.credito, '', '']], { origin: -1 });
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Entregas');
+            XLSX.writeFile(wb, `Entregas_${this.filters.startDate}_${this.filters.endDate}.xlsx`);
+            showToast('Excel exportado exitosamente', 'success');
+        } catch (err) {
+            console.error('[Entregas] Export Excel error:', err);
+            showToast('Error al exportar Excel', 'error');
+        }
+    },
+
+    async _exportPdf() {
+        const rows = this._sortedFiltered();
+        if (!rows.length) { showToast('No hay datos para exportar', 'info'); return; }
+        try { await ensureLib('html2pdf'); } catch (e) { showToast('PDF no disponible (sin conexión al CDN)', 'error'); return; }
+        showToast('Generando PDF...', 'info');
+        let wrapper = null;
+        try {
+            const totals = this._exportTotals(rows);
+            const esc = (s) => sanitizeHTML(String(s == null ? '' : s));
+            const estadoLabel = this._estadoLabel();
+            const tableHtml = rows.map(r => `
+                <tr style="border-bottom:1px solid #e2e8f0;${r.entregado === true ? 'background:#f0fdf4;' : ''}">
+                    <td style="padding:4px 6px;">${esc(r.doc)}</td>
+                    <td style="padding:4px 6px;">${esc(r.docNum)}</td>
+                    <td style="padding:4px 6px;">${esc(r.cliente)}</td>
+                    <td style="padding:4px 6px;">${esc(r.condicionPago)}</td>
+                    <td style="padding:4px 6px;text-align:right;font-weight:700;${r.doc === 'NC' ? 'color:#dc2626;' : ''}">${formatCurrency(signedAmount(r, 'venta'))}</td>
+                    <td style="padding:4px 6px;">${esc(r.entrega)}</td>
+                    <td style="padding:4px 6px;">${esc(r.cobra)}</td>
+                </tr>
+            `).join('');
+            const pdfSource = document.createElement('div');
+            pdfSource.style.cssText = 'width:9.6in;background:#ffffff;color:#0f172a;font-family:Arial,Helvetica,sans-serif;';
+            pdfSource.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:10px;border-bottom:3px solid #2563eb;">
+                    <div>
+                        <div style="font-size:20px;font-weight:800;">Reporte de Entregas</div>
+                        <div style="font-size:11px;color:#64748b;margin-top:2px;">${this._formatRange()} · Estado: ${estadoLabel} · ${formatNumber(rows.length)} registro(s)</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:14px;font-weight:800;color:#2563eb;">Total: ${formatCurrency(totals.total)}</div>
+                        <div style="font-size:10px;color:#64748b;">Contado: ${formatCurrency(totals.contado)} · Crédito: ${formatCurrency(totals.credito)}</div>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:10px;">
+                    <thead>
+                        <tr style="background:#f1f5f9;text-align:left;">
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Doc</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Doc #</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Cliente</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Condición</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;text-align:right;">Venta</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Entrega</th>
+                            <th style="padding:5px 6px;border-bottom:2px solid #cbd5e1;">Cobra</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tableHtml}</tbody>
+                    <tfoot>
+                        <tr style="background:#f1f5f9;font-weight:800;">
+                            <td colspan="4" style="padding:5px 6px;border-top:2px solid #cbd5e1;">TOTAL (${formatNumber(rows.length)} registro(s))</td>
+                            <td style="padding:5px 6px;border-top:2px solid #cbd5e1;text-align:right;">${formatCurrency(totals.total)}</td>
+                            <td colspan="2" style="padding:5px 6px;border-top:2px solid #cbd5e1;font-size:9px;font-weight:600;color:#64748b;">Contado: ${formatCurrency(totals.contado)} · Crédito: ${formatCurrency(totals.credito)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+            wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;';
+            wrapper.appendChild(pdfSource);
+            document.body.appendChild(wrapper);
+            const opt = {
+                margin: [0.4, 0.4, 0.4, 0.4],
+                filename: `Entregas_${this.filters.startDate}_${this.filters.endDate}.pdf`,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+            await html2pdf().set(opt).from(pdfSource).save();
+            showToast('PDF exportado exitosamente', 'success');
+        } catch (err) {
+            console.error('[Entregas] Export PDF error:', err);
+            showToast('Error al generar PDF', 'error');
+        } finally {
+            if (wrapper) wrapper.remove();
+        }
     },
 
     _filterButton(column) {

@@ -14,6 +14,18 @@ const InterlogicCRUD = {
             .toLowerCase().replace(/\s+/g, ' ').trim();
     },
 
+    async _fetchCCFRecords(clienteLower) {
+        if (this._ccfCache && this._ccfCache.cliente === clienteLower) return this._ccfCache.recs;
+        const base = firebase.firestore().collection('interlogic').where('doc', 'in', ['CCF', 'FT']);
+        const all = await fetchAllChunked(base, { chunkSize: 2000 });
+        const recs = all.filter(r =>
+            r.anulado !== true &&
+            (r.cliente || '').toLowerCase().includes(clienteLower)
+        );
+        this._ccfCache = { cliente: clienteLower, recs: recs };
+        return recs;
+    },
+
     _setClientObservation(divId, client) {
         const obsDiv = document.getElementById(divId);
         if (!obsDiv) return;
@@ -116,6 +128,7 @@ const InterlogicCRUD = {
                 }));
                 this._truncated = snapshot.size >= RT_MAX_RECORDS;
                 this._fullMode = false;
+                this._ccfCache = null;
 
                 this.scheduleApplyFilters();
 
@@ -172,6 +185,7 @@ const InterlogicCRUD = {
             this.records = all;
             this._truncated = false;
             this._fullMode = true;
+            this._ccfCache = null;
 
             if (this.loading) this.loading = false;
             this.applyFilters();
@@ -501,7 +515,7 @@ const InterlogicCRUD = {
         };
         ncAfectaSaldo.addEventListener('change', toggleNCCcfGroup);
 
-        var populateCCFList = function() {
+        var populateCCFList = async function() {
             var clienteActual = document.getElementById('il-cliente').value.trim();
             ncInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
 
@@ -511,11 +525,16 @@ const InterlogicCRUD = {
             }
 
             var clienteLower = clienteActual.toLowerCase();
-            var ccfRecords = self.records.filter(function(r) {
-                return (r.doc === 'CCF' || r.doc === 'FT') &&
-                       r.anulado !== true &&
-                       (r.cliente || '').toLowerCase().includes(clienteLower);
-            });
+            ncInterlogicId.innerHTML = '<option value="">Buscando CCF/FT...</option>';
+            var ccfRecords;
+            try {
+                ccfRecords = await self._fetchCCFRecords(clienteLower);
+            } catch (e) {
+                console.error('Error al buscar CCF/FT:', e);
+                ncInterlogicId.innerHTML = '<option value="">Error al buscar CCF/FT</option>';
+                return;
+            }
+            ncInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
 
             if (ccfRecords.length === 0) {
                 ncInterlogicId.innerHTML = '<option value="">-- No hay CCF/FT para este cliente --</option>';
@@ -534,7 +553,10 @@ const InterlogicCRUD = {
         ncInterlogicId.addEventListener('change', function() {
             var selectedId = ncInterlogicId.value;
             if (selectedId && ncCcfInfo) {
-                var record = self.records.find(function(r) { return r.id === selectedId; });
+                var record = (self._ccfCache && self._ccfCache.cliente === (document.getElementById('il-cliente').value.trim().toLowerCase()))
+                    ? self._ccfCache.recs.find(function(r) { return r.id === selectedId; })
+                    : null;
+                if (!record) record = self.records.find(function(r) { return r.id === selectedId; });
                 if (record) {
                     var cobrado = Number(record.montoCobrado || (record.cobrado === true ? record.venta : 0));
                     var pendiente = Math.max(0, Number(record.venta || 0) - cobrado);
@@ -1051,6 +1073,7 @@ const InterlogicCRUD = {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 record[field] = next;
+                self._recordsRev = (self._recordsRev || 0) + 1;
                 self.applyFilters();
                 showToast(`${labels[field]}: ${next || 'vacío'}`, 'success');
             } catch (error) {
@@ -1363,6 +1386,7 @@ const InterlogicCRUD = {
                 self.records.forEach(r => {
                     if (ids.includes(r.id)) r[field] = value;
                 });
+                self._recordsRev = (self._recordsRev || 0) + 1;
                 self.selectedRecords.clear();
                 self.applyFilters();
                 modal.remove();
@@ -1454,6 +1478,7 @@ const InterlogicCRUD = {
                 this.records.forEach(record => {
                     if (ids.includes(record.id)) Object.assign(record, updates);
                 });
+                this._recordsRev = (this._recordsRev || 0) + 1;
                 const labels = fields.filter(field => Object.prototype.hasOwnProperty.call(updates, field.key)).map(field => field.label.replace(/^[^ ]+ /, ''));
                 this.selectedRecords.clear();
                 this.applyFilters();
@@ -1719,7 +1744,7 @@ const InterlogicCRUD = {
             });
         }
 
-        var mfPopulateCCFList = function() {
+        var mfPopulateCCFList = async function() {
             if (!mfNcInterlogicId) return;
             mfNcInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
             var clienteActual = document.getElementById('mf-cliente').value.trim();
@@ -1728,9 +1753,16 @@ const InterlogicCRUD = {
                 return;
             }
             var clienteLower = clienteActual.toLowerCase();
-            var ccfRecords = self.records.filter(function(r) {
-                return (r.doc === 'CCF' || r.doc === 'FT') && r.anulado !== true && (r.cliente || '').toLowerCase().includes(clienteLower);
-            });
+            mfNcInterlogicId.innerHTML = '<option value="">Buscando CCF/FT...</option>';
+            var ccfRecords;
+            try {
+                ccfRecords = await self._fetchCCFRecords(clienteLower);
+            } catch (e) {
+                console.error('Error al buscar CCF/FT:', e);
+                mfNcInterlogicId.innerHTML = '<option value="">Error al buscar CCF/FT</option>';
+                return;
+            }
+            mfNcInterlogicId.innerHTML = '<option value="">-- Seleccionar CCF/FT --</option>';
             if (ccfRecords.length === 0) {
                 mfNcInterlogicId.innerHTML = '<option value="">-- No hay CCF/FT para este cliente --</option>';
                 return;

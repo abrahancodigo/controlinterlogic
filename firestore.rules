@@ -181,5 +181,13 @@ service cloud.firestore {
       allow update: if canWrite();
       allow delete: if isAdmin();
     }
+
+    // Inventario Ivette collection
+    match /ivette_movimientos/{movimientoId} {
+      allow read: if isAuthenticated();
+      allow create: if canWrite();
+      allow update: if canWrite();
+      allow delete: if isAdmin();
+    }
   }
 }

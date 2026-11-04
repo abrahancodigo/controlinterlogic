@@ -181,10 +181,30 @@ const Tarimas = {
                 this.calcularTotales();
                 this.renderStats();
                 this.renderTable();
+                if (snapshot.size >= 500) this._completarTotalesHistoricos();
             }, error => {
                 console.error('Error loading tarimas:', error);
                 showToast('Error al cargar movimientos: ' + error.message, 'error');
             });
+    },
+
+    async _completarTotalesHistoricos() {
+        try {
+            const snapshot = await firebase.firestore().collection('tarimas_walmart').get();
+            let entradas = 0;
+            let salidas = 0;
+            snapshot.docs.forEach(d => {
+                const r = d.data();
+                if (r.tipo === 'ingreso') entradas += (Number(r.cantidad) || 0);
+                else if (r.tipo === 'salida') salidas += (Number(r.cantidad) || 0);
+            });
+            this._totalEntradas = entradas;
+            this._totalSalidas = salidas;
+            this.totalActual = entradas - salidas;
+            this.renderStats();
+        } catch (e) {
+            console.error('Error al calcular totales historicos:', e);
+        }
     },
 
     calcularTotales() {
