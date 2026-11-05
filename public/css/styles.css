@@ -274,7 +274,7 @@ h1, h2, h3 {
 }
 
 .loading-screen .loading-progress-pct {
-    color: #1e293b;
+    color: #fff;
     animation: loadPctCount 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -540,7 +540,7 @@ h1, h2, h3 {
 }
 
 .auth-input-wrapper input::placeholder {
-    color: hsl(262, 10%, 72%);
+    color: hsl(262, 10%, 52%);
 }
 
 .auth-submit-btn {
@@ -1279,7 +1279,7 @@ th {
     text-align: left;
     font-weight: 700;
     font-size: 0.72rem;
-    color: #64748b;
+    color: #334155;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -2032,7 +2032,7 @@ tbody tr:hover {
 .btn-disabled {
     opacity: 0.5;
     background: #e5e7eb !important;
-    color: #9ca3af !important;
+    color: #6b7280 !important;
     cursor: not-allowed !important;
     pointer-events: none !important;
     transform: none !important;
@@ -8876,8 +8876,8 @@ tbody tr:hover {
 }
 
 .dash-td-day { font-weight: 600; color: var(--text-primary); }
-.dash-td-contado { color: #10b981; font-weight: 600; }
-.dash-td-credito { color: #f59e0b; font-weight: 600; }
+.dash-td-contado { color: #047857; font-weight: 600; }
+.dash-td-credito { color: #92400e; font-weight: 600; }
 .dash-td-total { font-weight: 700; color: var(--text-primary); }
 .dash-td-count { color: var(--text-secondary); }
 
@@ -10491,9 +10491,9 @@ th.asis-col-total {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .ivette-search:focus-within { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.12); }
-.ivette-search svg { color: #94a3b8; flex-shrink: 0; }
+.ivette-search svg { color: #64748b; flex-shrink: 0; }
 .ivette-search input { border: 0; outline: 0; width: 100%; font-size: 0.86rem; color: #0f172a; background: transparent; font-family: var(--font-family); }
-.ivette-search input::placeholder { color: #94a3b8; }
+.ivette-search input::placeholder { color: #64748b; }
 .ivette-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 .iv-pill {
     padding: 6px 13px;
@@ -10536,12 +10536,12 @@ th.asis-col-total {
 .iv-inv-bar span { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #ea580c); border-radius: 999px; }
 .is-warn .iv-inv-bar span { background: #fecaca; }
 .is-ok .iv-inv-bar span { background: linear-gradient(90deg, #10b981, #059669); }
-.iv-inv-meta { display: flex; gap: 12px; font-size: 0.74rem; color: #64748b; font-weight: 500; }
+.iv-inv-meta { display: flex; gap: 12px; font-size: 0.74rem; color: #475569; font-weight: 500; }
 .iv-inv-meta strong { color: #0f172a; font-weight: 750; }
-.iv-inv-meta-in strong { color: #059669; }
-.iv-inv-meta-out strong { color: #ea580c; }
+.iv-inv-meta-in strong { color: #047857; }
+.iv-inv-meta-out strong { color: #92400e; }
 .iv-inv-alert { margin-top: 9px; font-size: 0.72rem; font-weight: 700; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 6px 9px; border-radius: 8px; }
-.iv-inv-ok { margin-top: 9px; font-size: 0.72rem; font-weight: 650; color: #059669; }
+.iv-inv-ok { margin-top: 9px; font-size: 0.72rem; font-weight: 650; color: #047857; }
 
 .ivette-table thead th { background: #fffbf5; border-bottom-color: #fde68a; }
 .iv-mov-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 750; border: 1px solid transparent; }
@@ -10653,14 +10653,14 @@ th.asis-col-total {
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
-.iv-preview-in { color: #059669; }
-.iv-preview-out { color: #dc2626; }
+.iv-preview-in { color: #047857; }
+.iv-preview-out { color: #b91c1c; }
 .iv-preview-divider { height: 1px; background: #fde68a; margin: 8px 0; }
 .iv-preview-result { font-size: 0.88rem; padding-top: 2px; }
-.iv-preview-result.is-warn .iv-preview-v { color: #dc2626; }
-.iv-preview-result.is-ok .iv-preview-v { color: #059669; }
+.iv-preview-result.is-warn .iv-preview-v { color: #b91c1c; }
+.iv-preview-result.is-ok .iv-preview-v { color: #047857; }
 .iv-preview-result.is-zero .iv-preview-v { color: #475569; }
-.iv-hint { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; line-height: 1.4; }
+.iv-hint { font-size: 0.72rem; color: #64748b; margin-top: 6px; line-height: 1.4; }
 .iv-quick-row { display: flex; gap: 6px; margin-top: 11px; }
 .iv-quick-btn {
     flex: 1;

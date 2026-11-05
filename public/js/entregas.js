@@ -222,10 +222,10 @@ const Entregas = {
         if (summaryEl) {
             summaryEl.innerHTML = `
                 <div style="display:grid;grid-template-columns:${this.isMobile ? '1fr 1fr' : 'repeat(6, 1fr)'};gap:0.65rem;margin-bottom:1rem;">
-                    ${this._summaryCard('Contado', formatCurrency(summary.contado), '#16a34a')}
-                    ${this._summaryCard('Crédito', formatCurrency(summary.credito), '#7c3aed')}
-                    ${this._summaryCard('Total', formatCurrency(summary.total), '#2563eb')}
-                    ${this._summaryCard('Días promedio', summary.avgDays.toFixed(1), '#ea580c')}
+                    ${this._summaryCard('Contado', formatCurrency(summary.contado), '#047857')}
+                    ${this._summaryCard('Crédito', formatCurrency(summary.credito), '#6d28d9')}
+                    ${this._summaryCard('Total', formatCurrency(summary.total), '#1e40af')}
+                    ${this._summaryCard('Días promedio', summary.avgDays.toFixed(1), '#92400e')}
                     ${this._summaryCard('Entregados', formatNumber(summary.count), '#0f766e')}
                     ${this._summaryCard('Pendientes', formatNumber(summary.pending), '#dc2626')}
                 </div>
@@ -234,7 +234,7 @@ const Entregas = {
         const list = document.getElementById('entregas-lista');
         if (!list) return;
         if (this._truncated) {
-            list.innerHTML = '<div style="margin-bottom:0.75rem;padding:0.5rem;background:#fff7ed;color:#b45309;border-radius:8px;font-size:0.8rem;text-align:center;">Se muestran las primeras 1,000 entregas. Ajusta el rango para ver más.</div>';
+            list.innerHTML = '<div style="margin-bottom:0.75rem;padding:0.5rem;background:#fff7ed;color:#92400e;border-radius:8px;font-size:0.8rem;text-align:center;">Se muestran las primeras 1,000 entregas. Ajusta el rango para ver más.</div>';
         } else {
             list.innerHTML = '';
         }
@@ -325,7 +325,7 @@ const Entregas = {
                     <td style="padding:4px 6px;">${esc(r.docNum)}</td>
                     <td style="padding:4px 6px;">${esc(r.cliente)}</td>
                     <td style="padding:4px 6px;">${esc(r.condicionPago)}</td>
-                    <td style="padding:4px 6px;text-align:right;font-weight:700;${r.doc === 'NC' ? 'color:#dc2626;' : ''}">${formatCurrency(signedAmount(r, 'venta'))}</td>
+                    <td style="padding:4px 6px;text-align:right;font-weight:700;${r.doc === 'NC' ? 'color:#991b1b;' : 'color:#0f172a;'}">${formatCurrency(signedAmount(r, 'venta'))}</td>
                     <td style="padding:4px 6px;">${esc(r.entrega)}</td>
                     <td style="padding:4px 6px;">${esc(r.cobra)}</td>
                 </tr>
@@ -420,7 +420,7 @@ const Entregas = {
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.docNum || '')}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.cliente || '')}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.condicionPago || '')}</td>
-                                <td style="padding:0.65rem;font-weight:700;${record.doc === 'NC' ? 'color:#ef4444;' : ''}">${formatCurrency(signedAmount(record, 'venta'))}</td>
+                                <td style="padding:0.65rem;font-weight:700;${record.doc === 'NC' ? 'color:#b91c1c;' : 'color:#0f172a;'}">${formatCurrency(signedAmount(record, 'venta'))}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.entrega || '')}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.cobra || '')}</td>
                             </tr>

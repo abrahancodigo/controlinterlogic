@@ -805,8 +805,8 @@ const Ivette = {
                     <tbody>${rowsHtml}</tbody>
                     <tfoot><tr>
                         <td colspan="2" style="text-align:right;font-weight:800;">Totales${this._invSelected ? ` · ${sanitizeHTML(this._invSelected)}` : ''}</td>
-                        <td class="iv-cardex-td-in" style="font-weight:800;color:#059669;">${formatNumber(totalsEntradas)}</td>
-                        <td class="iv-cardex-td-out" style="font-weight:800;color:#ea580c;">${formatNumber(totalsSalidas)}</td>
+                        <td class="iv-cardex-td-in" style="font-weight:800;color:#047857;">${formatNumber(totalsEntradas)}</td>
+                        <td class="iv-cardex-td-out" style="font-weight:800;color:#92400e;">${formatNumber(totalsSalidas)}</td>
                         <td class="iv-cardex-td-saldo ${saldoClass}" style="font-weight:900;">${formatNumber(saldoFinal)}</td>
                     </tr></tfoot>
                 </table>
@@ -1371,7 +1371,7 @@ const Ivette = {
 
         const isIngreso = record.tipo === 'ingreso';
         const tipoLabel = isIngreso ? 'ENTRADA' : 'SALIDA';
-        const tipoColor = isIngreso ? '#059669' : '#ea580c';
+        const tipoColor = isIngreso ? '#047857' : '#92400e';
         const tipoBg = isIngreso ? '#ecfdf5' : '#fff7ed';
         const correlativo = record.correlativo != null && record.correlativo !== '' ? String(record.correlativo) : '—';
         const fecha = record.fecha ? formatDate(record.fecha.toDate ? record.fecha.toDate() : record.fecha, true) : '—';

@@ -574,7 +574,7 @@ const InterlogicFilters = {
                 <input type="checkbox" id="${safeId}" data-value="${keyAttr}" ${pending.includes(key) ? 'checked' : ''}
                        onchange="Interlogic.updateFilterValue('${field}', '${keyJs}', this.checked)" onclick="event.stopPropagation()" style="margin-top:3px;">
                 <label for="${safeId}" style="flex:1;line-height:1.35;"><strong>${sanitizeHTML(r.cliente || ' (Vacío)')}</strong><br><span style="font-size:0.72rem;color:#6b7280;">${sanitizeHTML(r.guia || '')} · ${sanitizeHTML(fecha)}</span></label>
-                <span style="font-size:0.75rem;font-weight:700;color:#059669;white-space:nowrap;">${formatCurrency(venta)}</span>
+                <span style="font-size:0.75rem;font-weight:700;color:#047857;white-space:nowrap;">${formatCurrency(venta)}</span>
             </div>
         `}).join('');
         return html + `<div style="display:flex;justify-content:flex-end;padding:8px 4px 2px;border-top:1px solid #e5e7eb;margin-top:6px;font-size:0.8rem;font-weight:700;color:#0f172a;">Suma visible: ${formatCurrency(rows.reduce((s, r) => s + (Number(r.venta) || 0), 0))}</div>`;

@@ -188,9 +188,9 @@ const KpiEvaluation = {
 
             // New Vibrant Palette
             const getColor = (val) => {
-                if (val >= 8) return { main: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }; // Emerald 500
-                if (val >= 6) return { main: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' }; // Amber 500
-                return { main: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)' }; // Rose 500
+                if (val >= 8) return { main: '#047857', bg: 'rgba(16, 185, 129, 0.15)' };
+                if (val >= 6) return { main: '#b45309', bg: 'rgba(245, 158, 11, 0.15)' };
+                return { main: '#b91c1c', bg: 'rgba(244, 63, 94, 0.15)' };
             };
 
             const avgColors = getColor(avg);
@@ -272,16 +272,16 @@ const KpiEvaluation = {
 
         const avgEl = document.getElementById('kpi-stat-avg');
         avgEl.textContent = generalAvg.toFixed(2);
-        avgEl.style.color = generalAvg >= 8 ? '#10b981' : generalAvg >= 6 ? '#f59e0b' : '#f43f5e';
+        avgEl.style.color = generalAvg >= 8 ? '#047857' : generalAvg >= 6 ? '#b45309' : '#b91c1c';
 
         const bestEl = document.getElementById('kpi-stat-best');
         bestEl.textContent = `${best.icon} ${best.label} (${best.avg.toFixed(1)})`;
-        bestEl.style.color = '#10b981';
+        bestEl.style.color = '#047857';
         bestEl.style.fontWeight = '700';
 
         const worstEl = document.getElementById('kpi-stat-worst');
         worstEl.textContent = `${worst.icon} ${worst.label} (${worst.avg.toFixed(1)})`;
-        worstEl.style.color = '#f43f5e';
+        worstEl.style.color = '#b91c1c';
         worstEl.style.fontWeight = '700';
     },
 
@@ -543,11 +543,11 @@ const KpiEvaluation = {
             }, this).sort(function(a, b) { return b._avg - a._avg; });
 
             list.innerHTML = sorted.map(function(record, index) {
-                var avgColor = record._avg >= 8 ? '#10b981' : record._avg >= 6 ? '#f59e0b' : '#f43f5e';
+                var avgColor = record._avg >= 8 ? '#047857' : record._avg >= 6 ? '#b45309' : '#b91c1c';
                 var scoresHtml = '';
                 this.kpiAspects.forEach(function(a, i) {
                     var score = record._scores[i];
-                    var sc = score >= 8 ? '#10b981' : score >= 6 ? '#f59e0b' : '#f43f5e';
+                    var sc = score >= 8 ? '#047857' : score >= 6 ? '#b45309' : '#b91c1c';
                     scoresHtml += '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:' + sc + '15;font-size:0.72rem;font-weight:600;color:' + sc + ';">' + a.icon + ' ' + score + '</span>';
                 });
 
@@ -591,7 +591,7 @@ const KpiEvaluation = {
             var worst = aspectAvgs.reduce(function(a, b) { return a.avg < b.avg ? a : b; });
 
             var avgEl = document.getElementById('mkpi-avg');
-            if (avgEl) { avgEl.textContent = generalAvg.toFixed(1); avgEl.style.color = generalAvg >= 8 ? '#10b981' : generalAvg >= 6 ? '#f59e0b' : '#f43f5e'; }
+            if (avgEl) { avgEl.textContent = generalAvg.toFixed(1); avgEl.style.color = generalAvg >= 8 ? '#047857' : generalAvg >= 6 ? '#b45309' : '#b91c1c'; }
             set('mkpi-best', best.icon + ' ' + best.label + ' (' + best.avg.toFixed(1) + ')');
             set('mkpi-worst', worst.icon + ' ' + worst.label + ' (' + worst.avg.toFixed(1) + ')');
         } else {

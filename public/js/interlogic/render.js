@@ -909,11 +909,11 @@ const InterlogicRender = {
             <tr style="font-weight: 700; background: ${totalsBg}; color: ${totalsColor}; border: ${totalsBorder};">
                 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 <td style="text-align: right; color: ${totalsColor};">${totalsLabel}</td>
-                <td style="color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
-                <td style="color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
+                <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
+                <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
                 <td style="color: ${totalsColor};">${displayTotals.cajas}</td>
-                <td style="color: ${totalsColor};">${formatCurrencySigned(displayTotals.envio)}</td>
-                <td style="color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
+                <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.envio)}</td>
+                <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
             ${this._truncated ? '<tr><td colspan="22" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
