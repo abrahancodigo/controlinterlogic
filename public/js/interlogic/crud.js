@@ -1671,7 +1671,7 @@ const InterlogicCRUD = {
         const fields = [...this.columnDefs.filter(f => f.key !== 'acciones'), { key: 'direccion', label: 'Dirección' }].map(f => {
             let value = r[f.key];
             if (f.key === 'fecha') value = value ? formatDateShort(value) : '—';
-            else if (['venta', 'costoEnvio'].includes(f.key)) value = formatCurrencySigned(r.doc === 'NC' ? -Math.abs(value || 0) : value || 0);
+            else if (['venta', 'costoEnvio'].includes(f.key)) value = formatCurrencySigned(value || 0);
             else if (f.key === 'costoPorcentaje') value = formatNumber(value || 0, 2) + '%';
             else value = value == null || value === '' ? '—' : String(value);
             const editable = window.permissions?.canEdit && r.anulado !== true && ['entrega', 'cobra', 'encargado'].includes(f.key);

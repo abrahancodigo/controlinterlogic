@@ -656,7 +656,7 @@ const InterlogicRender = {
                 html += '<div class="mf-record-top"><span class="mf-guide">Guía #' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span><span class="mf-status mf-status-' + status + '">' + labels[status] + '</span></div>';
                 html += '<h3 class="mf-record-client">' + sanitizeHTML(r.cliente || 'Cliente sin nombre') + '</h3><p class="mf-record-destination">' + sanitizeHTML(destination) + '</p>';
                 html += '<div class="mf-record-meta"><span>' + (r.fecha ? formatDateShort(r.fecha) : 'Sin fecha') + '</span><span>' + formatNumber(r.bultos || 0) + ' bultos</span><span>' + sanitizeHTML(r.empresa || 'Sin empresa') + '</span></div>';
-                html += '<div class="mf-record-bottom"><div><span class="mf-money-label">' + (r.doc === 'NC' ? 'Nota de crédito' : 'Venta') + '</span><strong class="mf-record-money' + (r.doc === 'NC' ? ' mf-credit-money' : '') + '">' + formatCurrencySigned(r.doc === 'NC' ? -Math.abs(r.venta || 0) : r.venta || 0) + '</strong></div><div class="mf-record-buttons">';
+                html += '<div class="mf-record-bottom"><div><span class="mf-money-label">' + (r.doc === 'NC' ? 'Nota de crédito' : 'Venta') + '</span><strong class="mf-record-money' + (r.doc === 'NC' ? ' mf-credit-money' : '') + '">' + formatCurrencySigned(r.venta || 0) + '</strong></div><div class="mf-record-buttons">';
                 if (editable) html += '<button type="button" class="m-btn-edit mf-edit-button" data-record-id="' + id + '">' + self.mobileIcon('edit') + ' Editar</button>';
                 if (editable || canDelete) {
                     html += '<details class="mf-card-options"><summary aria-label="Más acciones para la guía ' + sanitizeHTML(r.guia || r.id) + '">' + self.mobileIcon('more') + '</summary><div class="mf-card-menu">';
@@ -840,7 +840,7 @@ const InterlogicRender = {
                 <td data-label="Municipio">${sanitizeHTML(record.municipio || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>
-                <td data-label="Venta" style="${record.doc === 'NC' && record.anulado !== true ? 'color: #ef4444; font-weight: 700;' : ''}">${formatCurrency(record.venta || 0)}</td>
+                <td data-label="Venta" class="${record.doc === 'NC' && record.anulado !== true ? 'il-nc-value' : ''}">${formatCurrency(record.venta || 0)}</td>
                 <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
                 <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>

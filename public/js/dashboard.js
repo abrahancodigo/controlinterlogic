@@ -22,6 +22,12 @@ const Dashboard = {
     _trendMonths: null,
     _metaMonthKey: '',
     _metaMonthKeySel: '',
+    _chartPalette: [
+        '#4F46E5', '#F43F5E', '#10B981', '#F59E0B', '#06B6D4',
+        '#EC4899', '#84CC16', '#8B5CF6', '#F97316', '#14B8A6',
+        '#EF4444', '#0EA5E9', '#A855F7', '#22C55E', '#EAB308'
+    ],
+    _chartBrandColors: { DALSE: '#8B5CF6', INTERLOGISTIC: '#3B82F6', XPRESS: '#EF4444', INCEDE: '#F59E0B' },
 
     init() {
         const today = new Date();
@@ -1463,8 +1469,8 @@ const Dashboard = {
             chart: { background: 'transparent', type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, animations: { enabled: true, speed: 900, animateGradually: { enabled: true, delay: 120 } }, dropShadow: { enabled: true, top: 10, left: 0, blur: 18, color: theme === 'dark' ? '#000000' : '#7c3aed', opacity: theme === 'dark' ? 0.38 : 0.15 }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('contado'); else if (idx === 1) this.showDetailModal('credito'); } } },
             series: [0, 0],
             labels: ['Contado', 'Crédito'],
-            colors: ['#22c55e', '#f59e0b'],
-            fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#16a34a', '#d97706'], opacityFrom: 1, opacityTo: 0.86, stops: [0, 100] } },
+            colors: ['#22C55E', '#F59E0B'],
+            fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#10B981', '#F97316'], opacityFrom: 1, opacityTo: 0.9, stops: [0, 100] } },
             plotOptions: {
                 pie: {
                     customScale: 1.04,
@@ -1500,7 +1506,7 @@ const Dashboard = {
             series: [{ name: 'Ventas', data: [] }],
             xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { fontSize: '14px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } }, crosshairs: { show: false } },
             yaxis: { labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif', colors: mutedColor } } },
-            colors: ['#ef4444', '#3b82f6', '#22c55e'],
+            colors: this._chartPalette.slice(0, 10),
             plotOptions: {
                 bar: {
                     borderRadius: 16,
@@ -1564,8 +1570,8 @@ const Dashboard = {
                 chart: { background: 'transparent', type: 'donut', fontFamily: 'Inter, sans-serif', height: 380, sparkline: { enabled: false }, animations: { enabled: true, speed: 900, animateGradually: { enabled: true, delay: 120 } }, dropShadow: { enabled: true, top: 10, left: 0, blur: 18, color: theme === 'dark' ? '#000000' : '#06b6d4', opacity: theme === 'dark' ? 0.38 : 0.15 }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; if (idx === 0) this.showDetailModal('dalse'); else if (idx === 1) this.showIncedeDetailModal(); } } },
                 series: [0, 0],
                 labels: ['Dalse', 'Incede'],
-                colors: ['#3b82f6', '#ef4444'],
-                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#1d4ed8', '#dc2626'], opacityFrom: 1, opacityTo: 0.86, stops: [0, 100] } },
+                colors: ['#8B5CF6', '#F59E0B'],
+                fill: { type: 'gradient', gradient: { shade: 'dark', type: 'diagonal2', gradientToColors: ['#7C3AED', '#F97316'], opacityFrom: 1, opacityTo: 0.9, stops: [0, 100] } },
                 plotOptions: {
                     pie: {
                         customScale: 1.04,
@@ -1623,7 +1629,7 @@ const Dashboard = {
                 },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#eab308'],
+                colors: this._chartPalette.slice(0, 10),
                 fill: { type: 'solid' },
                 dropShadow: { enabled: true, top: 4, left: 0, blur: 9, color: '#000000', opacity: theme === 'dark' ? 0.42 : 0.16 },
                 dataLabels: {
@@ -1664,7 +1670,7 @@ const Dashboard = {
                 },
                 xaxis: { categories: [], axisBorder: { show: false }, axisTicks: { show: false }, labels: { formatter: v => v >= 1000 ? '$' + (v / 1000).toFixed(1) + 'k' : '$' + Math.round(v), style: { fontSize: '13px', fontFamily: 'Inter, sans-serif' } } },
                 yaxis: { labels: { style: { fontSize: '13px', fontWeight: 700, fontFamily: 'Inter, sans-serif', colors: labelColor } } },
-                colors: ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#14b8a6', '#eab308'],
+                colors: this._chartPalette.slice(0, 10),
                 fill: { type: 'solid' },
                 dropShadow: { enabled: true, top: 4, left: 0, blur: 9, color: '#000000', opacity: theme === 'dark' ? 0.42 : 0.16 },
                 dataLabels: {
@@ -1689,7 +1695,7 @@ const Dashboard = {
                 chart: { background: 'transparent', type: 'pie', fontFamily: 'Inter, sans-serif', height: 494, toolbar: { show: false }, events: { dataPointSelection: (e, c, config) => { const idx = config.dataPointIndex; const names = window.Dashboard._acumChartNames || []; if (names[idx]) this.showVendedorDetailModal(names[idx]); } } },
                 series: [],
                 labels: [],
-                colors: ['#3b82f6','#22c55e','#ef4444','#eab308','#f97316','#8b5cf6','#ec4899','#06b6d4','#14b8a6','#a855f7','#84cc16','#0ea5e9','#f43f5e','#f59e0b','#fb7185'],
+                colors: this._chartPalette.slice(),
                 fill: { type: 'solid' },
                 stroke: { width: 2, colors: [theme === 'dark' ? '#0f172a' : '#ffffff'] },
                 dropShadow: { enabled: true, top: 8, left: 0, blur: 16, color: theme === 'dark' ? '#000000' : '#7c3aed', opacity: theme === 'dark' ? 0.42 : 0.18 },
@@ -1735,7 +1741,7 @@ const Dashboard = {
                     { name: 'Contado', data: [] },
                     { name: 'Crédito', data: [] }
                 ],
-                colors: ['#3b82f6', '#22c55e', '#f59e0b'],
+                colors: ['#4F46E5', '#22C55E', '#F59E0B'],
                 fill: { type: 'gradient', gradient: { shade: 'dark', type: 'vertical', opacityFrom: 0.52, opacityTo: 0.04, stops: [0, 92] } },
                 stroke: { curve: 'smooth', width: [4, 2.5, 2.5], lineCap: 'round' },
                 markers: { size: 0, strokeWidth: 2, strokeColors: theme === 'dark' ? '#0f172a' : '#ffffff', hover: { size: 6, sizeOffset: 2 } },
@@ -1825,13 +1831,8 @@ const Dashboard = {
             const barMax = step;
             window.Dashboard.barTotal = total;
             window.Dashboard._barChartNames = data.bar.categories;
-            const carrierColors = {
-                DALSE: '#8b5cf6',
-                INTERLOGISTIC: '#3b82f6',
-                XPRESS: '#ef4444',
-                INCEDE: '#f59e0b'
-            };
-            const palette = ['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
+            const carrierColors = this._chartBrandColors;
+            const palette = this._chartPalette;
             const barColors = data.bar.categories.map((n, i) => carrierColors[n] || palette[i % palette.length]);
             const barHeight = Math.max(448, data.bar.categories.length * 145);
             this.charts.bar.updateOptions({
@@ -2074,8 +2075,7 @@ const Dashboard = {
         return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
     _getAcumColor(i) {
-        const palette = ['#3b82f6', '#22c55e', '#ef4444', '#eab308', '#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#a855f7', '#84cc16', '#0ea5e9', '#f43f5e', '#f59e0b', '#fb7185'];
-        return palette[i % palette.length];
+        return this._chartPalette[i % this._chartPalette.length];
     },
 
     updateAcumuladoVendedor(vendedorStats) {

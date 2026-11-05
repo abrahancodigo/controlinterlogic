@@ -445,3 +445,18 @@
 #il-data-table tbody tr.il-row-anulada td input[type="checkbox"] {
     accent-color: #991b1b;
 }
+
+/* ---- Fila entregada: verde claro ---- */
+#il-data-table tbody tr[style*="background: #dcfce7"] {
+    background: #dcfce7 !important;
+}
+
+/* ---- Venta de nota de crédito: rojo, porque resta en los totales ---- */
+#il-data-table td.il-nc-value {
+    color: #ef4444 !important;
+    font-weight: 700;
+}
+
+[data-theme="dark"] #il-data-table td.il-nc-value {
+    color: #f87171 !important;
+}
