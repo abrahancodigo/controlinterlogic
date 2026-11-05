@@ -75,7 +75,7 @@ const InterlogicCore = {
             const saved = localStorage.getItem('il_hidden_cols');
             if (saved) return JSON.parse(saved);
         } catch (e) { console.warn('localStorage parse error:', e); }
-        return ['guia', 'fecha', 'municipio', 'bultos', 'cobrador', 'costoEnvio', 'costoPorcentaje', 'observations', 'formaPago'];
+        return ['guia', 'fecha', 'doc', 'municipio', 'bultos', 'cobrador', 'costoEnvio', 'costoPorcentaje', 'observations', 'formaPago'];
     })(),
 
     // true cuando el rango se cargó completo con loadFullRange() (sin tiempo real)
