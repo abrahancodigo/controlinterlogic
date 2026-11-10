@@ -385,8 +385,8 @@ const InterlogicFilters = {
                         continue;
                     }
                     let recordValue;
-                    if (field === 'fecha') {
-                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    if (field === 'fecha' || field === 'impresa') {
+                        recordValue = record[field] ? formatDate(record[field], false) : ' (Vacío)';
                     } else if (field === 'venta' || field === 'costoEnvio') {
                         recordValue = formatNumber(record[field] || 0, 2);
                     } else if (field === 'costoPorcentaje') {
@@ -474,8 +474,8 @@ const InterlogicFilters = {
                         continue;
                     }
                     let recordValue;
-                    if (f === 'fecha') {
-                        recordValue = record.fecha ? formatDate(record.fecha, false) : ' (Vacío)';
+                    if (f === 'fecha' || f === 'impresa') {
+                        recordValue = record[f] ? formatDate(record[f], false) : ' (Vacío)';
                     } else if (f === 'venta' || f === 'costoEnvio') {
                         recordValue = formatNumber(record[f] || 0, 2);
                     } else if (f === 'costoPorcentaje') {
@@ -494,7 +494,7 @@ const InterlogicFilters = {
         });
         const sourceRecords = recordsForOptions.length > 0 ? recordsForOptions : this.records;
         uniqueValues = [...new Set(sourceRecords.map(r => {
-            if (field === 'fecha') return r.fecha ? formatDate(r.fecha, false) : ' (Vacío)';
+            if (field === 'fecha' || field === 'impresa') return r[field] ? formatDate(r[field], false) : ' (Vacío)';
             if (field === 'venta' || field === 'costoEnvio') return formatNumber(r[field] || 0, 2);
             if (field === 'costoPorcentaje') return formatNumber(r[field] || 0, 2) + '%';
             return String(r[field] || ' (Vacío)');
@@ -625,6 +625,7 @@ const InterlogicFilters = {
             endDate: today,
             guia: [],
             empresa: [],
+            impresa: [],
             fecha: [],
             doc: [],
             docNum: [],

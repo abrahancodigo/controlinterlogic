@@ -17,7 +17,7 @@ const InterlogicExcel = {
     },
 
     _ilCellValue(r, key) {
-        if (key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
+        if (key === 'fecha' || key === 'impresa') return r[key] ? formatDate(r[key], false) : '';
         if (key === 'venta' || key === 'costoEnvio' || key === 'bultos') {
             if (r.anulado === true) {
                 const value = Number(r[key]) || 0;
@@ -51,10 +51,11 @@ const InterlogicExcel = {
         return s;
     },
 
-    _ilCellDate(r) {
-        if (!r.fecha) return '';
+    _ilCellDate(r, key) {
+        var value = r[key || 'fecha'];
+        if (!value) return '';
         try {
-            var d = r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha);
+            var d = value.toDate ? value.toDate() : new Date(value);
             return isNaN(d.getTime()) ? '' : d;
         } catch (e) { return ''; }
     },
@@ -97,7 +98,7 @@ const InterlogicExcel = {
             sub.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
             sheet.getRow(2).height = 30;
             sheet.getRow(3).height = 8;
-            var widths = { guia: 13, empresa: 14, fecha: 13, doc: 9, docNum: 13, cliente: 32, departamento: 16, municipio: 16, vendedor: 16, condicionPago: 14, venta: 15, bultos: 10, cobrador: 10, costoEnvio: 13, costoPorcentaje: 11, observations: 42, entrega: 16, cobra: 16, encargado: 16, formaPago: 14 };
+            var widths = { guia: 13, empresa: 14, impresa: 13, fecha: 13, doc: 9, docNum: 13, cliente: 32, departamento: 16, municipio: 16, vendedor: 16, condicionPago: 14, venta: 15, bultos: 10, cobrador: 10, costoEnvio: 13, costoPorcentaje: 11, observations: 42, entrega: 16, cobra: 16, encargado: 16, formaPago: 14 };
             var tableCols = cols.map(function(c, i) {
                 var col = { name: c.label, filterButton: true };
                 if (i === 0) col.totalsRowLabel = 'TOTALES (' + self.filteredRecords.length + ' registros)';
@@ -106,7 +107,7 @@ const InterlogicExcel = {
             });
             var rows = this.filteredRecords.map(function(r) {
                 return cols.map(function(c) {
-                    if (c.key === 'fecha') return self._ilCellDate(r);
+                    if (c.key === 'fecha' || c.key === 'impresa') return self._ilCellDate(r, c.key);
                     return self._ilCellValue(r, c.key);
                 });
             });
@@ -215,7 +216,7 @@ const InterlogicExcel = {
         try {
             var self = this;
             var all = this._ilVisibleCols();
-            var weights = { guia: 1.1, empresa: 1.1, fecha: 1 };
+            var weights = { guia: 1.1, empresa: 1.1, impresa: 1, fecha: 1 };
             weights.doc = 0.7; weights.docNum = 1; weights.cliente = 2;
             weights.departamento = 1.3; weights.municipio = 1.3; weights.vendedor = 1.2;
             weights.condicionPago = 1.1; weights.venta = 1.1; weights.bultos = 0.8;
@@ -236,7 +237,7 @@ const InterlogicExcel = {
             };
             var rows = this.filteredRecords.map(function(r) {
                 return all.map(function(c) {
-                    if (c.key === 'fecha') return r.fecha ? formatDate(r.fecha, false) : '';
+                    if (c.key === 'fecha' || c.key === 'impresa') return r[c.key] ? formatDate(r[c.key], false) : '';
                     if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') return money(r, c.key);
                     if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0)).toFixed(2) + '%';
                     return plain(r[c.key]);
@@ -310,34 +311,73 @@ const InterlogicExcel = {
     },
 
     showImportExcel() {
+        const extraImportKeys = ['telefono', 'total'];
+        const numberKeys = ['venta', 'bultos', 'total', 'costoEnvio', 'costoPorcentaje'];
+        const dateKeys = ['impresa', 'fecha'];
         const importColumns = [
             { key: 'guia', label: 'Guía', aliases: ['guia'] },
             { key: 'empresa', label: 'Empresa', aliases: ['empresa'] },
+            { key: 'impresa', label: 'Impresa', aliases: ['impresa'] },
             { key: 'fecha', label: 'Fecha', aliases: ['fecha'] },
             { key: 'doc', label: 'Doc', aliases: ['doc', 'documento'] },
             { key: 'docNum', label: 'Doc #', aliases: ['doc #', 'doc#', 'numero documento', 'numero doc'] },
             { key: 'cliente', label: 'Cliente', aliases: ['cliente'] },
-            { key: 'telefono', label: 'Teléfono', aliases: ['telefono'] },
             { key: 'departamento', label: 'Departamento', aliases: ['departamento'] },
             { key: 'municipio', label: 'Municipio', aliases: ['municipio'] },
             { key: 'vendedor', label: 'Vendedor', aliases: ['vendedor'] },
             { key: 'condicionPago', label: 'Condición', aliases: ['condicion', 'condicion pago'] },
             { key: 'venta', label: 'Venta', aliases: ['venta', 'total venta'] },
+            { key: 'bultos', label: 'Bultos', aliases: ['bultos'] },
             { key: 'cobrador', label: 'Cajas', aliases: ['cajas'] },
-            { key: 'total', label: 'Total', aliases: ['total'] },
-            { key: 'bultos', label: 'Bultos', aliases: ['bultos'] }
+            { key: 'costoEnvio', label: 'Envío', aliases: ['envio', 'costo envio'] },
+            { key: 'costoPorcentaje', label: '% Costo', aliases: ['costo', 'porcentaje costo'] },
+            { key: 'observations', label: 'Observaciones', aliases: ['observaciones', 'observations'] },
+            { key: 'entrega', label: 'Entrega', aliases: ['entrega'] },
+            { key: 'cobra', label: 'Cobra', aliases: ['cobra'] },
+            { key: 'encargado', label: 'Encargado', aliases: ['encargado'] },
+            { key: 'formaPago', label: 'Forma Pago', aliases: ['forma pago'] },
+            { key: 'telefono', label: 'Teléfono', aliases: ['telefono'] },
+            { key: 'total', label: 'Total', aliases: ['total'] }
         ];
+        const tableOrderKeys = importColumns.filter(c => extraImportKeys.indexOf(c.key) === -1).map(c => c.key);
+        const legacyOrderKeys = ['guia', 'empresa', 'fecha', 'doc', 'docNum', 'cliente', 'telefono', 'departamento', 'municipio', 'vendedor', 'condicionPago', 'venta', 'cobrador', 'total', 'bultos'];
+        const currentOrderKeys = () => {
+            const select = document.getElementById('import-order');
+            return select && select.value === 'legacy' ? legacyOrderKeys : tableOrderKeys;
+        };
+        const toFirebaseDate = (value) => {
+            if (!value) return null;
+            try {
+                let d = value;
+                if (typeof d === 'number') {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    d = new Date(excelEpoch.getTime() + d * 86400000);
+                    d.setHours(12, 0, 0, 0);
+                } else if (!(d instanceof Date)) {
+                    d = new Date(d);
+                }
+                if (isNaN(d.getTime())) return null;
+                return firebase.firestore.Timestamp.fromDate(d);
+            } catch (e) { return null; }
+        };
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
 
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 700px;">
                 <h2 style="margin-bottom: 1.5rem;">📤 Importar desde Excel</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">El archivo puede tener estas columnas en cualquier orden si incluye encabezados. Sin encabezados, usa este orden:</p>
-                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.75rem; font-size: 0.85rem; overflow-x: auto;">
-                    <code>${importColumns.map(column => column.label).join(' | ')}</code>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">El archivo puede tener estas columnas en cualquier orden si incluye encabezados. Sin encabezados, usa este orden (el mismo de la tabla):</p>
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem; font-size: 0.85rem; overflow-x: auto;">
+                    <code>${importColumns.filter(column => extraImportKeys.indexOf(column.key) === -1).map(column => column.label).join(' | ')}</code>
                 </div>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Columnas de la tabla como <strong>Observaciones</strong>, <strong>Entrega</strong>, <strong>Cobra</strong>, <strong>Encargado</strong>, <strong>Envío</strong> y <strong>% Costo</strong> no se importan desde el Excel (se calculan solas o se llenan a mano después de importar).</p>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label for="import-order" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">Orden de las columnas cuando el archivo NO trae encabezados</label>
+                    <select id="import-order" style="padding: 0.5rem 0.75rem; border: 1px solid var(--gray-300); border-radius: var(--radius-md); width: 100%; font-size: 0.9rem;">
+                        <option value="table">Orden de la tabla (Guía, Empresa, Impresa, Fecha, Doc, Doc #, …)</option>
+                        <option value="legacy">Orden anterior (Guía, Empresa, Fecha, Doc, … con Teléfono y Total)</option>
+                    </select>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Cada columna cae en su lugar: Doc #, Cliente, Departamento, Municipio, Vendedor, Condición, Venta, Bultos, Cajas, Observaciones, Entrega, Cobra, Encargado y Forma Pago se guardan tal cual. <strong>Envío</strong> y <strong>% Costo</strong> se recalculan al importar y <strong>Acciones</strong> no se importa. Si el archivo trae encabezados, también se leen <strong>Teléfono</strong> y <strong>Total</strong>.</p>
                 <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--gray-200);">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.5rem;">
                         <input type="checkbox" id="import-use-custom-date" checked style="width: 18px; height: 18px; cursor: pointer;">
@@ -367,16 +407,12 @@ const InterlogicExcel = {
         });
 
         let parsedData = [];
+        let currentFile = null;
 
-        document.getElementById('import-file').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
+        const loadFile = async (file) => {
                 try {
                     await ensureLib('xlsx');
-                    const data = new Uint8Array(evt.target.result);
+                    const data = new Uint8Array(await file.arrayBuffer());
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -399,49 +435,54 @@ const InterlogicExcel = {
                         }
                     }
 
+                    const order = currentOrderKeys();
+                    const pick = (row, key) => {
+                        if (headerMap) return headerMap[key] === undefined ? undefined : row[headerMap[key]];
+                        const index = order.indexOf(key);
+                        return index === -1 ? undefined : row[index];
+                    };
+
                     parsedData = [];
                     for (let i = startRow; i < rows.length; i++) {
                         const r = rows[i];
                         if (!r || r.length === 0) continue;
-                        const cell = (key, fallbackIndex) => headerMap ? r[headerMap[key]] : r[fallbackIndex];
-                        if (!cell('guia', 0) && !cell('cliente', 5)) continue;
-                        parsedData.push({
-                            guia: String(cell('guia', 0) || ''),
-                            empresa: String(cell('empresa', 1) || ''),
-                            fecha: cell('fecha', 2) || null,
-                            doc: String(cell('doc', 3) || ''),
-                            docNum: String(cell('docNum', 4) || ''),
-                            cliente: String(cell('cliente', 5) || ''),
-                            telefono: String(cell('telefono', 6) || ''),
-                            departamento: String(cell('departamento', 7) || ''),
-                            municipio: String(cell('municipio', 8) || ''),
-                            vendedor: String(cell('vendedor', 9) || ''),
-                            condicionPago: String(cell('condicionPago', 10) || ''),
-                            venta: parseExcelNumber(cell('venta', 11)),
-                            cobrador: String(cell('cobrador', 12) || ''),
-                            total: parseExcelNumber(cell('total', 13)),
-                            bultos: parseExcelNumber(cell('bultos', 14))
+                        if (!pick(r, 'guia') && !pick(r, 'cliente')) continue;
+                        const record = {};
+                        importColumns.forEach(column => {
+                            const raw = pick(r, column.key);
+                            if (numberKeys.indexOf(column.key) !== -1) record[column.key] = parseExcelNumber(raw);
+                            else if (dateKeys.indexOf(column.key) !== -1) record[column.key] = raw || null;
+                            else record[column.key] = String(raw || '').trim();
                         });
+                        parsedData.push(record);
                     }
+
+                    const previewDate = (value) => {
+                        if (!value) return '';
+                        if (value instanceof Date) return formatDateShort(value);
+                        if (typeof value === 'number') return formatDateShort(toFirebaseDate(value));
+                        return String(value);
+                    };
 
                     const preview = document.getElementById('import-preview');
                     if (parsedData.length > 0) {
                         preview.style.display = 'block';
                         preview.innerHTML = `
-                            <p style="margin-bottom: 0.5rem;"><strong>${parsedData.length} registros encontrados:</strong></p>
+                            <p style="margin-bottom: 0.5rem;"><strong>${parsedData.length} registros encontrados:</strong> ${headerMap ? 'columnas leídas por encabezado' : 'sin encabezados — leídas por posición con el orden ' + (order === legacyOrderKeys ? 'anterior' : 'de la tabla')}</p>
                             <table style="width: 100%; font-size: 0.8rem;">
-                                <thead><tr><th>Guía</th><th>Empresa</th><th>Cliente</th><th>Venta</th><th>Bultos</th></tr></thead>
+                                <thead><tr><th>Guía</th><th>Empresa</th><th>Impresa</th><th>Cliente</th><th>Venta</th><th>Bultos</th></tr></thead>
                                 <tbody>
                                     ${parsedData.slice(0, 10).map(d => `
                                         <tr>
                                             <td>${sanitizeHTML(d.guia || '')}</td>
                                             <td>${sanitizeHTML(d.empresa || '')}</td>
+                                            <td>${sanitizeHTML(previewDate(d.impresa))}</td>
                                             <td>${sanitizeHTML(d.cliente || '')}</td>
                                             <td>${formatCurrency(d.venta)}</td>
                                             <td>${formatNumber(d.bultos || 0)}</td>
                                         </tr>
                                     `).join('')}
-                                    ${parsedData.length > 10 ? '<tr><td colspan="5" style="text-align:center">... y ' + (parsedData.length - 10) + ' más</td></tr>' : ''}
+                                    ${parsedData.length > 10 ? '<tr><td colspan="6" style="text-align:center">... y ' + (parsedData.length - 10) + ' más</td></tr>' : ''}
                                 </tbody>
                             </table>
                         `;
@@ -454,8 +495,17 @@ const InterlogicExcel = {
                     console.error('Error parsing Excel:', err);
                     showToast('Error al leer el archivo: ' + err.message, 'error');
                 }
-            };
-            reader.readAsArrayBuffer(file);
+        };
+
+        document.getElementById('import-file').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            currentFile = file;
+            loadFile(file);
+        };
+
+        document.getElementById('import-order').onchange = () => {
+            if (currentFile) loadFile(currentFile);
         };
 
         document.getElementById('import-confirm').onclick = async () => {
@@ -482,29 +532,18 @@ const InterlogicExcel = {
                     const batch = db.batch();
                     chunk.forEach(record => {
                         const ref = db.collection('interlogic').doc();
+                        const esNC = String(record.doc || '').trim().toUpperCase() === 'NC';
+                        const venta = esNC ? Math.abs(record.venta || 0) : (record.venta || 0);
                         const costoEnvio = record.bultos * 1.85;
-                        const costoPorcentaje = record.venta > 0 ? (costoEnvio / record.venta) * 100 : 0;
+                        const costoPorcentaje = venta > 0 ? (costoEnvio / venta) * 100 : 0;
 
-                        let firebaseDate = customFirebaseDate;
-                        if (!customFirebaseDate && record.fecha) {
-                            try {
-                                let d = record.fecha;
-                                if (typeof d === 'number') {
-                                    const excelEpoch = new Date(1899, 11, 30);
-                                    d = new Date(excelEpoch.getTime() + d * 86400000);
-                                    d.setHours(12, 0, 0, 0);
-                                } else if (!(d instanceof Date)) {
-                                    d = new Date(d);
-                                }
-                                if (!isNaN(d.getTime())) {
-                                    firebaseDate = firebase.firestore.Timestamp.fromDate(d);
-                                }
-                            } catch (e) { /* ignore */ }
-                        }
+                        let firebaseDate = customFirebaseDate || toFirebaseDate(record.fecha);
 
                         batch.set(ref, {
                             ...record,
                             fecha: firebaseDate,
+                            impresa: toFirebaseDate(record.impresa),
+                            venta,
                             costoEnvio,
                             costoPorcentaje,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),

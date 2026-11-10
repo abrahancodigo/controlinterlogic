@@ -21,6 +21,7 @@ const InterlogicCore = {
         endDate: getLocalDateString(),
         guia: [],
         empresa: [],
+        impresa: [],
         fecha: [],
         doc: [],
         docNum: [],
@@ -50,6 +51,7 @@ const InterlogicCore = {
     columnDefs: [
         { key: 'guia', label: 'Guía' },
         { key: 'empresa', label: 'Empresa' },
+        { key: 'impresa', label: 'Impresa' },
         { key: 'fecha', label: 'Fecha' },
         { key: 'doc', label: 'Doc' },
         { key: 'docNum', label: 'Doc #' },

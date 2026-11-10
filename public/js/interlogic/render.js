@@ -8,7 +8,7 @@ const InterlogicRender = {
         clearTimeout(this._applyFiltersTimer);
         const message = '<div class="ux-empty" role="alert"><span class="ux-empty-title">No se pudieron cargar los registros</span><span class="ux-empty-text">Revisa tu conexión e inténtalo de nuevo.</span><button type="button" class="btn btn-secondary" data-il-retry>Reintentar</button></div>';
         const target = document.getElementById(this.isMobile ? 'm-data-list' : 'interlogic-table-body');
-        if (target) target.innerHTML = this.isMobile ? message : '<tr><td colspan="22">' + message + '</td></tr>';
+        if (target) target.innerHTML = this.isMobile ? message : '<tr><td colspan="23">' + message + '</td></tr>';
     },
 
     async render() {
@@ -125,6 +125,17 @@ const InterlogicRender = {
                                                    onclick="event.stopPropagation()"
                                                    onkeyup="Interlogic.searchInFilter('empresa', this.value)">
                                             <div class="filter-options-list" id="filter-options-empresa"></div>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header" onclick="Interlogic.toggleFilter(event, 'impresa')">
+                                        Impresa <span class="filter-trigger">▼</span>
+                                        <div class="filter-popup" id="filter-popup-impresa" onclick="event.stopPropagation()">
+                                            <input type="text" class="filter-popup-search" placeholder="Buscar..."
+                                                   onclick="event.stopPropagation()"
+                                                   onkeyup="Interlogic.searchInFilter('impresa', this.value)">
+                                            <div class="filter-options-list" id="filter-options-impresa"></div>
                                         </div>
                                     </div>
                                 </th>
@@ -330,11 +341,11 @@ const InterlogicRender = {
                             </tr>
                         </thead>
                         <tbody id="interlogic-table-body">
-                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 98%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 92%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 96%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 88%;"></span></td></tr>
-                            <tr class="il-skeleton-row"><td colspan="22"><span class="il-skeleton-bar" style="width: 94%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="23"><span class="il-skeleton-bar" style="width: 98%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="23"><span class="il-skeleton-bar" style="width: 92%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="23"><span class="il-skeleton-bar" style="width: 96%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="23"><span class="il-skeleton-bar" style="width: 88%;"></span></td></tr>
+                            <tr class="il-skeleton-row"><td colspan="23"><span class="il-skeleton-bar" style="width: 94%;"></span></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -798,7 +809,7 @@ const InterlogicRender = {
         if (this.filteredRecords.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="22" style="padding: 0;">
+                    <td colspan="23" style="padding: 0;">
                         <div class="ux-empty">
                             <span class="ux-empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
                             <span class="ux-empty-title">Sin registros</span>
@@ -832,6 +843,7 @@ const InterlogicRender = {
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>
+                <td data-label="Impresa">${record.impresa ? formatDateShort(record.impresa) : ''}</td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>
                 <td data-label="Doc">${sanitizeHTML(record.doc || '')}</td>
                 <td data-label="Doc #">${sanitizeHTML(record.docNum || '')}</td>
@@ -881,8 +893,8 @@ const InterlogicRender = {
         if (topPagEl) topPagEl.innerHTML = this._paginationBarHTML();
 
         const truncNotice = this._truncated
-            ? '<tr><td colspan="22" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
-            : (this._fullMode ? '<tr><td colspan="22" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
+            ? '<tr><td colspan="23" style="padding:0.5rem;background:#fff7ed;color:#b45309;font-size:0.78rem;text-align:center;">⚠ Para optimizar rendimiento y costo, solo se muestran los <strong>' + this.records.length.toLocaleString() + '</strong> registros más recientes del rango. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo el rango</button></td></tr>\n'
+            : (this._fullMode ? '<tr><td colspan="23" style="padding:0.4rem;background:#eff6ff;color:#1e40af;font-size:0.78rem;text-align:center;">📊 Mostrando los <strong>' + this.records.length.toLocaleString() + '</strong> registros del rango completo (modo sin tiempo real). <button type="button" onclick="Interlogic.reloadListener(true)" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;margin-left:6px;">↻ Volver a tiempo real</button></td></tr>\n' : '');
 
         const isAllAnulados = this.filteredRecords.length > 0 && this.filteredRecords.every(r => r.anulado === true);
         let displayTotals = totals;
@@ -904,10 +916,10 @@ const InterlogicRender = {
         const totalsBorder = isAllAnulados ? '1px solid #fecaca' : 'none';
 
         tfoot.innerHTML = `
-            ${isAllAnulados ? '<tr><td colspan="22" style="padding:6px 10px;text-align:center;font-size:0.78rem;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">⚠️ Filtraste solo pedidos ANULADOS — esta suma está en rojo y no se cuenta en los totales globales</td></tr>' : ''}
+            ${isAllAnulados ? '<tr><td colspan="23" style="padding:6px 10px;text-align:center;font-size:0.78rem;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">⚠️ Filtraste solo pedidos ANULADOS — esta suma está en rojo y no se cuenta en los totales globales</td></tr>' : ''}
             ${truncNotice}
             <tr style="font-weight: 700; background: ${totalsBg}; color: ${totalsColor}; border: ${totalsBorder};">
-                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 <td style="text-align: right; color: ${totalsColor};">${totalsLabel}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
@@ -916,9 +928,9 @@ const InterlogicRender = {
                 <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
-            ${this._truncated ? '<tr><td colspan="22" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
+            ${this._truncated ? '<tr><td colspan="23" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
-                <td colspan="22" style="padding: 0.5rem 0;">
+                <td colspan="23" style="padding: 0.5rem 0;">
                     ${this._paginationBarHTML()}
                 </td>
             </tr>

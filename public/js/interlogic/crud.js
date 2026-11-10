@@ -240,6 +240,15 @@ const InterlogicCRUD = {
             dateValue = formatDateForInput(new Date());
         }
 
+        let impresaValue = '';
+        if (record && record.impresa) {
+            const date = record.impresa.toDate ? record.impresa.toDate() : new Date(record.impresa);
+            impresaValue = formatDateForInput(date);
+        } else if (sourceRecord && sourceRecord.impresa) {
+            const date = sourceRecord.impresa.toDate ? sourceRecord.impresa.toDate() : new Date(sourceRecord.impresa);
+            impresaValue = formatDateForInput(date);
+        }
+
         const val = (field) => {
             if (record) return record[field] || '';
             if (sourceRecord) return sourceRecord[field] || '';
@@ -294,20 +303,24 @@ const InterlogicCRUD = {
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem;">
                                 <div class="form-group">
+                                    <label for="il-impresa">Impresa</label>
+                                    <input type="date" id="il-impresa" value="${impresaValue}">
+                                </div>
+                                <div class="form-group">
                                     <label for="il-fecha">Fecha *</label>
                                     <input type="date" id="il-fecha" value="${dateValue}" required>
                                 </div>
-                                <div class="form-group">
-                                    <label>Documento</label>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <select id="il-doc" style="flex: 1;">
-                                            <option value="" ${!val('doc') ? 'selected' : ''}>Tipo...</option>
-                                            <option value="CCF" ${val('doc') === 'CCF' ? 'selected' : ''}>CCF</option>
-                                            <option value="FT" ${val('doc') === 'FT' ? 'selected' : ''}>FT</option>
-                                            <option value="NC" ${val('doc') === 'NC' ? 'selected' : ''}>NC</option>
-                                        </select>
-                                        <input type="text" id="il-docNum" placeholder="#" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.docNum || '') : '')}" style="flex: 1;">
-                                    </div>
+                            </div>
+                            <div class="form-group" style="margin-top: 0.75rem;">
+                                <label>Documento</label>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <select id="il-doc" style="flex: 1;">
+                                        <option value="" ${!val('doc') ? 'selected' : ''}>Tipo...</option>
+                                        <option value="CCF" ${val('doc') === 'CCF' ? 'selected' : ''}>CCF</option>
+                                        <option value="FT" ${val('doc') === 'FT' ? 'selected' : ''}>FT</option>
+                                        <option value="NC" ${val('doc') === 'NC' ? 'selected' : ''}>NC</option>
+                                    </select>
+                                    <input type="text" id="il-docNum" placeholder="#" value="${sourceRecord ? '' : (record ? sanitizeHTML(record.docNum || '') : '')}" style="flex: 1;">
                                 </div>
                             </div>
                         </div>
@@ -784,6 +797,13 @@ const InterlogicCRUD = {
                     firebaseDate = firebase.firestore.Timestamp.fromDate(localDate);
                 }
 
+                const impresaVal = document.getElementById('il-impresa').value;
+                let impresaDate = null;
+                if (impresaVal) {
+                    const [iy, im, idd] = impresaVal.split('-').map(Number);
+                    impresaDate = firebase.firestore.Timestamp.fromDate(new Date(iy, im - 1, idd, 12, 0, 0));
+                }
+
                 const venta = Number(document.getElementById('il-venta').value) || 0;
                 const bultos = Number(document.getElementById('il-bultos').value) || 0;
 
@@ -794,6 +814,7 @@ const InterlogicCRUD = {
                     guia: document.getElementById('il-guia').value || '',
                     empresa: document.getElementById('il-empresa').value || '',
                     fecha: firebaseDate,
+                    impresa: impresaDate,
                     doc: document.getElementById('il-doc').value || '',
                     docNum: document.getElementById('il-docNum').value.trim() || '',
                     cliente: document.getElementById('il-cliente').value.trim() || '',
@@ -1670,7 +1691,7 @@ const InterlogicCRUD = {
         this._mobileDetailId = id;
         const fields = [...this.columnDefs.filter(f => f.key !== 'acciones'), { key: 'direccion', label: 'Dirección' }].map(f => {
             let value = r[f.key];
-            if (f.key === 'fecha') value = value ? formatDateShort(value) : '—';
+            if (f.key === 'fecha' || f.key === 'impresa') value = value ? formatDateShort(value) : '—';
             else if (['venta', 'costoEnvio'].includes(f.key)) value = formatCurrencySigned(value || 0);
             else if (f.key === 'costoPorcentaje') value = formatNumber(value || 0, 2) + '%';
             else value = value == null || value === '' ? '—' : String(value);
@@ -1693,7 +1714,8 @@ const InterlogicCRUD = {
             return '<div class="m-form-group"><label for="mf-' + key + '">' + label + '</label><select id="mf-' + key + '">' + (placeholder ? '<option value="">Seleccionar…</option>' : '') + options.map(value => '<option value="' + esc(value) + '"' + (record?.[key] === value ? ' selected' : '') + '>' + esc(value) + '</option>').join('') + '</select></div>';
         };
         const date = record?.fecha ? formatDateForInput(record.fecha) : formatDateForInput(new Date());
-        return '<div class="m-sheet-backdrop show" id="m-form-backdrop" data-m-close></div><div class="m-bottom-sheet show" id="m-form-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="mf-title">' + (isEdit ? 'Editar registro' : 'Nuevo registro') + '</span><button type="button" class="m-sheet-close" aria-label="Cerrar formulario" data-m-close>✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Completa los datos. Los campos con * son obligatorios.</p><form id="mf-fields"><fieldset class="mf-form-section"><legend>01 · Registro</legend>' + input('guia', 'Guía') + select('empresa', 'Empresa', ['DALSE', 'INCEDE']) + '<div class="m-form-group"><label for="mf-fecha">Fecha *</label><input type="date" id="mf-fecha" value="' + date + '" required><span class="mf-help-error">Selecciona una fecha.</span></div>' + select('doc', 'Tipo de documento', ['CCF', 'FT', 'NC']) + input('docNum', 'Número de documento') + '</fieldset><fieldset class="mf-form-section"><legend>02 · Cliente y destino</legend>' + input('cliente', 'Cliente *', 'text', 'required autocomplete="organization"') + '<div id="mf-cliente-observacion" class="mf-client-note" style="display:none;"></div>' + input('direccion', 'Dirección', 'text', 'autocomplete="street-address"') + input('telefono', 'Teléfono / WhatsApp', 'tel', 'inputmode="tel" autocomplete="tel"') + input('vendedor', 'Vendedor') + '</fieldset><fieldset class="mf-form-section"><legend>03 · Despacho y cobro</legend>' + input('venta', 'Venta ($)', 'number', 'step="0.01" inputmode="decimal"') + input('bultos', 'Bultos', 'number', 'step="1" min="0" inputmode="numeric"') + select('entrega', 'Quién entrega', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + select('cobra', 'Quién cobra', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + '<div class="m-form-group"><label for="mf-observations">Observaciones</label><textarea id="mf-observations" rows="3">' + esc(record?.observations) + '</textarea></div></fieldset></form></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cancelar</button><button type="button" class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar cambios' : 'Crear registro') + '</button></div></div>';
+        const impresaDate = record?.impresa ? formatDateForInput(record.impresa) : '';
+        return '<div class="m-sheet-backdrop show" id="m-form-backdrop" data-m-close></div><div class="m-bottom-sheet show" id="m-form-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="mf-title">' + (isEdit ? 'Editar registro' : 'Nuevo registro') + '</span><button type="button" class="m-sheet-close" aria-label="Cerrar formulario" data-m-close>✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Completa los datos. Los campos con * son obligatorios.</p><form id="mf-fields"><fieldset class="mf-form-section"><legend>01 · Registro</legend>' + input('guia', 'Guía') + select('empresa', 'Empresa', ['DALSE', 'INCEDE']) + '<div class="m-form-group"><label for="mf-impresa">Impresa</label><input type="date" id="mf-impresa" value="' + impresaDate + '"></div>' + '<div class="m-form-group"><label for="mf-fecha">Fecha *</label><input type="date" id="mf-fecha" value="' + date + '" required><span class="mf-help-error">Selecciona una fecha.</span></div>' + select('doc', 'Tipo de documento', ['CCF', 'FT', 'NC']) + input('docNum', 'Número de documento') + '</fieldset><fieldset class="mf-form-section"><legend>02 · Cliente y destino</legend>' + input('cliente', 'Cliente *', 'text', 'required autocomplete="organization"') + '<div id="mf-cliente-observacion" class="mf-client-note" style="display:none;"></div>' + input('direccion', 'Dirección', 'text', 'autocomplete="street-address"') + input('telefono', 'Teléfono / WhatsApp', 'tel', 'inputmode="tel" autocomplete="tel"') + input('vendedor', 'Vendedor') + '</fieldset><fieldset class="mf-form-section"><legend>03 · Despacho y cobro</legend>' + input('venta', 'Venta ($)', 'number', 'step="0.01" inputmode="decimal"') + input('bultos', 'Bultos', 'number', 'step="1" min="0" inputmode="numeric"') + select('entrega', 'Quién entrega', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + select('cobra', 'Quién cobra', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + '<div class="m-form-group"><label for="mf-observations">Observaciones</label><textarea id="mf-observations" rows="3">' + esc(record?.observations) + '</textarea></div></fieldset></form></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cancelar</button><button type="button" class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar cambios' : 'Crear registro') + '</button></div></div>';
     },
 
     showMobileForm(id) {
@@ -1801,10 +1823,18 @@ const InterlogicCRUD = {
                 _mfFirebaseDate = firebase.firestore.Timestamp.fromDate(new Date(_mfParts[0], _mfParts[1] - 1, _mfParts[2], 12, 0, 0));
             }
 
+            var _mfImpresaVal = document.getElementById('mf-impresa').value;
+            var _mfImpresaDate = null;
+            if (_mfImpresaVal) {
+                var _mfImpresaParts = _mfImpresaVal.split('-').map(Number);
+                _mfImpresaDate = firebase.firestore.Timestamp.fromDate(new Date(_mfImpresaParts[0], _mfImpresaParts[1] - 1, _mfImpresaParts[2], 12, 0, 0));
+            }
+
             var data = {
                 guia: document.getElementById('mf-guia').value,
                 empresa: document.getElementById('mf-empresa').value,
                 fecha: _mfFirebaseDate,
+                impresa: _mfImpresaDate,
                 doc: document.getElementById('mf-doc').value,
                 docNum: document.getElementById('mf-docNum').value,
                 cliente: document.getElementById('mf-cliente').value,
