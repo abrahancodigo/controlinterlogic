@@ -130,10 +130,22 @@ const Problemas = {
 
         await this.loadProblemas();
 
-        // Event delegation for mobile list
         const mList = document.getElementById('mprob-list');
         if (mList && !this._mobileListenerAdded) {
             mList.addEventListener('click', (e) => {
+                const imgMini = e.target.closest('.mprob-img-mini');
+                if (imgMini) {
+                    const id = imgMini.getAttribute('data-id');
+                    const idx = parseInt(imgMini.getAttribute('data-idx'), 10);
+                    if (id) this.viewImages(id, isNaN(idx) ? 0 : idx);
+                    return;
+                }
+                const btnGallery = e.target.closest('.mprob-btn-images');
+                if (btnGallery) {
+                    const id = btnGallery.getAttribute('data-id');
+                    if (id) this.viewImages(id, 0);
+                    return;
+                }
                 const deleteBtn = e.target.closest('.btn-delete-mprob');
                 if (deleteBtn) {
                     const id = deleteBtn.getAttribute('data-id');
@@ -248,10 +260,11 @@ const Problemas = {
                         </span>
                         <div class="prob-images-mini">
                             ${record.imagenes.slice(0, 4).map((url, idx) => {
-                                const safeUrl = sanitizeUrl(url) || '';
+                                const safeUrl = (typeof sanitizeUrl === 'function' ? sanitizeUrl(url) : '') || (/^https?:\/\//i.test(String(url || '')) ? String(url) : '');
+                                if (!safeUrl) return '';
                                 return `
-                                <div class="prob-img-mini" data-id="${record.id}" data-idx="${idx}">
-                                    <img src="${safeUrl}" alt="Imagen" loading="lazy">
+                                <div class="prob-img-mini" data-id="${record.id}" data-idx="${idx}" title="Ver imagen ${idx + 1}">
+                                    <img src="${sanitizeHTML(safeUrl)}" alt="Imagen ${idx + 1}" loading="lazy" onerror="this.style.display='none'">
                                     ${idx === 3 && imgCount > 4 ? `<div class="prob-img-more">+${imgCount - 4}</div>` : ''}
                                 </div>
                             `;
@@ -313,10 +326,12 @@ const Problemas = {
                 '<div class="m-card-row"><span class="m-card-label">Fecha</span><span class="m-card-value">' + fechaFactura + '</span></div>' +
                 '</div>' +
                 (observacion ? '<div style="font-size:0.8rem;color:#555;margin-bottom:8px;padding:8px 10px;background:#fef2f2;border-radius:10px;">' + sanitizeHTML(observacion.length > 120 ? observacion.substring(0, 120) + '...' : observacion) + '</div>' : '') +
-                (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;">' + record.imagenes.slice(0, 3).map(function(url) {
-                    const safeUrl = /^https?:\/\//i.test(url) ? url : '';
-                    return safeUrl ? '<div style="width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;"><img src="' + sanitizeHTML(safeUrl) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>' : '';
-                }).join('') + (imgCount > 3 ? '<div style="width:60px;height:60px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#8e8e93;flex-shrink:0;">+' + (imgCount - 3) + '</div>' : '') + '</div>' : '') +
+                (imgCount > 0 ? '<div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;"><span style="font-size:0.68rem;font-weight:700;color:#6b7280;display:inline-flex;align-items:center;gap:4px;">📷 ' + imgCount + ' imagen' + (imgCount > 1 ? 'es' : '') + '</span><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + record.imagenes.slice(0, 4).map(function(url, idx) {
+                    var su = (typeof sanitizeUrl === "function" ? sanitizeUrl(url) : '') || (/^https?:\/\//i.test(url) ? url : '');
+                    if (!su) return '';
+                    var more = (idx === 3 && imgCount > 4) ? '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:800;backdrop-filter:blur(1px);">+' + (imgCount - 4) + '</div>' : '';
+                    return '<div class="mprob-img-mini" data-id="' + sanitizeHTML(record.id) + '" data-idx="' + idx + '" style="width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;position:relative;border:1.5px solid #e5e7eb;cursor:pointer;background:#f9fafb;">' + '<img src="' + sanitizeHTML(su) + '" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" alt="Imagen ' + (idx + 1) + '" onerror="this.style.display=\'none\'">' + more + '</div>';
+                }).join('') + '</div><button class="mprob-btn-images" data-id="' + sanitizeHTML(record.id) + '" style="background:#f3f4f6;border:1px solid #e5e7eb;padding:0.3rem 0.6rem;border-radius:8px;font-size:0.7rem;font-weight:700;color:#6b7280;cursor:pointer;white-space:nowrap;">Ver galería</button></div>' : '') +
                 (canDelete ? '<div class="m-card-actions">' +
                     '<button class="m-card-action delete btn-delete-mprob" data-id="' + sanitizeHTML(record.id) + '" title="Eliminar">🗑️</button>' +
                 '</div>' : '') +
