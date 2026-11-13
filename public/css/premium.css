@@ -387,6 +387,12 @@ input::placeholder, textarea::placeholder{ color:#475569 !important; opacity:1; 
   border-color:var(--pm-brand-2) !important;
   box-shadow:0 6px 16px rgba(124,58,237,.28) !important;
 }
+#il-pagination-top button.page-btn-all,
+#il-pagination-top button.page-btn-all:hover{
+  background:var(--pm-brand-2) !important;
+  border-color:var(--pm-brand-2) !important;
+  color:#fff !important;
+}
 
 /* Dashboard — hero + KPI + charts cohesive */
 .dash-hero, .dash-topbar{

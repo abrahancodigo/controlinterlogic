@@ -364,11 +364,15 @@ const InterlogicExcel = {
         modal.className = 'modal-backdrop';
 
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-content" style="max-width: 700px; overflow-y: auto;">
                 <h2 style="margin-bottom: 1.5rem;">📤 Importar desde Excel</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">El archivo puede tener estas columnas en cualquier orden si incluye encabezados. Sin encabezados, usa este orden (el mismo de la tabla):</p>
                 <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 0.5rem; font-size: 0.85rem; overflow-x: auto;">
                     <code>${importColumns.filter(column => extraImportKeys.indexOf(column.key) === -1).map(column => column.label).join(' | ')}</code>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <button type="button" class="btn btn-secondary" id="import-download-template">⬇️ Descargar plantilla en blanco</button>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Excel con las cabeceras de la tabla listas para llenar.</span>
                 </div>
                 <div class="form-group" style="margin-bottom: 0.75rem;">
                     <label for="import-order" style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.35rem;">Orden de las columnas cuando el archivo NO trae encabezados</label>
@@ -405,6 +409,26 @@ const InterlogicExcel = {
             customDateInput.disabled = !customDateCheckbox.checked;
             customDateInput.style.opacity = customDateCheckbox.checked ? '1' : '0.5';
         });
+
+        document.getElementById('import-download-template').onclick = async (e) => {
+            const btn = e.currentTarget;
+            setButtonLoading(btn, true);
+            try {
+                await ensureLib('xlsx');
+                const headers = importColumns.filter(column => extraImportKeys.indexOf(column.key) === -1).map(column => column.label);
+                const sheet = XLSX.utils.aoa_to_sheet([headers]);
+                sheet['!cols'] = headers.map(label => ({ wch: Math.max(12, String(label).length + 2) }));
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, sheet, 'Interlogic');
+                XLSX.writeFile(workbook, 'Plantilla_Interlogic.xlsx');
+                showToast('Plantilla descargada', 'success');
+            } catch (err) {
+                console.error('Template error:', err);
+                showToast('No se pudo generar la plantilla: ' + err.message, 'error');
+            } finally {
+                setButtonLoading(btn, false);
+            }
+        };
 
         let parsedData = [];
         let currentFile = null;
