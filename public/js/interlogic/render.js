@@ -356,17 +356,23 @@ const InterlogicRender = {
         await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
 
         document.getElementById('filter-start-date').addEventListener('change', (e) => {
+            const prev = this.filters.startDate;
             this.filters.startDate = e.target.value;
             if (this.filters.startDate && this.filters.endDate && this.filters.startDate > this.filters.endDate) {
                 showToast('La fecha inicial no puede ser mayor que la final', 'warning');
+                this.filters.startDate = prev;
+                e.target.value = prev;
                 return;
             }
             this.reloadListener(true);
         });
         document.getElementById('filter-end-date').addEventListener('change', (e) => {
+            const prev = this.filters.endDate;
             this.filters.endDate = e.target.value;
             if (this.filters.startDate && this.filters.endDate && this.filters.startDate > this.filters.endDate) {
                 showToast('La fecha inicial no puede ser mayor que la final', 'warning');
+                this.filters.endDate = prev;
+                e.target.value = prev;
                 return;
             }
             this.reloadListener(true);
@@ -667,7 +673,7 @@ const InterlogicRender = {
                 html += '<div class="mf-record-top"><span class="mf-guide">Guía #' + sanitizeHTML(r.guia || r.id.substring(0,6).toUpperCase()) + '</span><span class="mf-status mf-status-' + status + '">' + labels[status] + '</span></div>';
                 html += '<h3 class="mf-record-client">' + sanitizeHTML(r.cliente || 'Cliente sin nombre') + '</h3><p class="mf-record-destination">' + sanitizeHTML(destination) + '</p>';
                 html += '<div class="mf-record-meta"><span>' + (r.fecha ? formatDateShort(r.fecha) : 'Sin fecha') + '</span><span>' + formatNumber(r.bultos || 0) + ' bultos</span><span>' + sanitizeHTML(r.empresa || 'Sin empresa') + '</span></div>';
-                html += '<div class="mf-record-bottom"><div><span class="mf-money-label">' + (r.doc === 'NC' ? 'Nota de crédito' : 'Venta') + '</span><strong class="mf-record-money' + (r.doc === 'NC' ? ' mf-credit-money' : '') + '">' + formatCurrencySigned(r.venta || 0) + '</strong></div><div class="mf-record-buttons">';
+                html += '<div class="mf-record-bottom"><div><span class="mf-money-label">' + (r.doc === 'NC' ? 'Nota de crédito' : 'Venta') + '</span><strong class="mf-record-money' + (r.doc === 'NC' ? ' mf-credit-money' : '') + '">' + (r.anulado === true ? formatCurrency(r.venta || 0) : formatCurrencySigned(signedAmount(r, 'venta'))) + '</strong></div><div class="mf-record-buttons">';
                 if (editable) html += '<button type="button" class="m-btn-edit mf-edit-button" data-record-id="' + id + '">' + self.mobileIcon('edit') + ' Editar</button>';
                 if (editable || canDelete) {
                     html += '<details class="mf-card-options"><summary aria-label="Más acciones para la guía ' + sanitizeHTML(r.guia || r.id) + '">' + self.mobileIcon('more') + '</summary><div class="mf-card-menu">';
@@ -839,7 +845,7 @@ const InterlogicRender = {
         const pageRecords = this.showAll ? this.filteredRecords : this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         tableBody.innerHTML = pageRecords.map(record => `
-            <tr class="${record.anulado === true ? 'il-row-anulada' : ''}" style="${record.anulado === true ? '' : (record.entregado === true ? 'background: #dcfce7; border-left: 4px solid #16a34a;' : '')}">
+            <tr class="${record.anulado === true ? 'il-row-anulada' : (record.entregado === true ? 'il-row-entregada' : '')}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
                 <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>
@@ -852,7 +858,7 @@ const InterlogicRender = {
                 <td data-label="Municipio">${sanitizeHTML(record.municipio || '')}</td>
                 <td data-label="Vendedor">${sanitizeHTML(record.vendedor || '')}</td>
                 <td data-label="Cond. Pago">${sanitizeHTML(record.condicionPago || '')}</td>
-                <td data-label="Venta" class="${record.doc === 'NC' && record.anulado !== true ? 'il-nc-value' : ''}">${formatCurrency(record.venta || 0)}</td>
+                <td data-label="Venta" class="${record.doc === 'NC' && record.anulado !== true ? 'il-nc-value' : ''}">${record.anulado === true ? formatCurrency(record.venta || 0) : formatCurrencySigned(signedAmount(record, 'venta'))}</td>
                 <td data-label="Bultos">${formatNumber(record.bultos || 0)}</td>
                 <td data-label="Cobrador">${sanitizeHTML(record.cobrador || '')}</td>
                 <td data-label="Costo Envío">${formatCurrency(record.costoEnvio || 0)}</td>
@@ -923,7 +929,7 @@ const InterlogicRender = {
                 <td style="text-align: right; color: ${totalsColor};">${totalsLabel}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
-                <td style="color: ${totalsColor};">${displayTotals.cajas}</td>
+                <td style="color: ${totalsColor};">${formatNumber(displayTotals.cajas)}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.envio)}</td>
                 <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
                 <td></td><td></td><td></td><td></td><td></td><td></td>

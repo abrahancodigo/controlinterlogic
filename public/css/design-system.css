@@ -1,0 +1,61 @@
+:root {
+    --ds-focus: #7c3aed;
+    --ds-row-delivered-bg: #dcfce7;
+    --ds-row-delivered-bar: #16a34a;
+    --ds-row-cancelled-bg: #dc2626;
+    --ds-row-cancelled-bg-hover: #b91c1c;
+    --ds-row-cancelled-bar: #7f1d1d;
+    --ds-badge-ink: #0f172a;
+}
+
+[data-theme="dark"] {
+    --ds-focus: #a78bfa;
+    --ds-row-delivered-bg: #12372e;
+    --ds-row-delivered-bar: #34d399;
+    --ds-row-cancelled-bg: #991b1b;
+    --ds-row-cancelled-bg-hover: #7f1d1d;
+    --ds-row-cancelled-bar: #fecaca;
+}
+
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--ds-focus);
+    outline-offset: 2px;
+}
+
+.data-table tbody tr {
+    background: var(--bg-primary);
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: var(--bg-primary);
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+#il-data-table tbody tr.il-row-anulada,
+#il-data-table tbody tr.il-row-anulada:nth-child(even) {
+    background: var(--ds-row-cancelled-bg) !important;
+    border-left: 4px solid var(--ds-row-cancelled-bar);
+}
+
+#il-data-table tbody tr.il-row-anulada:hover,
+#il-data-table tbody tr.il-row-anulada:active {
+    background: var(--ds-row-cancelled-bg-hover) !important;
+}
+
+#il-data-table tbody tr.il-row-anulada td {
+    color: #fff !important;
+    border-bottom-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+#il-data-table tbody tr.il-row-anulada td input[type="checkbox"] {
+    accent-color: #fff;
+}
+
+#il-data-table tbody tr.il-row-anulada .badge {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}

@@ -1,0 +1,367 @@
+/* ===================================
+   Depth — capa visual 3D, elevación y contraste
+   Append-only: refina sin romper. Ultimo en la cascada.
+   =================================== */
+
+/* ---------- Tokens de profundidad ---------- */
+:root {
+    --depth-1: 0 1px 2px rgba(15, 23, 42, .05), 0 2px 6px rgba(15, 23, 42, .04);
+    --depth-2: 0 2px 4px rgba(15, 23, 42, .06), 0 6px 16px rgba(15, 23, 42, .06);
+    --depth-3: 0 4px 8px rgba(15, 23, 42, .07), 0 12px 28px rgba(15, 23, 42, .09);
+    --depth-4: 0 8px 16px rgba(15, 23, 42, .09), 0 24px 48px rgba(15, 23, 42, .12);
+
+    --depth-inner: inset 0 1px 0 rgba(255, 255, 255, .85);
+    --depth-edge: inset 0 -1px 0 rgba(15, 23, 42, .06);
+    --depth-brand-glow: 0 10px 24px rgba(124, 58, 237, .22), 0 2px 6px rgba(124, 58, 237, .16);
+
+    --depth-perspective: 1000px;
+    --depth-lift: -3px;
+    --depth-lift-sm: -1.5px;
+
+    --depth-ease: cubic-bezier(.2, .8, .3, 1);
+    --depth-dur: 220ms;
+
+    --ds-sep: hsl(262, 16%, 90%);
+    --ds-sep-strong: hsl(262, 18%, 84%);
+    --ds-zebra: hsl(262, 30%, 99.2%);
+    --ds-row-hover: hsl(262, 62%, 97%);
+    --ds-row-hover-bar: #8b5cf6;
+    --ds-focus-ring: 0 0 0 3px rgba(124, 58, 237, .28);
+}
+
+[data-theme="dark"] {
+    --depth-1: 0 1px 2px rgba(0, 0, 0, .35), 0 2px 6px rgba(0, 0, 0, .28);
+    --depth-2: 0 2px 6px rgba(0, 0, 0, .42), 0 8px 20px rgba(0, 0, 0, .38);
+    --depth-3: 0 4px 10px rgba(0, 0, 0, .48), 0 16px 36px rgba(0, 0, 0, .45);
+    --depth-4: 0 8px 20px rgba(0, 0, 0, .55), 0 28px 60px rgba(0, 0, 0, .52);
+
+    --depth-inner: inset 0 1px 0 rgba(255, 255, 255, .06);
+    --depth-edge: inset 0 -1px 0 rgba(0, 0, 0, .4);
+    --depth-brand-glow: 0 10px 26px rgba(139, 92, 246, .3), 0 2px 8px rgba(0, 0, 0, .4);
+
+    --ds-sep: #223252;
+    --ds-sep-strong: #2c3f63;
+    --ds-zebra: #131e35;
+    --ds-row-hover: #1d2b48;
+    --ds-row-hover-bar: #a78bfa;
+    --ds-focus-ring: 0 0 0 3px rgba(167, 139, 250, .4);
+}
+
+/* ---------- Tabla: separadores reales, cifras alineadas ---------- */
+.data-table td,
+.data-table th {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+.data-table td {
+    border-bottom: 1px solid var(--ds-sep);
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: var(--ds-zebra);
+}
+
+.data-table tbody tr {
+    position: relative;
+    transition: background var(--depth-dur) var(--depth-ease),
+                box-shadow var(--depth-dur) var(--depth-ease);
+}
+
+.data-table tbody tr:hover {
+    background: var(--ds-row-hover);
+    box-shadow: inset 3px 0 0 0 var(--ds-row-hover-bar);
+}
+
+.data-table tbody tr:focus-within {
+    background: var(--ds-row-hover);
+    box-shadow: inset 3px 0 0 0 var(--ds-row-hover-bar), var(--ds-focus-ring);
+}
+
+.data-table thead th {
+    border-bottom: 2px solid var(--ds-sep-strong);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .6);
+}
+
+[data-theme="dark"] .data-table thead th {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+/* ---------- Filas de estado: clases reales, sin depender del estilo inline ---------- */
+#il-data-table tbody tr.il-row-entregada {
+    background: var(--ds-row-delivered-bg);
+    box-shadow: inset 4px 0 0 0 var(--ds-row-delivered-bar);
+}
+
+#il-data-table tbody tr.il-row-entregada:nth-child(even) {
+    background: var(--ds-row-delivered-bg);
+}
+
+#il-data-table tbody tr.il-row-entregada:hover {
+    box-shadow: inset 4px 0 0 0 var(--ds-row-delivered-bar), inset 0 0 0 999px rgba(22, 163, 74, .07);
+}
+
+#il-data-table tbody tr.il-row-anulada,
+#il-data-table tbody tr.il-row-anulada:nth-child(even) {
+    background: var(--ds-row-cancelled-bg) !important;
+    box-shadow: inset 4px 0 0 0 var(--ds-row-cancelled-bar);
+}
+
+#il-data-table tbody tr.il-row-anulada:hover {
+    background: var(--ds-row-cancelled-bg-hover) !important;
+}
+
+/* ---------- Botones: relieve real (luz arriba, sombra abajo) ---------- */
+.btn {
+    transition: transform var(--depth-dur) var(--depth-ease),
+                box-shadow var(--depth-dur) var(--depth-ease),
+                background-color var(--depth-dur) var(--depth-ease),
+                border-color var(--depth-dur) var(--depth-ease),
+                filter var(--depth-dur) var(--depth-ease);
+    will-change: transform;
+}
+
+.btn-primary,
+.btn-accent,
+.btn-success,
+.btn-danger {
+    box-shadow: var(--depth-brand-glow), var(--depth-inner), var(--depth-edge);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-accent:hover:not(:disabled),
+.btn-success:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+    transform: translateY(var(--depth-lift-sm));
+    filter: saturate(1.06) brightness(1.03);
+}
+
+.btn-primary:active:not(:disabled),
+.btn-accent:active:not(:disabled),
+.btn-success:active:not(:disabled),
+.btn-danger:active:not(:disabled) {
+    transform: translateY(1px) scale(.985);
+    box-shadow: var(--depth-1), inset 0 2px 5px rgba(15, 23, 42, .28);
+    filter: none;
+    transition-duration: 90ms;
+}
+
+.btn-secondary {
+    box-shadow: var(--depth-1), var(--depth-inner), inset 0 -1px 0 rgba(15, 23, 42, .05);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    transform: translateY(var(--depth-lift-sm));
+    box-shadow: var(--depth-2), var(--depth-inner);
+}
+
+.btn-secondary:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(15, 23, 42, .12);
+    transition-duration: 90ms;
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--ds-focus);
+    outline-offset: 2px;
+    box-shadow: var(--ds-focus-ring);
+}
+
+/* ---------- Tarjetas: elevacion en capas ---------- */
+.card,
+.stat-card,
+.dash-kpi-card,
+.dash-carrier-card,
+.dash-day-card {
+    box-shadow: var(--depth-2), var(--depth-inner);
+    transition: transform var(--depth-dur) var(--depth-ease),
+                box-shadow var(--depth-dur) var(--depth-ease);
+    transform: translateZ(0);
+}
+
+.card:hover,
+.stat-card:hover,
+.dash-kpi-card:hover,
+.dash-carrier-card:hover,
+.dash-day-card:hover {
+    transform: translateY(var(--depth-lift));
+    box-shadow: var(--depth-3), var(--depth-inner);
+}
+
+/* ---------- Perspectiva 3D en rejillas de KPI ---------- */
+.dash-kpi-grid,
+.dash-carrier-grid,
+.dash-day-grid,
+.stats-grid {
+    perspective: var(--depth-perspective);
+    perspective-origin: 50% 40%;
+}
+
+/* ---------- Badges: relieve + contraste garantizado ---------- */
+.badge,
+.il-badge,
+.card-category,
+.preview-badge {
+    box-shadow: var(--depth-1), inset 0 1px 0 rgba(255, 255, 255, .5);
+    transition: transform var(--depth-dur) var(--depth-ease),
+                box-shadow var(--depth-dur) var(--depth-ease);
+}
+
+[data-theme="dark"] .badge,
+[data-theme="dark"] .il-badge,
+[data-theme="dark"] .card-category {
+    box-shadow: var(--depth-1), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+tr:hover .badge,
+tr:focus-within .badge {
+    transform: translateY(-1px);
+    box-shadow: var(--depth-2), inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+
+/* ---------- Scrollbars: pulidos, con relieve ---------- */
+*::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a3aec2 0%, #8592a9 100%);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #6d28d9 0%, #5b21b6 100%);
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3d4f70 0%, #2c3b57 100%);
+    background-clip: content-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
+    background-clip: content-box;
+}
+
+/* ---------- Modales: profundidad de capa superior ---------- */
+.modal-content {
+    box-shadow: var(--depth-4), var(--depth-inner);
+    animation: depthModalIn 240ms var(--depth-ease) both;
+}
+
+@keyframes depthModalIn {
+    from { opacity: 0; transform: translateY(12px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- Motion accesible: global, no solo 5 clases ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .card:hover,
+    .stat-card:hover,
+    .dash-kpi-card:hover,
+    .dash-carrier-card:hover,
+    .dash-day-card:hover,
+    .btn:hover:not(:disabled) {
+        transform: none !important;
+    }
+}
+
+/* ---------- Movil: desactivar 3D (rendimiento y sin hover real) ---------- */
+@media (hover: none), (max-width: 768px) {
+    .dash-kpi-grid,
+    .dash-carrier-grid,
+    .dash-day-grid,
+    .stats-grid {
+        perspective: none;
+    }
+
+    .dash-kpi-card:hover,
+    .stat-card:hover,
+    .card:hover,
+    .dash-day-card:hover,
+    .dash-carrier-card:hover {
+        transform: none !important;
+    }
+
+    .dash-kpi-card::after {
+        display: none;
+    }
+}
+
+@media print {
+    .data-table tbody tr,
+    .card,
+    .stat-card,
+    .dash-kpi-card {
+        box-shadow: none !important;
+        transform: none !important;
+    }
+}
+
+
+.dash-kpi-card,
+.dash-carrier-card,
+.dash-day-card,
+.stat-card {
+    transform-style: preserve-3d;
+    position: relative;
+}
+
+.dash-kpi-card:hover,
+.stat-card:hover {
+    transform: translateY(var(--depth-lift)) rotateX(1.2deg) scale(1.012) !important;
+    z-index: 3;
+}
+
+.dash-kpi-card:active,
+.stat-card:active {
+    transform: translateY(-1px) rotateX(0deg) scale(.998) !important;
+    transition-duration: 100ms;
+}
+
+.dash-kpi-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, 0) 42%);
+    opacity: 0;
+    transition: opacity var(--depth-dur) var(--depth-ease);
+}
+
+.dash-kpi-card:hover::after {
+    opacity: 1;
+}
+
+[data-theme="dark"] .dash-kpi-card::after {
+    background: linear-gradient(135deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, 0) 45%);
+}

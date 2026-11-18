@@ -5,7 +5,8 @@ const Entregas = {
     filters: {
         startDate: getLocalDateString(),
         endDate: getLocalDateString(),
-        dateField: 'fecha'
+        dateField: 'fecha',
+        estado: ''
     },
     columnFilters: {},
     ventaMin: '',
@@ -19,7 +20,8 @@ const Entregas = {
         const contentArea = document.getElementById('content-area');
         if (!contentArea) return;
         contentArea.innerHTML = this._shellHTML();
-        this._bindEvents(contentArea);
+        const root = document.getElementById('entregas-content');
+        if (root) this._bindEvents(root);
         await this.load(token);
     },
 
@@ -101,7 +103,10 @@ const Entregas = {
     },
 
     async load(token) {
-        if (!this.filters.startDate || !this.filters.endDate) return;
+        if (!this.filters.startDate || !this.filters.endDate) {
+            showToast('Selecciona la fecha inicial y final', 'warning');
+            return;
+        }
         if (this.filters.startDate > this.filters.endDate) {
             showToast('La fecha inicial no puede ser mayor que la final', 'warning');
             return;
@@ -170,12 +175,12 @@ const Entregas = {
     _summary(records) {
         let contado = 0, credito = 0, total = 0, days = 0, entregados = 0;
         records.forEach(record => {
-            if (record.entregado !== true) return;
-            entregados++;
             const amount = signedAmount(record, 'venta');
             total += amount;
             if (record.condicionPago === 'Contado') contado += amount;
             if (record.condicionPago === 'Crédito') credito += amount;
+            if (record.entregado !== true) return;
+            entregados++;
             const carga = this._date(record.fecha);
             const entrega = this._date(record.fechaEntrega);
             if (carga && entrega) days += Math.max(0, (entrega - carga) / 86400000);
@@ -415,7 +420,7 @@ const Entregas = {
                     </thead>
                     <tbody>
                         ${filtered.map(record => `
-                            <tr style="border-top:1px solid var(--border-color,#e5e7eb);${record.entregado === true ? 'background:#dcfce7;' : ''}">
+                            <tr class="${record.entregado === true ? 'il-row-entregada' : ''}" style="border-top:1px solid var(--border-color,#e5e7eb);">
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.doc || '')}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.docNum || '')}</td>
                                 <td style="padding:0.65rem;">${sanitizeHTML(record.cliente || '')}</td>
@@ -442,6 +447,10 @@ const Entregas = {
         const field = button.dataset.colFilter;
         const column = this._columns().find(item => item.key === field);
         if (!column) return;
+        if (this._filterDocHandler) {
+            document.removeEventListener('click', this._filterDocHandler);
+            this._filterDocHandler = null;
+        }
         const existing = document.querySelector('.entregas-filter-panel');
         const wasSame = existing && existing.dataset.field === field;
         if (existing) existing.remove();
@@ -527,12 +536,20 @@ const Entregas = {
             });
         }
 
+        const closePanel = () => {
+            panel.remove();
+            if (this._filterDocHandler) {
+                document.removeEventListener('click', this._filterDocHandler);
+                this._filterDocHandler = null;
+            }
+        };
+
         panel.addEventListener('click', (event) => {
             const sort = event.target.closest('[data-ef-sort]')?.dataset.efSort;
             if (sort) {
                 this.sortField = field;
                 this.sortDir = sort;
-                panel.remove();
+                closePanel();
                 this._renderResults();
                 return;
             }
@@ -548,22 +565,22 @@ const Entregas = {
                     if (checked.length === checkboxes.length) delete this.columnFilters[field];
                     else this.columnFilters[field] = new Set(checked);
                 }
-                panel.remove();
+                closePanel();
                 this._renderResults();
             } else if (action === 'limpiar') {
                 if (column.numeric) { this.ventaMin = ''; this.ventaMax = ''; }
                 else delete this.columnFilters[field];
-                panel.remove();
+                closePanel();
                 this._renderResults();
             }
         });
 
         setTimeout(() => {
-            document.addEventListener('click', function handler(event) {
+            this._filterDocHandler = (event) => {
                 if (panel.contains(event.target) || event.target.closest('[data-col-filter]') === button) return;
-                panel.remove();
-                document.removeEventListener('click', handler);
-            });
+                closePanel();
+            };
+            document.addEventListener('click', this._filterDocHandler);
         }, 0);
     },
 
@@ -640,6 +657,10 @@ if (window.ModuleRegistry) {
         render: () => Entregas.render(),
         cleanup: () => {
             document.querySelectorAll('.entregas-filter-panel').forEach(el => el.remove());
+            if (Entregas._filterDocHandler) {
+                document.removeEventListener('click', Entregas._filterDocHandler);
+                Entregas._filterDocHandler = null;
+            }
         }
     });
 }

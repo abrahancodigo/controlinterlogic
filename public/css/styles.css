@@ -114,6 +114,12 @@
     --kpi-credito: #f59e0b;
     --kpi-dalse: #06b6d4;
 
+    /* Tintas para texto: los tonos vividos no alcanzan AA sobre blanco */
+    --kpi-total-ink: #5b21b6;
+    --kpi-contado-ink: #047857;
+    --kpi-credito-ink: #b45309;
+    --kpi-dalse-ink: #0e7490;
+
     --chart-grid: #e2e8f0;
 
     --surface: #ffffff;
@@ -6227,6 +6233,11 @@ tbody tr:hover {
     --kpi-contado: #34d399;
     --kpi-credito: #fbbf24;
     --kpi-dalse: #22d3ee;
+
+    --kpi-total-ink: #c4b5fd;
+    --kpi-contado-ink: #6ee7b7;
+    --kpi-credito-ink: #fcd34d;
+    --kpi-dalse-ink: #67e8f9;
 }
 
 /* Body & App Layout - subtle layered gradient for depth */
