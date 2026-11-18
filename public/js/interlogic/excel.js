@@ -19,10 +19,6 @@ const InterlogicExcel = {
     _ilCellValue(r, key) {
         if (key === 'fecha' || key === 'impresa') return r[key] ? formatDate(r[key], false) : '';
         if (key === 'venta' || key === 'costoEnvio' || key === 'bultos') {
-            if (r.anulado === true) {
-                const value = Number(r[key]) || 0;
-                return r.doc === 'NC' ? -Math.abs(value) : value;
-            }
             return this.signedAmount(r, key);
         }
         if (key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0) / 100);
@@ -186,9 +182,11 @@ const InterlogicExcel = {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
                 });
             });
-            sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
-            sheet.pageMargins = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4 };
-            sheet.printTitleRow = '4:4';
+            sheet.pageSetup = {
+                orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9,
+                printTitlesRow: '4:4',
+                margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.3, footer: 0.3 }
+            };
             var buffer = await workbook.xlsx.writeBuffer();
             var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             var url = URL.createObjectURL(blob);
@@ -232,13 +230,13 @@ const InterlogicExcel = {
             });
             var plain = function(v) { return String(v == null ? '' : v); };
             var money = function(r, k) {
-                var value = r.anulado === true ? (r.doc === 'NC' ? -Math.abs(Number(r[k]) || 0) : Number(r[k]) || 0) : self.signedAmount(r, k);
-                return plain(formatCurrency(value));
+                return plain(formatCurrency(self.signedAmount(r, k)));
             };
             var rows = this.filteredRecords.map(function(r) {
                 return all.map(function(c) {
                     if (c.key === 'fecha' || c.key === 'impresa') return r[c.key] ? formatDate(r[c.key], false) : '';
-                    if (c.key === 'venta' || c.key === 'costoEnvio' || c.key === 'bultos') return money(r, c.key);
+                    if (c.key === 'venta' || c.key === 'costoEnvio') return money(r, c.key);
+                    if (c.key === 'bultos') return plain(formatNumber(r.bultos || 0));
                     if (c.key === 'costoPorcentaje') return (Number(r.costoPorcentaje || 0)).toFixed(2) + '%';
                     return plain(r[c.key]);
                 });
@@ -518,6 +516,14 @@ const InterlogicExcel = {
                 } catch (err) {
                     console.error('Error parsing Excel:', err);
                     showToast('Error al leer el archivo: ' + err.message, 'error');
+                    parsedData = [];
+                    const preview = document.getElementById('import-preview');
+                    if (preview) {
+                        preview.style.display = 'block';
+                        preview.innerHTML = '<p style="color: var(--error);">No se pudo leer el archivo. Intenta de nuevo.</p>';
+                    }
+                    const confirmBtn = document.getElementById('import-confirm');
+                    if (confirmBtn) confirmBtn.disabled = true;
                 }
         };
 

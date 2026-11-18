@@ -50,13 +50,18 @@ const Users = {
         try {
             const snapshot = await firebase.firestore()
                 .collection('users')
-                .orderBy('createdAt', 'desc')
                 .get();
 
+            const toMs = (value) => {
+                if (!value) return 0;
+                if (typeof value.toDate === 'function') return value.toDate().getTime();
+                const d = value instanceof Date ? value : new Date(value);
+                return isNaN(d.getTime()) ? 0 : d.getTime();
+            };
             this.users = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            }));
+            })).sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
 
             this.renderUsersTable();
         } catch (error) {

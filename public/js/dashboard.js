@@ -2643,8 +2643,13 @@ const Dashboard = {
             data.sort((a, b) => {
                 let va, vb;
                 if (sortKey === 'fecha') {
-                    va = a.fecha ? a.fecha.toDate().getTime() : 0;
-                    vb = b.fecha ? b.fecha.toDate().getTime() : 0;
+                    const toMs = (d) => {
+                        if (!d) return 0;
+                        const dt = typeof d.toDate === 'function' ? d.toDate() : _parseDateValue(d);
+                        return dt && !isNaN(dt.getTime()) ? dt.getTime() : 0;
+                    };
+                    va = toMs(a.fecha);
+                    vb = toMs(b.fecha);
                 } else if (sortKey === 'venta') {
                     va = parseFloat(a.venta) || 0;
                     vb = parseFloat(b.venta) || 0;
@@ -2682,7 +2687,7 @@ const Dashboard = {
                     <td>${formatDt(r.fecha)}</td>
                     <td>${esc(r.cliente || '—')}</td>
                     <td class="dash-modal-amount">${this.formatMoney(signedAmount(r, 'venta'))}</td>
-                    <td><span class="dash-badge-cond ${badgeCls}">${condLabel}</span></td>
+                    <td><span class="dash-badge-cond ${badgeCls}">${esc(condLabel)}</span></td>
                     <td><span class="dash-badge-ent">${esc(r.entrega || '—')}</span></td>
                 </tr>
                 <tr class="dash-row-detail" data-parent="${esc(r.id)}" style="display:none;">
@@ -2770,9 +2775,12 @@ const Dashboard = {
         showToast('Generando Excel...', 'info');
 
         const sorted = [...data].sort((a, b) => {
-            const fa = a.fecha ? a.fecha.toDate() : new Date(0);
-            const fb = b.fecha ? b.fecha.toDate() : new Date(0);
-            return fb - fa;
+            const toMs = (d) => {
+                if (!d) return 0;
+                const dt = typeof d.toDate === 'function' ? d.toDate() : _parseDateValue(d);
+                return dt && !isNaN(dt.getTime()) ? dt.getTime() : 0;
+            };
+            return toMs(b.fecha) - toMs(a.fecha);
         });
 
         const formatDt = (d) => {

@@ -36,12 +36,12 @@ const FlotaOrders = {
                             const statusColors = { pendiente: '#f59e0b', enProgreso: '#3b82f6', completada: '#22c55e', cancelada: '#ef4444' };
                             const priorityColors = { baja: '#6b7280', media: '#f59e0b', alta: '#ef4444', urgente: '#dc2626' };
                             return `<tr>
-                                <td><strong>${o.numero || '-'}</strong></td>
+                                <td><strong>${this.sanitize(o.numero || '-')}</strong></td>
                                 <td>${o.fechaCreacion && o.fechaCreacion.toDate ? o.fechaCreacion.toDate().toLocaleDateString('es-ES') : '-'}</td>
                                 <td><strong>${vehiculo ? this.sanitize(vehiculo.nombre) : '-'}</strong></td>
                                 <td>${this.sanitize(o.descripcion || '-')}</td>
-                                <td><span class="badge" style="background:${statusColors[o.estado] || '#6b7280'}20;color:${statusColors[o.estado] || '#6b7280'};">${o.estado || '-'}</span></td>
-                                <td><span class="badge" style="background:${priorityColors[o.prioridad] || '#6b7280'}20;color:${priorityColors[o.prioridad] || '#6b7280'};">${o.prioridad || '-'}</span></td>
+                                <td><span class="badge" style="background:${statusColors[o.estado] || '#6b7280'}20;color:${statusColors[o.estado] || '#6b7280'};">${this.sanitize(o.estado || '-')}</span></td>
+                                <td><span class="badge" style="background:${priorityColors[o.prioridad] || '#6b7280'}20;color:${priorityColors[o.prioridad] || '#6b7280'};">${this.sanitize(o.prioridad || '-')}</span></td>
                                 <td>${formatCurrency(o.costoEstimado || 0)}</td>
                                 <td class="actions-cell">
                                     <button class="btn-icon btn-secondary btn-edit-orden" data-id="${o.id}" title="Editar">✏️</button>
@@ -75,8 +75,12 @@ const FlotaOrders = {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (await showConfirm('¿Eliminar orden de trabajo?', 'Esta acción no se puede deshacer.')) {
-                    await firebase.firestore().collection('ordenesTrabajo').doc(btn.dataset.id).delete();
-                    showToast('Orden eliminada', 'success');
+                    try {
+                        await firebase.firestore().collection('ordenesTrabajo').doc(btn.dataset.id).delete();
+                        showToast('Orden eliminada', 'success');
+                    } catch (err) {
+                        showToast('Error al eliminar: ' + err.message, 'error');
+                    }
                 }
             });
         });
@@ -166,6 +170,8 @@ const FlotaOrders = {
             if (ffVal) {
                 const [fyf, fmf, fdf] = ffVal.split('-').map(Number);
                 data.fechaFinEstimada = firebase.firestore.Timestamp.fromDate(new Date(fyf, fmf - 1, fdf, 12, 0, 0));
+            } else {
+                data.fechaFinEstimada = null;
             }
             try {
                 if (isEdit) {
@@ -192,11 +198,11 @@ const FlotaOrders = {
         modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000;';
         modal.innerHTML = `
             <div class="modal-content" style="max-width:600px;background:white;border-radius:12px;padding:1.5rem;max-height:80vh;overflow-y:auto;">
-                <h2 style="margin-bottom:1rem;">📋 Orden #${orden.numero || '-'}</h2>
+                <h2 style="margin-bottom:1rem;">📋 Orden #${this.sanitize(orden.numero || '-')}</h2>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
                     <div><label style="font-size:0.8rem;color:#6b7280;">Vehículo</label><p>${vehiculo ? this.sanitize(vehiculo.nombre) : '-'}</p></div>
-                    <div><label style="font-size:0.8rem;color:#6b7280;">Estado</label><p>${orden.estado || '-'}</p></div>
-                    <div><label style="font-size:0.8rem;color:#6b7280;">Prioridad</label><p>${orden.prioridad || '-'}</p></div>
+                    <div><label style="font-size:0.8rem;color:#6b7280;">Estado</label><p>${this.sanitize(orden.estado || '-')}</p></div>
+                    <div><label style="font-size:0.8rem;color:#6b7280;">Prioridad</label><p>${this.sanitize(orden.prioridad || '-')}</p></div>
                     <div><label style="font-size:0.8rem;color:#6b7280;">Costo Estimado</label><p>${formatCurrency(orden.costoEstimado || 0)}</p></div>
                     <div><label style="font-size:0.8rem;color:#6b7280;">Fecha Creación</label><p>${orden.fechaCreacion && orden.fechaCreacion.toDate ? orden.fechaCreacion.toDate().toLocaleDateString('es-ES') : '-'}</p></div>
                     <div><label style="font-size:0.8rem;color:#6b7280;">Fecha Inicio</label><p>${orden.fechaInicio && orden.fechaInicio.toDate ? orden.fechaInicio.toDate().toLocaleDateString('es-ES') : '-'}</p></div>

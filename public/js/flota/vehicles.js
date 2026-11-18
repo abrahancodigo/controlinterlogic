@@ -28,7 +28,7 @@ const FlotaVehicles = {
                     <strong>Alertas de Vencimiento:</strong>
                     ${alertas.map(v => {
                         const dias = this.diasParaVencimiento(v.fechaVencimientoCirculacion);
-                        return `<span class="badge ${dias <= 0 ? 'badge-error' : 'badge-warning'}" style="margin-left:0.3rem;">${v.nombre} (${dias <= 0 ? 'VENCIDA' : dias + ' días'})</span>`;
+                        return `<span class="badge ${dias <= 0 ? 'badge-error' : 'badge-warning'}" style="margin-left:0.3rem;">${this.sanitize(v.nombre)} (${dias <= 0 ? 'VENCIDA' : dias + ' días'})</span>`;
                     }).join('')}
                 </div>
             </div>` : ''}
@@ -103,8 +103,12 @@ const FlotaVehicles = {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (await showConfirm('¿Eliminar vehículo?', 'Esta acción no se puede deshacer.')) {
-                    await firebase.firestore().collection('vehiculos').doc(btn.dataset.id).delete();
-                    showToast('Vehículo eliminado', 'success');
+                    try {
+                        await firebase.firestore().collection('vehiculos').doc(btn.dataset.id).delete();
+                        showToast('Vehículo eliminado', 'success');
+                    } catch (err) {
+                        showToast('Error al eliminar: ' + err.message, 'error');
+                    }
                 }
             });
         });
@@ -288,6 +292,8 @@ const FlotaVehicles = {
             if (vencVal) {
                 const [y, m, d] = vencVal.split('-').map(Number);
                 data.fechaVencimientoCirculacion = firebase.firestore.Timestamp.fromDate(new Date(y, m - 1, d, 12, 0, 0));
+            } else {
+                data.fechaVencimientoCirculacion = null;
             }
 
             try {
@@ -350,8 +356,12 @@ const FlotaVehicles = {
         document.querySelectorAll('.btn-delete-proveedor').forEach(btn => {
             btn.addEventListener('click', async () => {
                 if (await showConfirm('Eliminar proveedor?', 'Esta accion no se puede deshacer.')) {
-                    await firebase.firestore().collection('proveedores').doc(btn.dataset.id).delete();
-                    showToast('Proveedor eliminado', 'success');
+                    try {
+                        await firebase.firestore().collection('proveedores').doc(btn.dataset.id).delete();
+                        showToast('Proveedor eliminado', 'success');
+                    } catch (err) {
+                        showToast('Error al eliminar: ' + err.message, 'error');
+                    }
                 }
             });
         });

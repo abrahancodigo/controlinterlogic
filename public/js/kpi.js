@@ -123,9 +123,9 @@ const KpiEvaluation = {
             if (tsIni) query = query.where('fecha', '>=', tsIni);
             if (tsFin) query = query.where('fecha', '<=', tsFin);
 
-            this.unsubscribe = query.limit(500).onSnapshot(snapshot => {
-                this._truncated = snapshot.size >= 500;
-                this.records = snapshot.docs.map(doc => ({
+            this.unsubscribe = query.limit(501).onSnapshot(snapshot => {
+                this._truncated = snapshot.size > 500;
+                this.records = snapshot.docs.slice(0, 500).map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
@@ -142,7 +142,7 @@ const KpiEvaluation = {
 
     applyFilters() {
         this.filteredRecords = this.records.filter(r => {
-            if (!r.fecha) return true;
+            if (!r.fecha) return !this.filters.startDate && !this.filters.endDate;
             const recordDate = r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha);
             const dateStr = toDateKey(recordDate);
 

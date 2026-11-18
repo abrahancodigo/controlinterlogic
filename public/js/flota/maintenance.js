@@ -35,7 +35,7 @@ const FlotaMaintenance = {
                             return `<tr>
                                 <td>${m.fecha && m.fecha.toDate ? m.fecha.toDate().toLocaleDateString('es-ES') : '-'}</td>
                                 <td><strong>${vehiculo ? this.sanitize(vehiculo.nombre) : '-'}</strong></td>
-                                <td><span class="badge badge-accent">${m.tipo || '-'}</span></td>
+                                <td><span class="badge badge-accent">${this.sanitize(m.tipo || '-')}</span></td>
                                 <td>${this.sanitize(m.descripcion || '-')}</td>
                                 <td>${formatCurrency(m.costo || 0)}</td>
                                 <td>${this.sanitize(m.taller || '-')}</td>
@@ -64,8 +64,12 @@ const FlotaMaintenance = {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (await showConfirm('¿Eliminar mantenimiento?', 'Esta acción no se puede deshacer.')) {
-                    await firebase.firestore().collection('mantenimientos').doc(btn.dataset.id).delete();
-                    showToast('Mantenimiento eliminado', 'success');
+                    try {
+                        await firebase.firestore().collection('mantenimientos').doc(btn.dataset.id).delete();
+                        showToast('Mantenimiento eliminado', 'success');
+                    } catch (err) {
+                        showToast('Error al eliminar: ' + err.message, 'error');
+                    }
                 }
             });
         });
@@ -157,6 +161,8 @@ const FlotaMaintenance = {
             if (proxVal) {
                 const [py, pm, pd] = proxVal.split('-').map(Number);
                 data.fechaProximoMantenimiento = firebase.firestore.Timestamp.fromDate(new Date(py, pm - 1, pd, 12, 0, 0));
+            } else {
+                data.fechaProximoMantenimiento = null;
             }
             try {
                 if (isEdit) {

@@ -958,7 +958,7 @@ const Clientes = {
     showMobileForm(id) {
         var c = id ? (this.filteredRecords.find(function(x){return x.id===id;}) || this.records.find(function(x){return x.id===id;})) : null;
         var isEdit = !!c;
-        var esc = function(v) { return String(v == null ? '' : v).replace(/"/g, '&quot;'); };
+        var esc = function(v) { return sanitizeHTML(v); };
         var sheet = document.createElement('div');
         sheet.innerHTML = '<div class="m-sheet-backdrop show" id="mcf-backdrop"></div><div class="m-bottom-sheet show" id="mcf-sheet"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">' + (isEdit ? 'Editar Cliente' : 'Nuevo Cliente') + '</span><button class="m-sheet-close">✕</button></div><div class="m-sheet-body"><div class="m-form-group"><label>Nombre</label><input type="text" id="mcf-nombre" value="' + esc(c?.nombre) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Teléfono</label><input type="tel" id="mcf-telefono" value="' + esc(c?.telefono) + '"></div><div class="m-form-group"><label>Empresa</label><input type="text" id="mcf-empresa" value="' + esc(c?.empresa) + '"></div></div><div class="m-form-group"><label>Dirección</label><input type="text" id="mcf-direccion" value="' + esc(c?.direccion) + '"></div><div class="m-form-row"><div class="m-form-group"><label>Depto.</label><input type="text" id="mcf-departamento" value="' + esc(c?.departamento || c?.zona) + '"></div><div class="m-form-group"><label>Municipio</label><input type="text" id="mcf-municipio" value="' + esc(c?.municipio) + '"></div><div class="m-form-group"><label>Vendedor</label><input type="text" id="mcf-vendedor" value="' + esc(c?.vendedor) + '"></div></div><div class="m-form-group"><label>Condición de Pago</label><select id="mcf-condicion"><option value="">-</option><option value="Contado"' + (c?.condicionPago==='Contado'?' selected':'') + '>Contado</option><option value="Crédito"' + (c?.condicionPago==='Crédito'?' selected':'') + '>Crédito</option></select></div><div class="m-form-row"><div class="m-form-group"><label>Límite Crédito ($)</label><input type="number" id="mcf-limite" step="0.01" value="' + esc(c?.limiteCredito) + '"></div><div class="m-form-group"><label>Plazo (días)</label><select id="mcf-plazo"><option value="15"' + (c?.plazoPago==15||c?.plazoPago=='15'?' selected':'') + '>15</option><option value="30"' + (!c?.plazoPago||c?.plazoPago==30||c?.plazoPago=='30'?' selected':'') + '>30</option><option value="45"' + (c?.plazoPago==45||c?.plazoPago=='45'?' selected':'') + '>45</option><option value="60"' + (c?.plazoPago==60||c?.plazoPago=='60'?' selected':'') + '>60</option></select></div></div></div><div class="m-sheet-footer"><button class="btn" id="mcf-cancel">Cancelar</button><button class="btn btn-primary" id="mcf-submit">' + (isEdit ? 'Guardar' : 'Crear') + '</button></div></div>';
         document.body.appendChild(sheet);
@@ -1023,6 +1023,7 @@ if (window.ModuleRegistry) {
             Clientes._cacheExpiry = 0;
             Clientes._mobileListListener = false;
             Clientes.selectedRecords.clear();
+            Clientes.updateBulkDeleteButton();
         }
     });
 }

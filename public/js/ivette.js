@@ -271,9 +271,11 @@ const Ivette = {
             this._setInvSelected(val);
             panel.style.display = 'none';
         });
-        document.addEventListener('click', (e) => {
+        if (this._prodComboDocHandler) document.removeEventListener('click', this._prodComboDocHandler);
+        this._prodComboDocHandler = (e) => {
             if (!combo.contains(e.target)) panel.style.display = 'none';
-        });
+        };
+        document.addEventListener('click', this._prodComboDocHandler);
     },
 
     _syncProdLabel() {
@@ -290,7 +292,7 @@ const Ivette = {
         const q = (this._invProdQuery || '').trim().toLowerCase();
         const filtered = q ? all.filter(p => p.toLowerCase().includes(q)) : all;
         const statsMap = {};
-        this._productStats(false).forEach(s => { statsMap[s.producto] = s; });
+        this._productStats(this._truncated).forEach(s => { statsMap[s.producto] = s; });
         const html = [];
         html.push(`<button type="button" class="iv-combo-item ${!this._invSelected ? 'active' : ''}" data-prod-value="">Todos los productos <span style="color:#64748b;font-weight:600;margin-left:auto;">${all.length}</span></button>`);
         filtered.forEach(p => {
@@ -527,9 +529,11 @@ const Ivette = {
             const dPanel = document.getElementById('ivette-prod-panel');
             if (dPanel) dPanel.style.display = 'none';
         });
-        document.addEventListener('click', (e) => {
+        if (this._mProdComboDocHandler) document.removeEventListener('click', this._mProdComboDocHandler);
+        this._mProdComboDocHandler = (e) => {
             if (!combo.contains(e.target)) panel.style.display = 'none';
-        });
+        };
+        document.addEventListener('click', this._mProdComboDocHandler);
     },
 
     _renderProdComboListMobile() {
@@ -539,7 +543,7 @@ const Ivette = {
         const q = (this._invProdQuery || '').trim().toLowerCase();
         const filtered = q ? all.filter(p => p.toLowerCase().includes(q)) : all;
         const statsMap = {};
-        this._productStats(false).forEach(s => { statsMap[s.producto] = s; });
+        this._productStats(this._truncated).forEach(s => { statsMap[s.producto] = s; });
         const html = [];
         html.push(`<button type="button" class="iv-combo-item ${!this._invSelected ? 'active' : ''}" data-prod-value="">Todos los productos <span style="color:#64748b;font-weight:600;margin-left:auto;">${all.length}</span></button>`);
         filtered.forEach(p => {
@@ -954,7 +958,7 @@ const Ivette = {
         const name = String(producto || '').trim().toUpperCase();
         if (!name) return 0;
         const map = {};
-        this._recordsForStats(false).forEach(r => {
+        this._recordsForStats(this._truncated).forEach(r => {
             this._getItems(r).forEach(it => {
                 const n = String(it.producto || '').trim().toUpperCase();
                 if (!map[n]) map[n] = 0;
@@ -1301,7 +1305,7 @@ const Ivette = {
     },
 
     async exportExcel() {
-        const stats = this._productStats(false);
+        const stats = this._productStats(this._truncated);
         if (!this.records.length) { showToast('No hay datos para exportar', 'info'); return; }
         try { await ensureLib('xlsx'); } catch (e) { showToast('Excel no disponible (sin conexión al CDN)', 'error'); return; }
         try {
@@ -1561,6 +1565,17 @@ const Ivette = {
             this.unsubscribe = null;
         }
         this._hideObsPreview();
+        if (this._prodComboDocHandler) {
+            document.removeEventListener('click', this._prodComboDocHandler);
+            this._prodComboDocHandler = null;
+        }
+        if (this._mProdComboDocHandler) {
+            document.removeEventListener('click', this._mProdComboDocHandler);
+            this._mProdComboDocHandler = null;
+        }
+        this._fullRecords = null;
+        this._truncated = false;
+        this._invSelected = '';
         const overlay = document.getElementById('ivette-print-preview');
         if (overlay) overlay.remove();
         const printArea = document.getElementById('print-area');

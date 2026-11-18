@@ -3,9 +3,7 @@ const Settings = {
     settings: null,
 
     _sanitizeUrl(url) {
-        if (!url) return '';
-        if (url.startsWith('data:image/')) return url;
-        try { const u = new URL(url); return u.href; } catch (e) { return ''; }
+        return sanitizeUrl(url);
     },
 
     async init() {
@@ -145,6 +143,7 @@ const Settings = {
                 </div>
             </div>
 
+            ${window.permissions?.isAdmin ? `
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
                 <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
                     <h2 style="${isMobile ? 'font-size:1rem;' : ''}">👥 Gestión de Usuarios</h2>
@@ -155,7 +154,7 @@ const Settings = {
                         👥 Abrir Gestión de Usuarios
                     </button>
                 </div>
-            </div>
+            </div>` : ''}
 
             <div class="card" style="${isMobile ? 'border-radius:var(--m-radius);padding:var(--m-spacing);margin-bottom:0.75rem;' : ''}">
                 <div class="card-header" style="${isMobile ? 'padding:0 0 0.75rem 0;' : ''}">
@@ -211,8 +210,8 @@ const Settings = {
     },
 
     _requireWrite() {
-        if (AccessControl.level('settings') === 'write') return true;
-        showToast('Tu rol es lector. No puedes modificar la configuración.', 'warning');
+        if (window.permissions?.isAdmin) return true;
+        showToast('Solo un administrador puede modificar la configuración.', 'warning');
         return false;
     },
 
@@ -307,11 +306,15 @@ const Settings = {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         setButtonLoading(submitBtn, true);
         try {
+            const intOrDefault = (id, def) => {
+                const raw = document.getElementById(id).value;
+                return raw === '' ? def : (parseInt(raw, 10) || 0);
+            };
             const finData = {
                 tasaInteresMoratorio: parseFloat(document.getElementById('fin-tasa-mora').value) || 0,
-                diasRecordatorio: parseInt(document.getElementById('fin-dias-recordatorio').value) || 3,
+                diasRecordatorio: intOrDefault('fin-dias-recordatorio', 3),
                 descuentoProntoPago: parseFloat(document.getElementById('fin-descuento-pp').value) || 0,
-                diasProntoPago: parseInt(document.getElementById('fin-dias-pp').value) || 10,
+                diasProntoPago: intOrDefault('fin-dias-pp', 10),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await firebase.firestore().collection('config').doc('settings').set(finData, { merge: true });

@@ -212,8 +212,9 @@ const Tarimas = {
         let totalSalidas = 0;
 
         this.records.forEach(r => {
-            if (r.tipo === 'ingreso') totalEntradas += (r.cantidad || 0);
-            else if (r.tipo === 'salida') totalSalidas += (r.cantidad || 0);
+            const cantidad = Number(r.cantidad) || 0;
+            if (r.tipo === 'ingreso') totalEntradas += cantidad;
+            else if (r.tipo === 'salida') totalSalidas += cantidad;
         });
 
         this._totalEntradas = totalEntradas;

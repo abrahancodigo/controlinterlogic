@@ -81,9 +81,7 @@ const FlotaCore = {
     },
 
     sanitize(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        return sanitizeHTML(str);
     },
 
     // Nota: usa locale 'es-ES' (formato europeo: 1.234,56).

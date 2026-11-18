@@ -502,9 +502,16 @@ const InterlogicFilters = {
         this._optionsCache = { key: optionsCacheKey, src: this.records, values: uniqueValues, rev: this._recordsRev || 0 };
         }
         const pending = this._excelPending[field] !== undefined ? this._excelPending[field] : (this.filters[field] || []);
-        const total = uniqueValues.length;
-        const selectedCount = pending.length;
-        const allChecked = total > 0 && uniqueValues.every(v => pending.includes(v));
+        const clienteKeys = field === 'cliente'
+            ? (this.records || []).map(r => r.id || (r.guia ? 'guia:' + r.guia : String(r.cliente || '')))
+            : null;
+        const total = clienteKeys ? clienteKeys.length : uniqueValues.length;
+        const selectedCount = clienteKeys
+            ? clienteKeys.filter(k => pending.includes(k)).length
+            : pending.length;
+        const allChecked = total > 0 && (clienteKeys
+            ? clienteKeys.every(k => pending.includes(k))
+            : uniqueValues.every(v => pending.includes(v)));
         const sortAscActive = this.currentSort.field === field && this.currentSort.direction === 'asc' ? 'active' : '';
         const sortDescActive = this.currentSort.field === field && this.currentSort.direction === 'desc' ? 'active' : '';
         const headerHtml = `
@@ -528,7 +535,7 @@ const InterlogicFilters = {
             ? this._renderClienteRows(field, pending)
             : uniqueValues.map((val, idx) => {
             const valHtml = sanitizeHTML(val);
-            const valJs = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const valJs = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
             const valAttr = String(val).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             const safeId = `chk-${field}-${idx}`;
             const lc = String(val).toLowerCase().replace(/"/g, '&quot;');
@@ -562,7 +569,7 @@ const InterlogicFilters = {
         let total = 0;
         const html = rows.map((r, idx) => {
             const key = r.id || (r.guia ? 'guia:' + r.guia : String(r.cliente || ''));
-            const keyJs = String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const keyJs = String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
             const keyAttr = String(key).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             const safeId = `chk-${field}-${idx}`;
             const fecha = r.fecha ? formatDateShort(r.fecha.toDate ? r.fecha.toDate() : r.fecha) : '—';

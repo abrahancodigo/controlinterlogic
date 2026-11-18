@@ -25,6 +25,15 @@ if (window.ModuleRegistry) {
                 document.removeEventListener('click', Interlogic._bulkDocHandler);
                 Interlogic._bulkDocHandler = null;
             }
+            if (Interlogic._desktopAbortController) {
+                Interlogic._desktopAbortController.abort();
+                Interlogic._desktopAbortController = null;
+            }
+            if (typeof Interlogic._detachPopupScroll === 'function') Interlogic._detachPopupScroll();
+            if (typeof Interlogic._excelDetachGlobalHandlers === 'function') Interlogic._excelDetachGlobalHandlers();
+            Interlogic.eventDelegationSetup = false;
+            Interlogic._mobileDelegationSetup = false;
+            Interlogic._previewMode = false;
             const bulk = document.getElementById('bulk-actions-container');
             if (bulk) bulk.remove();
             document.querySelectorAll('.filter-popup').forEach(el => {
