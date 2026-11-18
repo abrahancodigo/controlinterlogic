@@ -23,7 +23,13 @@ const InterlogicRoutes = {
             const repSnap = await firebase.firestore().collection('repartidores').orderBy('nombre', 'asc').get();
             const reps = repSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.activo !== false);
             repartidoresOpts = '<option value="">Seleccionar repartidor...</option>' +
-                reps.map(r => '<option value="' + r.id + '" data-nombre="' + r.nombre + '" data-vehiculo="' + (r.vehiculo || '') + '" data-zona="' + (r.zona || '') + '">' + r.nombre + ' - ' + (r.vehiculo || '') + ' - ' + (r.zona || '') + '</option>').join('');
+                reps.map(r => {
+                    const id = sanitizeHTML(r.id);
+                    const nombre = sanitizeHTML(r.nombre || '');
+                    const vehiculo = sanitizeHTML(r.vehiculo || '');
+                    const zona = sanitizeHTML(r.zona || '');
+                    return '<option value="' + id + '" data-nombre="' + nombre + '" data-vehiculo="' + vehiculo + '" data-zona="' + zona + '">' + nombre + ' - ' + vehiculo + ' - ' + zona + '</option>';
+                }).join('');
         } catch(e) { repartidoresOpts = '<option value="">Error al cargar</option>'; }
 
         const modal = document.createElement('div');
@@ -33,7 +39,7 @@ const InterlogicRoutes = {
                 <h2 style="margin-bottom:0.5rem;">➕ Crear Ruta con ${count} registros</h2>
                 <div style="margin-bottom:1rem;font-size:0.85rem;color:#666;">
                     <div>📦 ${count} facturas · ${clientesUnicos.length} cliente(s) · Total: <strong>${formatCurrency(totalVenta)}</strong></div>
-                    ${zonasUnicas.length > 0 ? '<div>📍 Zona(s): ' + zonasUnicas.join(', ') + '</div>' : ''}
+                    ${zonasUnicas.length > 0 ? '<div>📍 Zona(s): ' + zonasUnicas.map(sanitizeHTML).join(', ') + '</div>' : ''}
                 </div>
                 <form id="cr-ruta-form">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
@@ -83,6 +89,11 @@ const InterlogicRoutes = {
             try {
                 const fechaVal = document.getElementById('cr-fecha').value;
                 const repId = document.getElementById('cr-repartidor').value;
+                if (!repId) {
+                    showToast('Selecciona un repartidor para crear la ruta', 'warning');
+                    setButtonLoading(btn, false);
+                    return;
+                }
                 const repOpt = document.getElementById('cr-repartidor').selectedOptions[0];
                 const vehiculo = document.getElementById('cr-vehiculo').value.trim();
                 const zona = document.getElementById('cr-zona').value.trim();

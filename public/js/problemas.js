@@ -16,6 +16,7 @@ const Problemas = {
         if (window.innerWidth <= 768) {
             return this.renderMobile();
         }
+        this.isMobile = false;
         const contentArea = document.getElementById('content-area');
         const canCreate = window.permissions?.canCreate;
         this._desktopListenerAdded = false;
@@ -370,6 +371,8 @@ const Problemas = {
         this.editingId = existingRecord ? existingRecord.id : null;
         this.selectedImages = [];
         this.existingImages = existingRecord && existingRecord.imagenes ? [...existingRecord.imagenes] : [];
+        this._removedImages = [];
+        this._previewListenerAdded = false;
         this.selectedFactura = null;
 
         if (!existingRecord) await this.loadInterlogicRecords();
@@ -428,15 +431,15 @@ const Problemas = {
                             <div class="factura-preview-grid">
                                 <div class="factura-field">
                                     <span class="factura-field-label">Documento</span>
-                                    <span class="factura-field-value" id="problema-doc-display">${facturaInfo ? `${facturaInfo.doc}${facturaInfo.docNum ? ' #' + facturaInfo.docNum : ''}` : '—'}</span>
+                                    <span class="factura-field-value" id="problema-doc-display">${facturaInfo ? `${sanitizeHTML(facturaInfo.doc)}${facturaInfo.docNum ? ' #' + sanitizeHTML(facturaInfo.docNum) : ''}` : '—'}</span>
                                 </div>
                                 <div class="factura-field">
                                     <span class="factura-field-label">Fecha</span>
-                                    <span class="factura-field-value" id="problema-fecha-display">${facturaInfo ? facturaInfo.fecha : '—'}</span>
+                                    <span class="factura-field-value" id="problema-fecha-display">${facturaInfo ? sanitizeHTML(facturaInfo.fecha) : '—'}</span>
                                 </div>
                                 <div class="factura-field">
                                     <span class="factura-field-label">Cliente</span>
-                                    <span class="factura-field-value" id="problema-cliente-display">${facturaInfo ? facturaInfo.cliente : '—'}</span>
+                                    <span class="factura-field-value" id="problema-cliente-display">${facturaInfo ? sanitizeHTML(facturaInfo.cliente) : '—'}</span>
                                 </div>
                                 <div class="factura-field">
                                     <span class="factura-field-label">Monto</span>
@@ -557,6 +560,8 @@ const Problemas = {
         this.editingId = null;
         this.selectedImages = [];
         this.existingImages = [];
+        this._removedImages = [];
+        this._previewListenerAdded = false;
     },
 
     async loadInterlogicRecords() {
@@ -715,7 +720,6 @@ const Problemas = {
             html += `<div class="preview-card preview-new"><img src="${objectUrl}" alt="Nueva"><button type="button" class="preview-remove btn-remove-selected" data-index="${idx}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><span class="preview-badge">NUEVA</span></div>`;
         });
 
-        this._previewListenerAdded = false;
         container.innerHTML = html;
 
         // Event delegation for preview removal
@@ -738,7 +742,14 @@ const Problemas = {
         }
     },
 
-    removeExistingImage(index) { this.existingImages.splice(index, 1); this.renderImagePreviews(); },
+    removeExistingImage(index) {
+        const [removed] = this.existingImages.splice(index, 1);
+        if (removed) {
+            if (!this._removedImages) this._removedImages = [];
+            this._removedImages.push(removed);
+        }
+        this.renderImagePreviews();
+    },
     removeSelectedImage(index) { this.selectedImages.splice(index, 1); this.renderImagePreviews(); },
 
     async saveProblema() {
@@ -749,11 +760,13 @@ const Problemas = {
         const saveBtn = document.getElementById('btn-save-problema');
         setButtonLoading(saveBtn, true);
 
-        try {
-            const db = firebase.firestore();
-            let problemaId = this.editingId;
+        const db = firebase.firestore();
+        const isEdit = !!this.editingId;
+        let problemaId = this.editingId;
+        let createdNewId = null;
 
-            if (this.editingId) {
+        try {
+            if (isEdit) {
                 await db.collection('problemas').doc(problemaId).update({
                     observacion, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -769,23 +782,30 @@ const Problemas = {
                     createdByName: window.currentUserData?.displayName || 'Usuario'
                 });
                 problemaId = newDoc.id;
+                createdNewId = newDoc.id;
             }
 
             if (this.selectedImages.length > 0) {
                 const uploadedUrls = await this.uploadImages(problemaId, this.selectedImages);
                 await db.collection('problemas').doc(problemaId).update({ imagenes: [...this.existingImages, ...uploadedUrls] });
-            } else if (this.editingId && this.existingImages.length === 0) {
-                // En edicion, si el usuario elimino todas las imagenes sin
-                // agregar nuevas, persistir el array vacio.
+            } else if (isEdit && this.existingImages.length === 0) {
                 await db.collection('problemas').doc(problemaId).update({ imagenes: [] });
-            } else if (this.editingId) {
-                // No tocamos imagenes (mantenemos las existentes tal cual).
             }
 
-            showToast(this.editingId ? 'Problema actualizado' : 'Problema registrado', 'success');
+            if (isEdit && this._removedImages && this._removedImages.length > 0) {
+                const storage = firebase.storage();
+                for (const url of this._removedImages) {
+                    try { await storage.refFromURL(url).delete(); } catch (e) {}
+                }
+            }
+
+            showToast(isEdit ? 'Problema actualizado' : 'Problema registrado', 'success');
             this.hideForm();
         } catch (error) {
             console.error('Error saving problema:', error);
+            if (createdNewId) {
+                try { await db.collection('problemas').doc(createdNewId).delete(); } catch (e) {}
+            }
             const code = error && (error.code || (error.serverResponse && error.serverResponse.error && error.serverResponse.error.code));
             const msg = error && error.message ? error.message : 'Error desconocido';
             if (code === 'storage/unauthorized') {

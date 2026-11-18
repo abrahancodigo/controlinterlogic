@@ -15,14 +15,24 @@ const InterlogicCRUD = {
     },
 
     async _fetchCCFRecords(clienteLower) {
-        if (this._ccfCache && this._ccfCache.cliente === clienteLower) return this._ccfCache.recs;
+        const target = this._normalizeClientName(clienteLower);
+        this._ccfCache = this._ccfCache || {};
+        if (this._ccfCache[target]) return this._ccfCache[target];
         const base = firebase.firestore().collection('interlogic').where('doc', 'in', ['CCF', 'FT']);
         const all = await fetchAllChunked(base, { chunkSize: 2000 });
-        const recs = all.filter(r =>
+        let recs = all.filter(r =>
             r.anulado !== true &&
-            (r.cliente || '').toLowerCase().includes(clienteLower)
+            this._normalizeClientName(r.cliente) === target
         );
-        this._ccfCache = { cliente: clienteLower, recs: recs };
+        if (recs.length === 0) {
+            recs = all.filter(r =>
+                r.anulado !== true &&
+                this._normalizeClientName(r.cliente).includes(target)
+            );
+        }
+        const keys = Object.keys(this._ccfCache);
+        if (keys.length >= 5) delete this._ccfCache[keys[0]];
+        this._ccfCache[target] = recs;
         return recs;
     },
 
@@ -128,7 +138,7 @@ const InterlogicCRUD = {
                 }));
                 this._truncated = snapshot.size >= RT_MAX_RECORDS;
                 this._fullMode = false;
-                this._ccfCache = null;
+                this._ccfCache = {};
 
                 this.scheduleApplyFilters();
 
@@ -185,7 +195,7 @@ const InterlogicCRUD = {
             this.records = all;
             this._truncated = false;
             this._fullMode = true;
-            this._ccfCache = null;
+            this._ccfCache = {};
 
             if (this.loading) this.loading = false;
             this.applyFilters();
@@ -566,8 +576,8 @@ const InterlogicCRUD = {
         ncInterlogicId.addEventListener('change', function() {
             var selectedId = ncInterlogicId.value;
             if (selectedId && ncCcfInfo) {
-                var record = (self._ccfCache && self._ccfCache.cliente === (document.getElementById('il-cliente').value.trim().toLowerCase()))
-                    ? self._ccfCache.recs.find(function(r) { return r.id === selectedId; })
+                var record = (self._ccfCache && self._ccfCache[self._normalizeClientName(document.getElementById('il-cliente').value)])
+                    ? self._ccfCache[self._normalizeClientName(document.getElementById('il-cliente').value)].find(function(r) { return r.id === selectedId; })
                     : null;
                 if (!record) record = self.records.find(function(r) { return r.id === selectedId; });
                 if (record) {
@@ -639,16 +649,16 @@ const InterlogicCRUD = {
                      data-index="${i}"
                      data-nombre="${sanitizeHTML(c.nombre || '')}"
                      data-direccion="${sanitizeHTML(c.direccion || '')}"
-                     data-telefono="${c.telefono || ''}"
+                     data-telefono="${sanitizeHTML(c.telefono || '')}"
                      data-departamento="${sanitizeHTML(c.departamento || c.zona || '')}"
                      data-municipio="${sanitizeHTML(c.municipio || '')}"
                      data-vendedor="${sanitizeHTML(c.vendedor || '')}"
-                     data-empresa="${c.empresa || ''}"
-                     data-condicionpago="${c.condicionPago || ''}"
+                     data-empresa="${sanitizeHTML(c.empresa || '')}"
+                     data-condicionpago="${sanitizeHTML(c.condicionPago || '')}"
                      data-observacion-entrega="${sanitizeHTML(c.observacionEntrega || '')}">
                     <strong>${sanitizeHTML(c.nombre || '')}</strong>
                     ${c.direccion ? `<br><span style="color: var(--text-secondary); font-size: 0.8rem;">📍 ${sanitizeHTML(c.direccion)}</span>` : ''}
-                    ${c.telefono ? `<span style="color: var(--text-secondary); font-size: 0.8rem;"> | 📱 ${c.telefono}</span>` : ''}
+                    ${c.telefono ? `<span style="color: var(--text-secondary); font-size: 0.8rem;"> | 📱 ${sanitizeHTML(c.telefono)}</span>` : ''}
                     ${c.observacionEntrega ? `<br><span style="color: #dc2626; font-size: 0.78rem; font-weight: 600;">📦 ${sanitizeHTML(c.observacionEntrega)}</span>` : ''}
                 </div>
             `).join('');
@@ -1012,6 +1022,7 @@ const InterlogicCRUD = {
             console.log('✅ Registro eliminado de Firestore');
 
             this.records = this.records.filter(r => r.id !== recordId);
+            this.selectedRecords.delete(recordId);
             this.applyFilters();
 
             showToast('✓ Registro eliminado exitosamente', 'success');
@@ -1715,7 +1726,7 @@ const InterlogicCRUD = {
         };
         const date = record?.fecha ? formatDateForInput(record.fecha) : formatDateForInput(new Date());
         const impresaDate = record?.impresa ? formatDateForInput(record.impresa) : '';
-        return '<div class="m-sheet-backdrop show" id="m-form-backdrop" data-m-close></div><div class="m-bottom-sheet show" id="m-form-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="mf-title">' + (isEdit ? 'Editar registro' : 'Nuevo registro') + '</span><button type="button" class="m-sheet-close" aria-label="Cerrar formulario" data-m-close>✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Completa los datos. Los campos con * son obligatorios.</p><form id="mf-fields"><fieldset class="mf-form-section"><legend>01 · Registro</legend>' + input('guia', 'Guía') + select('empresa', 'Empresa', ['DALSE', 'INCEDE']) + '<div class="m-form-group"><label for="mf-impresa">Impresa</label><input type="date" id="mf-impresa" value="' + impresaDate + '"></div>' + '<div class="m-form-group"><label for="mf-fecha">Fecha *</label><input type="date" id="mf-fecha" value="' + date + '" required><span class="mf-help-error">Selecciona una fecha.</span></div>' + select('doc', 'Tipo de documento', ['CCF', 'FT', 'NC']) + input('docNum', 'Número de documento') + '</fieldset><fieldset class="mf-form-section"><legend>02 · Cliente y destino</legend>' + input('cliente', 'Cliente *', 'text', 'required autocomplete="organization"') + '<div id="mf-cliente-observacion" class="mf-client-note" style="display:none;"></div>' + input('direccion', 'Dirección', 'text', 'autocomplete="street-address"') + input('telefono', 'Teléfono / WhatsApp', 'tel', 'inputmode="tel" autocomplete="tel"') + input('vendedor', 'Vendedor') + '</fieldset><fieldset class="mf-form-section"><legend>03 · Despacho y cobro</legend>' + input('venta', 'Venta ($)', 'number', 'step="0.01" inputmode="decimal"') + input('bultos', 'Bultos', 'number', 'step="1" min="0" inputmode="numeric"') + select('entrega', 'Quién entrega', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + select('cobra', 'Quién cobra', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + '<div class="m-form-group"><label for="mf-observations">Observaciones</label><textarea id="mf-observations" rows="3">' + esc(record?.observations) + '</textarea></div></fieldset></form></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cancelar</button><button type="button" class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar cambios' : 'Crear registro') + '</button></div></div>';
+        return '<div class="m-sheet-backdrop show" id="m-form-backdrop" data-m-close></div><div class="m-bottom-sheet show" id="m-form-sheet" role="dialog" aria-modal="true" aria-labelledby="mf-title"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title" id="mf-title">' + (isEdit ? 'Editar registro' : 'Nuevo registro') + '</span><button type="button" class="m-sheet-close" aria-label="Cerrar formulario" data-m-close>✕</button></div><div class="m-sheet-body"><p class="mf-sheet-intro">Completa los datos. Los campos con * son obligatorios.</p><form id="mf-fields"><fieldset class="mf-form-section"><legend>01 · Registro</legend>' + input('guia', 'Guía') + select('empresa', 'Empresa', ['DALSE', 'INCEDE']) + '<div class="m-form-group"><label for="mf-impresa">Impresa</label><input type="date" id="mf-impresa" value="' + impresaDate + '"></div>' + '<div class="m-form-group"><label for="mf-fecha">Fecha *</label><input type="date" id="mf-fecha" value="' + date + '" required><span class="mf-help-error">Selecciona una fecha.</span></div>' + select('doc', 'Tipo de documento', ['CCF', 'FT', 'NC'], true) + input('docNum', 'Número de documento') + '</fieldset><fieldset class="mf-form-section"><legend>02 · Cliente y destino</legend>' + input('cliente', 'Cliente *', 'text', 'required autocomplete="organization"') + '<div id="mf-cliente-observacion" class="mf-client-note" style="display:none;"></div>' + input('direccion', 'Dirección', 'text', 'autocomplete="street-address"') + input('telefono', 'Teléfono / WhatsApp', 'tel', 'inputmode="tel" autocomplete="tel"') + input('vendedor', 'Vendedor') + input('departamento', 'Departamento') + input('municipio', 'Municipio') + '</fieldset><fieldset class="mf-form-section"><legend>03 · Despacho y cobro</legend>' + input('venta', 'Venta ($)', 'number', 'step="0.01" inputmode="decimal"') + input('bultos', 'Bultos', 'number', 'step="1" min="0" inputmode="numeric"') + select('condicionPago', 'Condición de pago', ['Contado', 'Crédito'], true) + input('plazo', 'Plazo (días)', 'number', 'step="1" min="0" inputmode="numeric"') + input('encargado', 'Encargado') + input('cobrador', 'Cobrador') + select('entrega', 'Quién entrega', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + select('cobra', 'Quién cobra', ['DALSE', 'INTERLOGISTIC', 'XPRESS'], true) + '<div class="m-form-group"><label for="mf-observations">Observaciones</label><textarea id="mf-observations" rows="3">' + esc(record?.observations) + '</textarea></div></fieldset></form></div><div class="m-sheet-footer"><button type="button" class="btn" data-m-close>Cancelar</button><button type="button" class="btn btn-primary" id="mf-submit">' + (isEdit ? 'Guardar cambios' : 'Crear registro') + '</button></div></div>';
     },
 
     showMobileForm(id) {
@@ -1841,6 +1852,12 @@ const InterlogicCRUD = {
                 direccion: document.getElementById('mf-direccion').value,
                 telefono: document.getElementById('mf-telefono')?.value?.trim() || '',
                 vendedor: document.getElementById('mf-vendedor').value,
+                departamento: document.getElementById('mf-departamento')?.value || '',
+                municipio: document.getElementById('mf-municipio')?.value || '',
+                condicionPago: document.getElementById('mf-condicionPago')?.value || '',
+                encargado: document.getElementById('mf-encargado')?.value || '',
+                cobrador: document.getElementById('mf-cobrador')?.value || '',
+                plazo: parseInt(document.getElementById('mf-plazo')?.value) || 0,
                 venta: parseFloat(document.getElementById('mf-venta').value) || 0,
                 bultos: parseInt(document.getElementById('mf-bultos').value) || 0,
                 observations: document.getElementById('mf-observations').value,
@@ -1851,6 +1868,20 @@ const InterlogicCRUD = {
 
             data.costoEnvio = data.bultos * 1.85;
             data.costoPorcentaje = data.venta > 0 ? (data.costoEnvio / data.venta) * 100 : 0;
+
+            if (data.condicionPago === 'Crédito') {
+                var mfPlazo = data.plazo || 30;
+                var mfBase = _mfFirebaseDate ? _mfFirebaseDate.toDate() : new Date();
+                mfBase.setHours(12, 0, 0, 0);
+                var mfVenc = new Date(mfBase);
+                mfVenc.setDate(mfVenc.getDate() + mfPlazo);
+                data.fechaVencimiento = firebase.firestore.Timestamp.fromDate(mfVenc);
+                if (!isEdit) {
+                    data.estadoCobro = 'pendiente';
+                    data.montoCobrado = 0;
+                    data.montoPendiente = data.venta;
+                }
+            }
 
             try {
                 var isNC = data.doc === 'NC';
@@ -1942,6 +1973,7 @@ const InterlogicCRUD = {
                     document.getElementById('m-form-sheet').remove();
                     document.getElementById('m-form-backdrop').remove();
                 }
+                await self.loadRecords();
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
                 btn.disabled = false;

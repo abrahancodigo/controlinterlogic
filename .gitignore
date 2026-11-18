@@ -32,3 +32,6 @@ nul
 # exposed to /js/ by accident — exclude from git & from firebase
 public/js/api-config.js
 .aider*
+
+# capturas de validacion visual (scratch)
+preview/

@@ -7,9 +7,13 @@ const App = {
 
     init() {
         console.log('📱 Initializing App module...');
-        this.setupNavigation();
-        this.setupSidebarToggle();
-        this.setupMobileNav();
+        if (!this._listenersBound) {
+            this.setupNavigation();
+            this.setupSidebarToggle();
+            this.setupMobileNav();
+            this._listenersBound = true;
+        }
+        this.currentModule = null;
         AccessControl.syncNavigation();
         const firstModule = AccessControl.modules.find(item => AccessControl.canView(item.key));
         if (firstModule) this.loadModule(firstModule.key);
@@ -192,9 +196,8 @@ const App = {
             const div = document.createElement('button');
             div.className = 'more-item';
             div.dataset.module = module;
-            div.innerHTML =
-                `<span class="more-item-icon">${icon ? icon.innerHTML : ''}</span>` +
-                `<span class="more-item-label">${label ? label.textContent : module}</span>`;
+            div.innerHTML = `<span class="more-item-icon">${icon ? icon.innerHTML : ''}</span><span class="more-item-label"></span>`;
+            div.querySelector('.more-item-label').textContent = label ? label.textContent : module;
             list.appendChild(div);
         });
         const logout = document.createElement('button');
@@ -253,10 +256,12 @@ const App = {
         try {
             if (!window.ModuleRegistry || !await ModuleRegistry.render(moduleName)) {
                 console.warn(`Unknown module: ${moduleName}`);
+                this.currentModule = null;
             }
         } catch (error) {
             console.error(`Error loading module ${moduleName}:`, error);
             showToast('Error al cargar el módulo', 'error');
+            this.currentModule = null;
         }
     },
 
