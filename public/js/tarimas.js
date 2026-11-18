@@ -531,10 +531,7 @@ const Tarimas = {
             const isEdit = !!this.editingId;
 
             const saldoFinal = await this._validarSaldoFinal(fechaTs, cantidad, tipo, isEdit ? this.editingId : null);
-            if (saldoFinal < 0) {
-                showToast('No se puede guardar: las existencias quedarían en ' + saldoFinal + '. Verifica las salidas registradas.', 'error', 6000);
-                return;
-            }
+            const quedaNegativo = saldoFinal < 0;
 
             if (isEdit) {
                 const previo = this.records.find(r => r.id === this.editingId);
@@ -549,7 +546,11 @@ const Tarimas = {
                 const prevMs = previo && previo.fecha ? this._tsMs(previo.fecha) : null;
                 const desde = prevMs === null ? null : (prevMs < fechaTs.toMillis() ? previo.fecha : fechaTs);
                 await this.recalcularTotales(desde);
-                showToast('Movimiento actualizado', 'success');
+                if (quedaNegativo) {
+                    showToast('Movimiento actualizado. Atención: la existencia queda en ' + saldoFinal + '. Registra la entrada que falta para cuadrarla.', 'warning', 7000);
+                } else {
+                    showToast('Movimiento actualizado', 'success');
+                }
             } else {
                 const nuevoDoc = db.collection('tarimas_walmart').doc();
                 await this.recalcularTotales(fechaTs, {
@@ -565,6 +566,9 @@ const Tarimas = {
                     }
                 });
                 showToast(tipo === 'ingreso' ? 'Entrada registrada' : 'Salida registrada', 'success');
+                if (quedaNegativo) {
+                    showToast('Atención: la existencia queda en ' + saldoFinal + ' tarimas. Registra la entrada que falta para cuadrarla.', 'warning', 7000);
+                }
             }
 
             this.hideForm();
@@ -646,13 +650,13 @@ const Tarimas = {
         try {
             const db = firebase.firestore();
             const saldoFinal = await this._validarSaldoFinal(null, 0, 'ingreso', id);
-            if (saldoFinal < 0) {
-                showToast('No se puede eliminar: las existencias quedarían en ' + saldoFinal + '. Elimina primero las salidas posteriores.', 'error', 6000);
-                return;
-            }
             await db.collection('tarimas_walmart').doc(id).delete();
             await this.recalcularTotales(record.fecha || null);
-            showToast('Movimiento eliminado', 'success');
+            if (saldoFinal < 0) {
+                showToast('Movimiento eliminado. Atención: la existencia queda en ' + saldoFinal + '. Registra la entrada que falta para cuadrarla.', 'warning', 7000);
+            } else {
+                showToast('Movimiento eliminado', 'success');
+            }
         } catch (error) {
             console.error('Error deleting movimiento:', error);
             showToast('Error al eliminar', 'error');
