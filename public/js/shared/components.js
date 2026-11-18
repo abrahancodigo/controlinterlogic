@@ -34,7 +34,7 @@ const SharedComponents = {
         const icon = iconKey
             ? `<span class="mh-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconKey}</svg></span>`
             : '';
-        const subtitle = config.subtitle ? `<p>${config.subtitle}</p>` : '';
+        const subtitle = config.subtitle ? `<p>${sanitizeHTML(config.subtitle)}</p>` : '';
         const actionsStyle = config.actionsStyle ? ` style="${config.actionsStyle}"` : '';
         const actions = config.actions
             ? `<div class="mh-actions"${actionsStyle}>${config.actions}</div>`
@@ -44,7 +44,7 @@ const SharedComponents = {
             <div class="mh-head">
                 ${icon}
                 <div class="mh-text">
-                    <h1>${config.title || ''}</h1>
+                    <h1>${sanitizeHTML(config.title || '')}</h1>
                     ${subtitle}
                 </div>
             </div>
@@ -65,7 +65,7 @@ const SharedComponents = {
      * @returns {string} HTML del grid
      */
     renderStatsGrid(stats, options = {}) {
-        const containerId = options.containerId ? ` id="${options.containerId}"` : '';
+        const containerId = options.containerId ? ` id="${sanitizeHTML(options.containerId)}"` : '';
         const containerStyle = options.containerStyle ? ` style="${options.containerStyle}"` : '';
 
         const cards = stats.map(stat => {
@@ -73,8 +73,8 @@ const SharedComponents = {
             const style = stat.style ? ` style="${stat.style}"` : '';
             return `
                 <div class="stat-card">
-                    <${tag}>${stat.label}</${tag}>
-                    <p id="${stat.id}"${style}>0</p>
+                    <${tag}>${sanitizeHTML(stat.label)}</${tag}>
+                    <p id="${sanitizeHTML(stat.id)}"${style}>0</p>
                 </div>
             `;
         }).join('');
@@ -95,7 +95,7 @@ const SharedComponents = {
      */
     renderSearchBar(config) {
         const id = config.id || 'search-input';
-        const placeholder = config.placeholder || '🔍 Buscar...';
+        const placeholder = sanitizeHTML(config.placeholder || '🔍 Buscar...');
         const value = config.value ? ` value="${String(config.value).replace(/"/g, '&quot;')}"` : '';
         const fullWidth = config.fullWidth !== false;
         
@@ -107,7 +107,7 @@ const SharedComponents = {
         const containerStyle = config.containerStyle ? ` style="${config.containerStyle}"` : '';
         
         return `<div${containerStyle}>
-            <input type="text" id="${id}" placeholder="${placeholder}"${value} style="${style}">
+            <input type="text" id="${sanitizeHTML(id)}" placeholder="${placeholder}"${value} style="${style}">
         </div>`;
     },
 

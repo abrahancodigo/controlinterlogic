@@ -2,13 +2,23 @@
 // Utility Functions
 // ===================================
 
+function _parseDateValue(value) {
+    if (value instanceof Date) return value;
+    if (value && typeof value.toDate === 'function') return value.toDate();
+    if (typeof value === 'string') {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+        if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+    return new Date(value);
+}
+
 /**
  * Format a date to a readable string
  */
 function formatDate(date, includeTime = true) {
     if (!date) return '';
 
-    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    const d = _parseDateValue(date);
 
     const options = {
         year: 'numeric',
@@ -29,7 +39,7 @@ function formatDate(date, includeTime = true) {
  */
 function formatDateShort(date) {
     if (!date) return '';
-    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    const d = _parseDateValue(date);
     return d.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: '2-digit',
@@ -44,7 +54,7 @@ function formatDateShort(date) {
 function formatDateForInput(date) {
     if (!date) return '';
 
-    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    const d = _parseDateValue(date);
 
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -60,7 +70,7 @@ function formatDateForInput(date) {
  */
 function toDateKey(date) {
     if (!date) return '';
-    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    const d = _parseDateValue(date);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -245,12 +255,17 @@ function debounce(func, wait) {
  */
 function setButtonLoading(button, loading) {
     if (loading) {
+        if (!button.dataset.loading) {
+            button.dataset.originalHtml = button.innerHTML;
+            button.dataset.loading = '1';
+        }
         button.disabled = true;
-        button.dataset.originalHtml = button.innerHTML;
         button.innerHTML = '<span>Cargando...</span>';
     } else {
         button.disabled = false;
-        button.innerHTML = button.dataset.originalHtml || button.innerHTML;
+        if (button.dataset.originalHtml) button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+        delete button.dataset.loading;
     }
 }
 
@@ -278,10 +293,14 @@ function showConfirm(title, message = '') {
 
         document.body.appendChild(modal);
 
+        let onKeyDown;
         const handleAction = (result) => {
+            if (onKeyDown) document.removeEventListener('keydown', onKeyDown);
             modal.remove();
             resolve(result);
         };
+        onKeyDown = (e) => { if (e.key === 'Escape') handleAction(false); };
+        document.addEventListener('keydown', onKeyDown);
 
         modal.querySelector('#confirm-cancel').onclick = () => handleAction(false);
         modal.querySelector('#confirm-ok').onclick = () => handleAction(true);
@@ -355,7 +374,7 @@ function downloadFile(data, filename, mimeType) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
 /**
@@ -536,6 +555,7 @@ function ensureLib(name) {
         xlsx: () => typeof window.XLSX !== 'undefined',
         apexcharts: () => typeof window.ApexCharts !== 'undefined'
     }[name];
+    if (!window.CDN_LIBS[name]) return Promise.reject(new Error('Librería desconocida: ' + name));
     if (loaded && loaded()) return Promise.resolve();
     if (!window._libPromises) window._libPromises = {};
     if (!window._libPromises[name]) {
@@ -550,7 +570,7 @@ function ensureLib(name) {
             document.head.appendChild(s);
         });
     }
-    return window._libPromises[name];
+    return window._libPromises[name] || Promise.reject(new Error('No se pudo cargar ' + name));
 }
 
 window.addEventListener('load', () => {

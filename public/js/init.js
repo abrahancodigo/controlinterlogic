@@ -34,11 +34,13 @@
         if (ls.style.display !== 'none') {
             window.animateProgressPct(pctEl);
         } else {
-            new MutationObserver(function () {
+            var observer = new MutationObserver(function () {
                 if (ls.style.display !== 'none') {
+                    observer.disconnect();
                     window.animateProgressPct(pctEl);
                 }
-            }).observe(ls, { attributes: true, attributeFilter: ['style'] });
+            });
+            observer.observe(ls, { attributes: true, attributeFilter: ['style'] });
         }
     });
 

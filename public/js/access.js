@@ -30,7 +30,9 @@ const AccessControl = {
         const module = this.modules.find(item => item.key === moduleName);
         const current = user === undefined ? this.currentUser() : user;
         if (!module || !current || current.active === false) return 'hidden';
-        return this.role(current) === 'user' || (moduleName === 'users' && this.role(current) !== 'admin') ? 'read' : 'write';
+        const role = this.role(current);
+        if (moduleName === 'users' && role !== 'admin') return 'hidden';
+        return role === 'user' ? 'read' : 'write';
     },
 
     currentUser() {

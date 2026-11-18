@@ -115,14 +115,15 @@ const Auth = {
         const submitBtn = document.getElementById('login-submit-btn');
         const rememberChk = document.getElementById('login-remember');
 
-        // Handle remember me
-        try {
-            if (rememberChk && rememberChk.checked) {
-                localStorage.setItem('dalse-remembered-user', username);
-            } else {
-                localStorage.removeItem('dalse-remembered-user');
-            }
-        } catch (e) {}
+        const persistRemember = () => {
+            try {
+                if (rememberChk && rememberChk.checked) {
+                    localStorage.setItem('dalse-remembered-user', username);
+                } else {
+                    localStorage.removeItem('dalse-remembered-user');
+                }
+            } catch (e) {}
+        };
 
         errorEl.textContent = '';
         errorEl.classList.remove('shake');
@@ -132,18 +133,19 @@ const Auth = {
         try {
             if (username.includes('@')) {
                 await firebase.auth().signInWithEmailAndPassword(username, password);
+                persistRemember();
                 return;
             }
 
             const authenticate = firebase.functions().httpsCallable('authenticateUsername');
             const result = await authenticate({ username, password });
             await firebase.auth().signInWithCustomToken(result.data.customToken);
+            persistRemember();
         } catch (error) {
-            const message = error.code === 'functions/unauthenticated'
-                ? 'Usuario o contraseña incorrectos.'
-                : error.code === 'functions/resource-exhausted'
-                    ? 'Demasiados intentos. Intenta más tarde.'
-                    : 'Error de conexión.';
+            let message = 'Error de conexión.';
+            if (error.code === 'functions/unauthenticated') message = 'Usuario o contraseña incorrectos.';
+            else if (error.code === 'functions/resource-exhausted') message = 'Demasiados intentos. Intenta más tarde.';
+            else if (error.code && error.code.startsWith('auth/')) message = this.getErrorMessage(error.code);
             authShowError(errorEl, message);
             authResetBtn(submitBtn);
         }
@@ -185,7 +187,13 @@ const Auth = {
                 window.App.init();
             }
         } catch (error) {
+            console.error('Error al cargar datos de usuario:', error);
             showToast('Error al cargar datos de usuario', 'error');
+            try { await this.logout(); } catch (e) {}
+            const loadingScreen = document.getElementById('loading-screen');
+            const loginScreen = document.getElementById('login-screen');
+            if (loadingScreen) { loadingScreen.style.display = 'none'; loadingScreen.style.pointerEvents = 'none'; }
+            if (loginScreen) loginScreen.style.display = 'flex';
         } finally {
             authResetBtn(document.getElementById('login-submit-btn'));
         }
@@ -263,7 +271,7 @@ const Auth = {
         window.permissions = {
             isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
             canCreate: role === 'admin' || role === 'editor',
-            canEdit: role === 'admin', canDelete: role === 'admin'
+            canEdit: role === 'admin' || role === 'editor', canDelete: role === 'admin'
         };
         // Privilegios granulares por usuario (catálogo en utils.js)
         const priv = userData.privileges || {};
@@ -308,16 +316,22 @@ const Auth = {
 };
 
 
-function initAuthWhenReady() {
+function initAuthWhenReady(attempt = 0) {
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
         Auth.init();
+    } else if (attempt < 125) {
+        setTimeout(() => initAuthWhenReady(attempt + 1), 200);
     } else {
-        setTimeout(initAuthWhenReady, 200);
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) loadingScreen.style.display = 'none';
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) loginScreen.style.display = 'flex';
+        showToast('No se pudo conectar con Firebase. Revisa tu conexión.', 'error');
     }
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAuthWhenReady);
+    document.addEventListener('DOMContentLoaded', () => initAuthWhenReady());
 } else {
     initAuthWhenReady();
 }
