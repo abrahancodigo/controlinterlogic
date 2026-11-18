@@ -14,6 +14,8 @@ const Deliveries = {
             }
         });
         this.activeModals = [];
+        this.hideImagePreview('delivery-image-preview');
+        this.hideImagePreview('edit-image-preview');
     },
 
     // Render deliveries view
@@ -79,6 +81,13 @@ const Deliveries = {
                         <div class="form-group">
                             <label for="delivery-image">Imagen (opcional)</label>
                             <input type="file" id="delivery-image" accept="image/*" style="padding: 0.5rem;">
+                            <div id="delivery-image-preview" style="display: none; margin-top: 0.75rem; text-align: center;">
+                                <img id="delivery-image-preview-img" src="" alt="Vista previa" style="max-height: 180px; max-width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
+                                <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <span id="delivery-image-preview-name" style="font-size: 0.75rem; color: #6b7280; word-break: break-all;"></span>
+                                    <button type="button" id="btn-clear-delivery-image" class="btn btn-sm btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Quitar</button>
+                                </div>
+                            </div>
                             <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Formatos: JPG, PNG, WebP. Máximo 5MB.</small>
                         </div>
                         
@@ -152,6 +161,21 @@ const Deliveries = {
                 form.addEventListener('submit', (e) => this.handleSubmit(e));
             }
 
+            const newImageInput = document.getElementById('delivery-image');
+            if (newImageInput) {
+                newImageInput.addEventListener('change', () => {
+                    const file = newImageInput.files && newImageInput.files[0];
+                    this.showImagePreview(file, 'delivery-image-preview-img', 'delivery-image-preview', 'delivery-image-preview-name');
+                });
+            }
+            const btnClearImage = document.getElementById('btn-clear-delivery-image');
+            if (btnClearImage) {
+                btnClearImage.addEventListener('click', () => {
+                    if (newImageInput) newImageInput.value = '';
+                    this.hideImagePreview('delivery-image-preview');
+                });
+            }
+
             // Setup register and print button
             const regPrintBtn = document.getElementById('btn-registrar-imprimir');
             if (regPrintBtn) {
@@ -218,6 +242,9 @@ const Deliveries = {
             showToast('No tienes permisos para realizar esta acción', 'error');
             return;
         }
+
+        const formEl = document.getElementById('delivery-form');
+        if (formEl && !formEl.reportValidity()) return;
 
         // Get the triggering button or the submit button
         const submitBtn = document.querySelector('#delivery-form button[type="submit"]');
@@ -289,6 +316,7 @@ const Deliveries = {
                 tipoMueble: document.getElementById('delivery-tipo-mueble').value.trim(),
                 accesorios: document.getElementById('delivery-accesorios').value.trim(),
                 createdBy: user.uid,
+                createdByName: window.currentUserData?.displayName || 'Usuario',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -296,35 +324,45 @@ const Deliveries = {
             // Handle image upload if present
             const imageInput = document.getElementById('delivery-image');
             if (imageInput && imageInput.files && imageInput.files[0]) {
-                const file = imageInput.files[0];
+                const file = await this.compressImage(imageInput.files[0]);
 
                 // Validate file size (max 5MB)
                 if (file.size > 5 * 1024 * 1024) {
                     showToast('La imagen es demasiado grande. Máximo 5MB.', 'error');
                     setButtonLoading(submitBtn, false);
+                    if (regPrintBtn) regPrintBtn.disabled = false;
                     return;
                 }
 
                 // Upload to Firebase Storage
                 const storage = firebase.storage();
-                const fileExt = file.name.split('.').pop();
+                const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
                 const fileName = `deliveries/${folio}_${Date.now()}.${fileExt}`;
                 const storageRef = storage.ref(fileName);
 
                 try {
                     const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
-                    const snapshot = await storageRef.put(file.slice(0, file.size, mimeType), { contentType: mimeType });
+                    const snapshot = await storageRef.put(file, { contentType: mimeType });
                     const downloadURL = await snapshot.ref.getDownloadURL();
                     deliveryData.imageUrl = downloadURL;
                     deliveryData.imagePath = fileName;
                 } catch (uploadError) {
                     console.error('Error uploading image:', uploadError);
-                    showToast('Error al subir imagen, pero la entrega se guardará sin imagen', 'warning');
+                    const detalle = (uploadError && (uploadError.code || uploadError.message)) || 'desconocido';
+                    showToast(`No se pudo subir la imagen (${detalle}). La entrega se guardará sin imagen.`, 'warning');
                 }
             }
 
             // Save to Firestore
-            const docRef = await db.collection('deliveries').add(deliveryData);
+            let docRef;
+            try {
+                docRef = await db.collection('deliveries').add(deliveryData);
+            } catch (addError) {
+                if (deliveryData.imagePath) {
+                    try { await firebase.storage().ref(deliveryData.imagePath).delete(); } catch (e) {}
+                }
+                throw addError;
+            }
 
             showToast(`✓ Entrega ${folio} registrada exitosamente`, 'success');
 
@@ -337,7 +375,7 @@ const Deliveries = {
 
                 // Add to internal list so printDelivery can find it
                 this.deliveries.unshift(createdDelivery);
-                this.printDelivery(docRef.id);
+                this.printDelivery(docRef.id).catch(err => console.error('Error printing delivery:', err));
             }
 
             // Reset form
@@ -355,12 +393,89 @@ const Deliveries = {
         }
     },
 
+    _releasePreview(inputId) {
+        if (this._previewUrls && this._previewUrls[inputId]) {
+            URL.revokeObjectURL(this._previewUrls[inputId]);
+            delete this._previewUrls[inputId];
+        }
+    },
+
+    showImagePreview(file, imgId, containerId, nameId) {
+        const container = document.getElementById(containerId);
+        const img = document.getElementById(imgId);
+        const nameEl = nameId ? document.getElementById(nameId) : null;
+        if (!container || !img) return;
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            container.style.display = 'none';
+            return;
+        }
+        this._previewUrls = this._previewUrls || {};
+        this._releasePreview(containerId);
+        const url = URL.createObjectURL(file);
+        this._previewUrls[containerId] = url;
+        img.src = url;
+        if (nameEl) nameEl.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        container.style.display = 'block';
+    },
+
+    hideImagePreview(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) container.style.display = 'none';
+        this._releasePreview(containerId);
+    },
+
+    compressImage(file, maxSide = 1600, quality = 0.82) {
+        return new Promise((resolve) => {
+            if (!file || !file.type || !file.type.startsWith('image/')) return resolve(file);
+            if (typeof URL === 'undefined' || typeof document === 'undefined') return resolve(file);
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            let settled = false;
+            let timer = null;
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                if (timer) clearTimeout(timer);
+                URL.revokeObjectURL(objectUrl);
+                resolve(result);
+            };
+            timer = setTimeout(() => finish(file), 15000);
+            img.onload = () => {
+                try {
+                    let { width, height } = img;
+                    const scale = Math.min(1, maxSide / Math.max(width, height));
+                    width = Math.round(width * scale);
+                    height = Math.round(height * scale);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        if (!blob || blob.size >= file.size) return finish(file);
+                        try {
+                            const baseName = (file.name || 'imagen').replace(/\.[^.]+$/, '');
+                            finish(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() }));
+                        } catch (err) {
+                            finish(file);
+                        }
+                    }, 'image/jpeg', quality);
+                } catch (err) {
+                    finish(file);
+                }
+            };
+            img.onerror = () => finish(file);
+            img.src = objectUrl;
+        });
+    },
+
     // Reset form
     resetForm() {
         const form = document.getElementById('delivery-form');
         if (form) {
             form.reset();
         }
+        this.hideImagePreview('delivery-image-preview');
         const fechaEl = document.getElementById('delivery-fecha');
         if (fechaEl) {
             fechaEl.value = formatDateForInput(new Date());
@@ -384,7 +499,8 @@ const Deliveries = {
                 ...doc.data()
             }));
 
-            if (window.innerWidth <= 768) {
+            this.isMobile = window.innerWidth <= 768;
+            if (this.isMobile) {
                 this.renderMobileCards();
             } else {
                 this.renderDeliveriesList();
@@ -555,6 +671,7 @@ const Deliveries = {
         // Get permissions again for rendering buttons
         const canEdit = window.permissions?.canEdit;
         const canDelete = window.permissions?.canDelete;
+        const imageSrc = delivery.imageUrl ? sanitizeHTML(delivery.imageUrl).replace(/"/g, '&quot;') : '';
 
         this.closeAllModals();
         const modal = document.createElement('div');
@@ -600,6 +717,12 @@ const Deliveries = {
                     <strong>Accesorios:</strong><br>
                     <pre style="white-space: pre-wrap; font-family: var(--font-family); margin-top: 0.5rem;">${sanitizeHTML(delivery.accesorios)}</pre>
                 </div>
+
+                ${imageSrc ? `
+                <div style="margin-bottom: 1.5rem;">
+                    <strong>Imagen:</strong><br>
+                    <img src="${imageSrc}" alt="Imagen de entrega ${sanitizeHTML(delivery.folio || '')}" style="max-width: 100%; max-height: 320px; border-radius: 0.5rem; margin-top: 0.5rem; cursor: pointer; border: 1px solid var(--border-color, #e5e7eb);" onclick="Deliveries.viewImage('${deliveryId}')">
+                </div>` : ''}
                 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="Deliveries.printDelivery('${deliveryId}')">
@@ -717,6 +840,10 @@ const Deliveries = {
                         </div>
                         <input type="hidden" id="delete-image-flag" value="false">
                         <input type="file" id="edit-image" accept="image/*" style="width: 100%; padding: 0.5rem;">
+                        <div id="edit-image-preview" style="display: none; margin-top: 0.5rem; text-align: center;">
+                            <img id="edit-image-preview-img" src="" alt="Nueva imagen" style="max-height: 140px; max-width: 100%; border-radius: 0.25rem; border: 1px solid #e5e7eb;">
+                            <div id="edit-image-preview-name" style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; word-break: break-all;"></div>
+                        </div>
                         <small style="color: #6b7280; display: block; margin-top: 0.25rem;">Subir nueva imagen para reemplazar la actual (Max 5MB)</small>
                     </div>
                     
@@ -745,8 +872,14 @@ const Deliveries = {
         }
 
         // Image file input change handler to reset delete flag if new image selected
-        document.getElementById('edit-image').onchange = () => {
+        document.getElementById('edit-image').onchange = (e) => {
             document.getElementById('delete-image-flag').value = 'false';
+            const file = e.target.files && e.target.files[0];
+            this.showImagePreview(file, 'edit-image-preview-img', 'edit-image-preview', 'edit-image-preview-name');
+            if (file) {
+                const previewContainer = document.getElementById('image-preview-container');
+                if (previewContainer) previewContainer.style.display = 'none';
+            }
         };
 
         // Handle form submission
@@ -774,12 +907,27 @@ const Deliveries = {
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
+                if (!updatedData.folio) {
+                    showToast('El folio es obligatorio.', 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Guardar Cambios';
+                    return;
+                }
+                const folioDup = await firebase.firestore().collection('deliveries')
+                    .where('folio', '==', updatedData.folio).limit(2).get();
+                if (folioDup.docs.some(doc => doc.id !== deliveryId)) {
+                    showToast('El folio ' + updatedData.folio + ' ya existe. Usa otro.', 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Guardar Cambios';
+                    return;
+                }
+
                 const deleteImageFlag = document.getElementById('delete-image-flag').value === 'true';
 
                 // Handle image upload if present
                 const imageInput = document.getElementById('edit-image');
                 if (imageInput && imageInput.files && imageInput.files[0]) {
-                    const file = imageInput.files[0];
+                    const file = await this.compressImage(imageInput.files[0]);
 
                     // Validate file size (max 5MB)
                     if (file.size > 5 * 1024 * 1024) {
@@ -791,12 +939,12 @@ const Deliveries = {
 
                     // Upload to Firebase Storage
                     const storage = firebase.storage();
-                    const fileExt = file.name.split('.').pop();
+                    const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
                     const fileName = `deliveries/${updatedData.folio}_${Date.now()}.${fileExt}`;
                     const storageRef = storage.ref(fileName);
 
                     const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
-                    const snapshot = await storageRef.put(file.slice(0, file.size, mimeType), { contentType: mimeType });
+                    const snapshot = await storageRef.put(file, { contentType: mimeType });
                     const downloadURL = await snapshot.ref.getDownloadURL();
 
                     updatedData.imageUrl = downloadURL;
@@ -817,6 +965,10 @@ const Deliveries = {
                 }
 
                 await firebase.firestore().collection('deliveries').doc(deliveryId).update(updatedData);
+
+                if (updatedData.imagePath && delivery.imagePath && delivery.imagePath !== updatedData.imagePath) {
+                    try { await firebase.storage().ref(delivery.imagePath).delete(); } catch (e) {}
+                }
 
                 showToast('✓ Entrega actualizada exitosamente', 'success');
                 this.closeAllModals();
@@ -853,7 +1005,17 @@ const Deliveries = {
 
         // Proceed with deletion
         try {
+            let delivery = this.deliveries.find(d => d.id === deliveryId);
+            if (!delivery) {
+                try {
+                    const snap = await firebase.firestore().collection('deliveries').doc(deliveryId).get();
+                    if (snap.exists) delivery = snap.data();
+                } catch (e) {}
+            }
             await firebase.firestore().collection('deliveries').doc(deliveryId).delete();
+            if (delivery && delivery.imagePath) {
+                try { await firebase.storage().ref(delivery.imagePath).delete(); } catch (e) {}
+            }
             showToast('Registro eliminado exitosamente', 'success');
 
             // Reload list
@@ -1184,7 +1346,10 @@ const Deliveries = {
         const sheet = document.createElement('div');
         this.activeModals.push(sheet);
         const folio = sanitizeHTML(d.folio || d.id.substring(0,8).toUpperCase());
-        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="Deliveries.closeAllModals()"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + folio + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(d.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Tienda</span><div style="font-weight:500;">' + sanitizeHTML(d.tienda || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (d.fecha ? formatDate(d.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Mueble</span><div style="font-weight:500;">' + sanitizeHTML(d.tipoMueble || '-') + '</div></div></div>' + (d.accesorios ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Accesorios</span><div style="font-weight:500;">' + sanitizeHTML(d.accesorios) + '</div></div>' : '') + '</div></div><div class="m-sheet-footer">' + (window.permissions?.canEdit ? '<button class="m-card-action" onclick="Deliveries.closeAllModals();Deliveries.showMobileForm(\'' + d.id + '\')">✏️ Editar</button>' : '') + ' 🖨️ <button class="m-card-action" onclick="Deliveries.printDelivery(\'' + d.id + '\')">Imprimir</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="Deliveries.closeAllModals();Deliveries.deleteDelivery(\'' + d.id + '\')">🗑️ Eliminar</button>' : '') + '</div></div>';
+        const imageHtml = d.imageUrl
+            ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Imagen</span><img src="' + sanitizeHTML(d.imageUrl).replace(/"/g, '&quot;') + '" alt="Imagen de entrega" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;margin-top:6px;background:#f8fafc;cursor:pointer;" onclick="Deliveries.viewImage(\'' + d.id + '\')"></div>'
+            : '';
+        sheet.innerHTML = '<div class="m-sheet-backdrop show" onclick="Deliveries.closeAllModals()"></div><div class="m-bottom-sheet show"><div class="m-sheet-handle"></div><div class="m-sheet-header"><span class="m-sheet-title">#' + folio + '</span><button class="m-sheet-close" onclick="Deliveries.closeAllModals()">✕</button></div><div class="m-sheet-body"><div style="display:flex;flex-direction:column;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Cliente</span><div style="font-weight:500;">' + sanitizeHTML(d.cliente || '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Tienda</span><div style="font-weight:500;">' + sanitizeHTML(d.tienda || '-') + '</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Fecha</span><div style="font-weight:500;">' + (d.fecha ? formatDate(d.fecha) : '-') + '</div></div><div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Mueble</span><div style="font-weight:500;">' + sanitizeHTML(d.tipoMueble || '-') + '</div></div></div>' + (d.accesorios ? '<div><span style="font-size:0.65rem;text-transform:uppercase;color:#8e8e93;font-weight:600;">Accesorios</span><div style="font-weight:500;">' + sanitizeHTML(d.accesorios) + '</div></div>' : '') + imageHtml + '</div></div><div class="m-sheet-footer">' + (window.permissions?.canEdit ? '<button class="m-card-action" onclick="Deliveries.closeAllModals();Deliveries.showMobileForm(\'' + d.id + '\')">✏️ Editar</button>' : '') + ' 🖨️ <button class="m-card-action" onclick="Deliveries.printDelivery(\'' + d.id + '\')">Imprimir</button>' + (window.permissions?.canDelete ? '<button class="m-card-action delete" onclick="Deliveries.closeAllModals();Deliveries.deleteDelivery(\'' + d.id + '\')">🗑️ Eliminar</button>' : '') + '</div></div>';
         document.body.appendChild(sheet);
     },
 
@@ -1228,7 +1393,8 @@ const Deliveries = {
                 } else {
                     data.folio = await this.generateFolio();
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    data.createdBy = window.currentUserData?.displayName || 'Usuario';
+                    data.createdBy = firebase.auth().currentUser?.uid || '';
+                    data.createdByName = window.currentUserData?.displayName || 'Usuario';
                     await db.collection('deliveries').add(data);
                 }
                 showToast(isEdit ? 'Actualizado' : 'Creado', 'success');

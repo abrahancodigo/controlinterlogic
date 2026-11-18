@@ -18,13 +18,15 @@ service firebase.storage {
     function canWrite() {
       return request.auth != null && hasRole(['editor', 'admin']);
     }
-    // Reglas para entregas (existentes)
-    match /deliveries/{imageId} {
+    // Reglas para entregas
+    // Se acepta contentType null porque algunos navegadores/moviles (iOS con HEIC)
+    // no envian el MIME type en el upload. Mismo criterio que problemas/vehiculos.
+    match /deliveries/{allPaths=**} {
       allow read: if isAuthenticated();
       allow delete: if isAdmin();
       allow create, update: if canWrite()
                    && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && (request.resource.contentType == null || request.resource.contentType.matches('image/.*'));
     }
 
 
