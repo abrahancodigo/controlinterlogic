@@ -65,6 +65,13 @@ function sanitizePrivileges(input) {
   return privileges;
 }
 
+function sanitizePreferences(input) {
+  const preferences = {};
+  const theme = String(input?.theme || '');
+  if (['light', 'dark', 'auto'].includes(theme)) preferences.theme = theme;
+  return preferences;
+}
+
 async function checkRateLimit(username, ip) {
   const key = hash(`${username}:${ip || 'unknown'}`);
   const ref = db.collection('login_attempt_limits').doc(key);
@@ -178,6 +185,7 @@ exports.authenticateUsername = onCall({ maxInstances: 20 }, async request => {
     role,
     active: existingProfile?.active ?? true,
     ...(existingProfile?.privileges || registry.privileges ? { privileges: existingProfile?.privileges || registry.privileges } : {}),
+    ...(existingProfile?.preferences || registry.preferences ? { preferences: existingProfile?.preferences || registry.preferences } : {}),
     ...(existingProfile?.createdAt ? { createdAt: existingProfile.createdAt } : {})
   }, { merge: true });
 
@@ -232,6 +240,7 @@ exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
   }
 
   const privileges = sanitizePrivileges(request.data?.privileges);
+  const preferences = sanitizePreferences(request.data?.preferences);
 
   const registryRef = db.collection('user_registry').doc(username);
   const registrySnapshot = await registryRef.get();
@@ -277,6 +286,7 @@ exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
     email: internalEmail,
     role,
     privileges,
+    preferences,
     active: true,
     createdAt: FieldValue.serverTimestamp(),
     createdBy: request.auth.uid

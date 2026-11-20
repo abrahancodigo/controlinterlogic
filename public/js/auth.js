@@ -178,6 +178,12 @@ const Auth = {
             this.userData = userData;
             this.updateUserUI(userData);
 
+            if (window.ThemeManager && typeof window.ThemeManager.applyProfileDefault === 'function') {
+                const pref = (userData.preferences && userData.preferences.theme)
+                    || (window.permissions && window.permissions.themeDefault);
+                if (pref) window.ThemeManager.applyProfileDefault(pref, user.uid);
+            }
+
             const loadingScreen = document.getElementById('loading-screen');
             const loginScreen = document.getElementById('login-screen');
             const appEl = document.getElementById('app');
@@ -295,6 +301,8 @@ const Auth = {
         window.permissions.entregaScope = role === 'admin'
             ? []
             : (Array.isArray(priv.entregaScope) ? priv.entregaScope.map(v => String(v).toUpperCase()) : []);
+        const themeDefault = String((userData.preferences && userData.preferences.theme) || '') || null;
+        window.permissions.themeDefault = ['light', 'dark', 'auto'].includes(themeDefault) ? themeDefault : null;
         if (readOnly) {
             window.permissions.canCreate = false;
             window.permissions.canEdit = false;

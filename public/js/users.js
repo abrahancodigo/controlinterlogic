@@ -300,6 +300,7 @@ const Users = {
         const priv = user.privileges || {};
         const currentModules = Array.isArray(priv.modules) ? priv.modules : [];
         const currentEntrega = Array.isArray(priv.entregaScope) ? priv.entregaScope : [];
+        const currentTheme = (user.preferences && user.preferences.theme) || 'auto';
         const modal = document.createElement('div');
         modal.className = 'modal-backdrop';
         modal.innerHTML = `
@@ -335,6 +336,14 @@ const Users = {
                         <input type="checkbox" id="edit-user-readonly" style="width:16px;height:16px;cursor:pointer;" ${priv.readOnly === true ? 'checked' : ''}>
                         <span>Solo lectura (puede consultar y exportar, pero no crear, editar ni eliminar)</span>
                     </label>
+                    <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
+                        <label>Tema por defecto</label>
+                        <select id="edit-user-theme" class="form-control" style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md);">
+                            <option value="auto" ${currentTheme === 'auto' || !currentTheme ? 'selected' : ''}>Automático (según el sistema)</option>
+                            <option value="light" ${currentTheme === 'light' ? 'selected' : ''}>Claro</option>
+                            <option value="dark" ${currentTheme === 'dark' ? 'selected' : ''}>Oscuro</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="premium-modal-footer" style="${window.innerWidth <= 768 ? 'flex-direction:column;' : ''}">
                     <button type="button" class="btn btn-secondary" data-access-action="cancel" style="${window.innerWidth <= 768 ? 'width:100%;min-height:44px;' : ''}">Cancelar</button>
@@ -355,8 +364,13 @@ const Users = {
                 entregaScope: Array.from(modal.querySelectorAll('[data-access-entrega]:checked')).map(el => el.dataset.accessEntrega),
                 readOnly: Boolean(modal.querySelector('#edit-user-readonly')?.checked)
             });
+            const themeValue = modal.querySelector('#edit-user-theme')?.value || 'auto';
+            const nextPreferences = Object.assign({}, user.preferences || {}, { theme: themeValue });
             try {
-                await firebase.firestore().collection('users').doc(userId).update({ privileges: nextPrivileges });
+                await firebase.firestore().collection('users').doc(userId).update({
+                    privileges: nextPrivileges,
+                    preferences: nextPreferences
+                });
                 showToast('Accesos actualizados. El usuario debe volver a iniciar sesión.', 'success');
                 modal.remove();
                 await this.loadUsers();
@@ -514,6 +528,14 @@ Users.showAddUserForm = function () {
                             <input type="checkbox" id="new-user-readonly" style="width:16px;height:16px;cursor:pointer;">
                             <span>Solo lectura (puede consultar y exportar, pero no crear, editar ni eliminar)</span>
                         </label>
+                        <div class="form-group" style="margin-top: 1rem; margin-bottom: 0;">
+                            <label ${labelStyle}>Tema por defecto</label>
+                            <select id="new-user-theme" class="form-control" style="width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: var(--radius-md); ${fieldStyle}">
+                                <option value="auto">Automático (según el sistema)</option>
+                                <option value="light">Claro</option>
+                                <option value="dark">Oscuro</option>
+                            </select>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -545,12 +567,17 @@ Users.showAddUserForm = function () {
         const username = document.getElementById('new-user-username').value.trim().toLowerCase();
         const password = document.getElementById('new-user-password').value;
         const role = document.getElementById('new-user-role').value;
-        const privileges = Users.readAccessOptions(modal);
+        const accessOptions = Users.readAccessOptions(modal);
+        const privileges = {
+            modules: accessOptions.modules,
+            entregaScope: accessOptions.entregaScope,
+            readOnly: accessOptions.readOnly
+        };
 
         try {
             const createUser = firebase.functions().httpsCallable('createManagedUser');
             try {
-                await createUser({ displayName: name, username, password, role, privileges });
+                await createUser({ displayName: name, username, password, role, privileges, preferences: { theme: accessOptions.theme } });
             } catch (error) {
                 const messages = {
                     'functions/already-exists': 'Ese nombre de usuario ya existe',
@@ -601,7 +628,8 @@ Users.readAccessOptions = function (modal) {
     const modules = Array.from(modal.querySelectorAll('[data-access-module]:checked')).map(el => el.dataset.accessModule);
     const entregaScope = Array.from(modal.querySelectorAll('[data-access-entrega]:checked')).map(el => el.dataset.accessEntrega);
     const readOnly = Boolean(modal.querySelector('#new-user-readonly')?.checked);
-    return { modules, entregaScope, readOnly };
+    const theme = modal.querySelector('#new-user-theme')?.value || 'auto';
+    return { modules, entregaScope, readOnly, theme };
 };
 
 if (window.ModuleRegistry) {

@@ -102,6 +102,26 @@ const ThemeManager = {
     set(mode) {
         if (!this.VALID_MODES.includes(mode)) return;
         this._apply(mode);
+    },
+
+    /**
+     * Aplica el tema por defecto definido en el perfil del usuario
+     * (users/{uid}.preferences.theme). Solo actua la primera vez que ese
+     * usuario entra en este navegador: despues respeta lo que elija con el
+     * toggle. Devuelve true si cambio el tema.
+     */
+    applyProfileDefault(preferred, userId) {
+        if (!this.VALID_MODES.includes(preferred)) return false;
+        const marker = 'dalse-theme-default:' + (userId || 'anon');
+        try {
+            if (localStorage.getItem(this.STORAGE_KEY)) return false;
+            if (localStorage.getItem(marker)) return false;
+            localStorage.setItem(marker, preferred);
+        } catch (e) {
+            return false;
+        }
+        this._apply(preferred, { persist: false });
+        return true;
     }
 };
 
