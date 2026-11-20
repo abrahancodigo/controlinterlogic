@@ -8,6 +8,16 @@
 const RT_MAX_RECORDS = 800;
 
 const InterlogicCRUD = {
+    _entregaScope() {
+        const scope = window.permissions && window.permissions.entregaScope;
+        return Array.isArray(scope) && scope.length ? scope : null;
+    },
+
+    _scopeQuery(query) {
+        const scope = this._entregaScope();
+        return scope ? query.where('entrega', 'in', scope) : query;
+    },
+
     _normalizeClientName(value) {
         return String(value || '')
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -18,7 +28,7 @@ const InterlogicCRUD = {
         const target = this._normalizeClientName(clienteLower);
         this._ccfCache = this._ccfCache || {};
         if (this._ccfCache[target]) return this._ccfCache[target];
-        const base = firebase.firestore().collection('interlogic').where('doc', 'in', ['CCF', 'FT']);
+        const base = this._scopeQuery(firebase.firestore().collection('interlogic').where('doc', 'in', ['CCF', 'FT']));
         const all = await fetchAllChunked(base, { chunkSize: 2000 });
         let recs = all.filter(r =>
             r.anulado !== true &&
@@ -113,21 +123,21 @@ const InterlogicCRUD = {
             const startTs = firebase.firestore.Timestamp.fromDate(new Date(sParts[0], sParts[1]-1, sParts[2], 0, 0, 0));
             const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1]-1, eParts[2], 23, 59, 59));
 
-            query = db.collection('interlogic')
+            query = this._scopeQuery(db.collection('interlogic')
                 .where('fecha', '>=', startTs)
                 .where('fecha', '<=', endTs)
                 .orderBy('fecha', 'desc')
-                .limit(RT_MAX_RECORDS);
+                .limit(RT_MAX_RECORDS));
         } else {
             const ninetyDaysAgo = new Date();
             ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
             ninetyDaysAgo.setHours(0, 0, 0, 0);
             const startTs = firebase.firestore.Timestamp.fromDate(ninetyDaysAgo);
 
-            query = db.collection('interlogic')
+            query = this._scopeQuery(db.collection('interlogic')
                 .where('createdAt', '>=', startTs)
                 .orderBy('createdAt', 'desc')
-                .limit(RT_MAX_RECORDS);
+                .limit(RT_MAX_RECORDS));
         }
 
         try {
@@ -176,10 +186,10 @@ const InterlogicCRUD = {
         const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1] - 1, eParts[2], 23, 59, 59));
 
         const db = firebase.firestore();
-        const baseQuery = db.collection('interlogic')
+        const baseQuery = this._scopeQuery(db.collection('interlogic')
             .where('fecha', '>=', startTs)
             .where('fecha', '<=', endTs)
-            .orderBy('fecha', 'desc');
+            .orderBy('fecha', 'desc'));
 
         showFullLoadOverlay(true, 'Descargando registros del rango…', 0);
 
@@ -1054,17 +1064,19 @@ const InterlogicCRUD = {
         const existing = document.getElementById('il-cell-editor');
         if (existing) existing.remove();
 
-        const labels = { entrega: '🚚 Entrega', cobra: '💰 Cobra', encargado: '👤 Encargado' };
-        const values = Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field))));
+        const isGuide = field === 'guia';
+        const labels = { guia: '📦 Guía', entrega: '🚚 Entrega', cobra: '💰 Cobra', encargado: '👤 Encargado' };
+        const values = isGuide ? [] : Array.from(new Set(['DALSE', 'INTERLOGISTIC', 'XPRESS'].concat(this.getDistinctValues(field))));
+        const inputAttrs = isGuide ? ' inputmode="numeric" autocomplete="off" maxlength="30"' : ' list="il-cell-suggestions"';
 
         const editor = document.createElement('div');
         editor.id = 'il-cell-editor';
         editor.className = 'il-cell-editor';
         editor.innerHTML = `
-            <input type="text" class="il-cell-editor-input" list="il-cell-suggestions" placeholder="${labels[field]}..." value="${sanitizeHTML(record[field] || '').replace(/"/g, '&quot;')}">
-            <datalist id="il-cell-suggestions">
+            <input type="text" class="il-cell-editor-input"${inputAttrs} placeholder="${labels[field]}..." value="${sanitizeHTML(record[field] == null ? '' : record[field]).replace(/"/g, '&quot;')}">
+            ${isGuide ? '' : `<datalist id="il-cell-suggestions">
                 ${values.map(function(v) { return '<option value="' + sanitizeHTML(v) + '">'; }).join('')}
-            </datalist>
+            </datalist>`}
             <div class="il-cell-editor-actions">
                 <button type="button" class="il-cell-editor-btn il-cell-editor-save">✓ Guardar</button>
                 <button type="button" class="il-cell-editor-btn il-cell-editor-cancel">✕</button>
@@ -1095,10 +1107,16 @@ const InterlogicCRUD = {
             if (!editor.contains(e.target)) close();
         };
         const save = async () => {
-            const next = input.value.trim();
-            const current = record[field] || '';
+            const next = isGuide ? input.value.replace(/\s+/g, '') : input.value.trim();
+            if (isGuide && next && !/^\d+$/.test(next)) {
+                showToast('El número de guía debe contener solo dígitos.', 'warning');
+                input.focus();
+                input.select();
+                return;
+            }
+            const current = record[field] == null ? '' : String(record[field]);
+            if (next === current) { close(); return; }
             close();
-            if (next === current) return;
             try {
                 await firebase.firestore().collection('interlogic').doc(id).update({
                     [field]: next,

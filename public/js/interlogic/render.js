@@ -847,7 +847,7 @@ const InterlogicRender = {
         tableBody.innerHTML = pageRecords.map(record => `
             <tr class="${record.anulado === true ? 'il-row-anulada' : (record.entregado === true ? 'il-row-entregada' : '')}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
-                <td data-label="Guía"><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}</strong></td>
+                <td data-label="Guía"${canEdit && record.anulado !== true ? ` class="il-editable-cell" data-record-id="${record.id}" data-field="guia" style="cursor: pointer;" title="Clic para editar la guía"` : ''}><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}${canEdit && record.anulado !== true && !record.guia ? '<span style="color: var(--text-secondary);">—</span>' : ''}</strong></td>
                 <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>
                 <td data-label="Impresa">${record.impresa ? formatDateShort(record.impresa) : ''}</td>
                 <td data-label="Fecha">${record.fecha ? formatDateShort(record.fecha) : ''}</td>

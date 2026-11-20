@@ -391,3 +391,125 @@ tr:focus-within .badge {
 [data-theme="dark"] .dash-kpi-card::after {
     background: linear-gradient(135deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, 0) 45%);
 }
+
+:root {
+    --il-modal-pad: 2rem;
+    --il-modal-hero: linear-gradient(135deg, hsl(262, 78%, 38%) 0%, hsl(262, 83%, 50%) 50%, hsl(280, 55%, 52%) 100%);
+}
+
+.modal-backdrop {
+    background: radial-gradient(120% 90% at 50% 0%, rgba(76, 29, 149, .34) 0%, rgba(8, 12, 24, .62) 58%) !important;
+    backdrop-filter: blur(10px) saturate(115%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(115%) !important;
+}
+
+.modal-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal-content > h2:first-child,
+.modal-content > .modal-header:first-child,
+.modal-content > div[style*="justify-content:space-between"]:first-child,
+.modal-content > div[style*="justify-content: space-between"]:first-child {
+    margin: calc(var(--il-modal-pad) * -1) calc(var(--il-modal-pad) * -1) 1.35rem !important;
+    padding: 1.1rem var(--il-modal-pad);
+    background: var(--il-modal-hero);
+    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -.01em;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .16);
+}
+
+.modal-content > .modal-header:first-child {
+    align-items: center;
+    border-bottom: 0 !important;
+}
+
+.modal-content > .modal-header:first-child h2,
+.modal-content > div[style*="justify-content:space-between"]:first-child h2,
+.modal-content > div[style*="justify-content: space-between"]:first-child h2 {
+    margin: 0 !important;
+    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.modal-content > div[style*="justify-content:space-between"]:first-child .btn,
+.modal-content > div[style*="justify-content: space-between"]:first-child .btn {
+    background: rgba(255, 255, 255, .18) !important;
+    color: #fff !important;
+    border-color: rgba(255, 255, 255, .32) !important;
+    box-shadow: none !important;
+}
+
+.modal-content > .modal-header > .btn-close-modal {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, .18);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff;
+}
+
+.modal-content > .modal-header > .btn-close-modal:hover {
+    background: rgba(255, 255, 255, .32);
+}
+
+.modal-content[style*="padding:1.5rem"],
+.modal-content[style*="padding: 1.5rem"] {
+    --il-modal-pad: 1.5rem;
+}
+
+.modal-content.modal-confirm > .icon:first-child {
+    margin: calc(var(--il-modal-pad) * -1) calc(var(--il-modal-pad) * -1) 1.3rem;
+    padding: 1.5rem var(--il-modal-pad) 1.1rem;
+    background: var(--il-modal-hero);
+    font-size: 2.7rem;
+    line-height: 1;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .16);
+}
+
+.modal-content.modal-confirm h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.modal-content.modal-confirm > p {
+    font-size: .9rem;
+    line-height: 1.55;
+    max-width: 34ch;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --il-modal-pad: 1.25rem;
+    }
+
+    .modal-content > h2:first-child,
+    .modal-content > .modal-header:first-child,
+    .modal-content > div[style*="justify-content:space-between"]:first-child,
+    .modal-content > div[style*="justify-content: space-between"]:first-child {
+        padding: .95rem var(--il-modal-pad);
+        font-size: 1.04rem;
+    }
+
+    .modal-content > .modal-header:first-child h2,
+    .modal-content > div[style*="justify-content:space-between"]:first-child h2,
+    .modal-content > div[style*="justify-content: space-between"]:first-child h2 {
+        font-size: 1.04rem;
+    }
+
+    .modal-content.modal-confirm > .icon:first-child {
+        padding: 1.2rem var(--il-modal-pad) .9rem;
+        font-size: 2.3rem;
+    }
+}
