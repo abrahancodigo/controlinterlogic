@@ -6,7 +6,13 @@ const vm = require('node:vm');
 const read = name => fs.readFileSync(path.join(__dirname, '../public/js/' + name + '.js'), 'utf8');
 
 function setup(user) {
-    const context = vm.createContext({ document: { getElementById: () => null }, window: { currentUserData: user, PRIVILEGES: [{ key: 'exportData', def: true }, { key: 'manageMetas', def: true }] }, console });
+    const context = vm.createContext({
+        document: { getElementById: () => null, querySelectorAll: () => [] },
+        window: { currentUserData: user, PRIVILEGES: [{ key: 'exportData', def: true }, { key: 'manageMetas', def: true }] },
+        Auth: { userData: user },
+        ModuleRegistry: { has: () => true },
+        console
+    });
     vm.runInContext(read('access'), context);
     return { context, access: context.window.AccessControl };
 }

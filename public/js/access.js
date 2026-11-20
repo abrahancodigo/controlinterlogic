@@ -32,6 +32,11 @@ const AccessControl = {
         if (!module || !current || current.active === false) return 'hidden';
         const role = this.role(current);
         if (moduleName === 'users' && role !== 'admin') return 'hidden';
+        if (role !== 'admin') {
+            const priv = current.privileges || {};
+            if (Array.isArray(priv.modules) && priv.modules.length && !priv.modules.includes(moduleName)) return 'hidden';
+            if (priv.readOnly === true) return 'read';
+        }
         return role === 'user' ? 'read' : 'write';
     },
 
@@ -49,9 +54,13 @@ const AccessControl = {
         const canWrite = this.level(moduleName, user) === 'write';
         const priv = (user && user.privileges) || {};
         const granted = (key, fallback) => typeof priv[key] === 'boolean' ? priv[key] : fallback;
+        const entregaScope = role === 'admin' || !Array.isArray(priv.entregaScope) ? [] : priv.entregaScope.map(v => String(v).toUpperCase());
         window.permissions = Object.assign({}, window.permissions, {
             isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
             canCreate: canWrite, canEdit: canWrite, canDelete: canWrite && role === 'admin',
+            readOnly: role !== 'admin' && priv.readOnly === true,
+            modules: role === 'admin' || !Array.isArray(priv.modules) || !priv.modules.length ? null : priv.modules,
+            entregaScope: entregaScope,
             manageMetas: granted('manageMetas', canWrite),
             exportData: granted('exportData', true)
         });

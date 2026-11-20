@@ -35,3 +35,7 @@ public/js/api-config.js
 
 # capturas de validacion visual (scratch)
 preview/
+
+# herramienta temporal de diagnostico
+public/diagnostico-login.html
+mobile2.png

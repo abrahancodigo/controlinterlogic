@@ -145,7 +145,13 @@ const Auth = {
             let message = 'Error de conexión.';
             if (error.code === 'functions/unauthenticated') message = 'Usuario o contraseña incorrectos.';
             else if (error.code === 'functions/resource-exhausted') message = 'Demasiados intentos. Intenta más tarde.';
+            else if (error.code === 'functions/internal') message = error.message && error.message !== 'internal' ? error.message.replace(/^internal: /, '') : 'Error interno del servidor. Revisa la consola.';
+            else if (error.code === 'functions/not-found') message = 'Las funciones de acceso no están desplegadas. Contacta al administrador.';
+            else if (error.code === 'functions/unavailable') message = 'Sin conexión con el servidor. Revisa tu internet.';
+            else if (error.code === 'auth/internal-error') message = 'El proveedor de inicio de sesión no está habilitado en Firebase. Contacta al administrador.';
+            else if (error.code === 'auth/invalid-custom-token') message = 'El token de sesión no es válido. Intenta de nuevo.';
             else if (error.code && error.code.startsWith('auth/')) message = this.getErrorMessage(error.code);
+            console.error('[Login]', error.code || '(sin código)', error.message || error);
             authShowError(errorEl, message);
             authResetBtn(submitBtn);
         }
@@ -281,6 +287,19 @@ const Auth = {
                 ? true
                 : (typeof priv[p.key] === 'boolean' ? priv[p.key] : p.def);
         });
+        const readOnly = role !== 'admin' && priv.readOnly === true;
+        window.permissions.readOnly = readOnly;
+        window.permissions.modules = role === 'admin'
+            ? null
+            : (Array.isArray(priv.modules) && priv.modules.length ? priv.modules : null);
+        window.permissions.entregaScope = role === 'admin'
+            ? []
+            : (Array.isArray(priv.entregaScope) ? priv.entregaScope.map(v => String(v).toUpperCase()) : []);
+        if (readOnly) {
+            window.permissions.canCreate = false;
+            window.permissions.canEdit = false;
+            window.permissions.canDelete = false;
+        }
 
         document.querySelectorAll('.admin-only').forEach(el => {
             if (el.getAttribute('data-module') !== 'users') {

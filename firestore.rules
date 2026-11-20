@@ -35,6 +35,33 @@ service cloud.firestore {
       return isAdmin() || isEditor();
     }
 
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // privileged(field, def): privilegios granulares guardados en users/{uid}.privileges
+    function privileged(field, def) {
+      return profile().get('privileges', {}).get(field, def);
+    }
+
+    function isReadOnly() {
+      return privileged('readOnly', false) == true;
+    }
+
+    // Alcance por columna 'entrega'. Si entregaScope está vacío -> ve todo.
+    function entregaScope() {
+      return profile().get('privileges', {}).get('entregaScope', []);
+    }
+
+    function scopeEmpty() {
+      return entregaScope().size() == 0;
+    }
+
+    function inEntregaScope(data) {
+      return scopeEmpty()
+        || (data.get('entrega', '') in entregaScope());
+    }
+
     // Users collection: solo un admin puede leer todo, cada usuario solo el suyo.
     // Con esta regla queda bloqueada la escalada N01 (lector que muta currentUserData.role
     // en el navegador y lee la colección entera).
@@ -55,10 +82,10 @@ service cloud.firestore {
     
     // Interlogic collection
     match /interlogic/{recordId} {
-      allow read: if isAuthenticated();
-      allow create: if canWrite();
-      allow update: if canWrite();
-      allow delete: if isAdmin();
+      allow read: if isAuthenticated() && inEntregaScope(resource.data);
+      allow create: if canWrite() && !isReadOnly();
+      allow update: if canWrite() && !isReadOnly();
+      allow delete: if isAdmin() && !isReadOnly();
     }
     
     // Clientes collection

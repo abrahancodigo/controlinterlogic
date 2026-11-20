@@ -97,6 +97,48 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "interlogic",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "entrega",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "fecha",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "interlogic",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "entrega",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "interlogic",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "doc",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "entrega",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

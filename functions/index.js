@@ -46,6 +46,25 @@ function safeEqual(left, right) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+const ALLOWED_MODULES = ['dashboard', 'interlogic', 'entregas', 'tarimas', 'ivette', 'problemas', 'clientes', 'flota', 'deliveries', 'kpi', 'asistencia', 'settings', 'users'];
+const ALLOWED_ENTREGAS = ['DALSE', 'INTERLOGISTIC', 'XPRESS', 'INCEDE'];
+
+function sanitizePrivileges(input) {
+  const privileges = {};
+  if (Array.isArray(input?.modules)) {
+    privileges.modules = Array.from(new Set(input.modules.filter(key => ALLOWED_MODULES.includes(key))));
+  }
+  if (Array.isArray(input?.entregaScope)) {
+    privileges.entregaScope = Array.from(new Set(input.entregaScope
+      .map(value => String(value).toUpperCase().trim())
+      .filter(value => ALLOWED_ENTREGAS.includes(value))));
+  }
+  if (typeof input?.readOnly === 'boolean') {
+    privileges.readOnly = input.readOnly;
+  }
+  return privileges;
+}
+
 async function checkRateLimit(username, ip) {
   const key = hash(`${username}:${ip || 'unknown'}`);
   const ref = db.collection('login_attempt_limits').doc(key);
@@ -158,6 +177,7 @@ exports.authenticateUsername = onCall({ maxInstances: 20 }, async request => {
     displayName,
     role,
     active: existingProfile?.active ?? true,
+    ...(existingProfile?.privileges || registry.privileges ? { privileges: existingProfile?.privileges || registry.privileges } : {}),
     ...(existingProfile?.createdAt ? { createdAt: existingProfile.createdAt } : {})
   }, { merge: true });
 
@@ -172,7 +192,14 @@ exports.authenticateUsername = onCall({ maxInstances: 20 }, async request => {
     }, { merge: true });
   }
 
-  return { customToken: await auth.createCustomToken(authUser.uid) };
+  let customToken;
+  try {
+    customToken = await auth.createCustomToken(authUser.uid);
+  } catch (tokenError) {
+    throw new HttpsError('internal', 'No se pudo generar la sesión. Verifica que Auth esté habilitado en Firebase. Detalle: ' + (tokenError.message || tokenError.code));
+  }
+
+  return { customToken };
 });
 
 exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
@@ -204,6 +231,8 @@ exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
     throw new HttpsError('invalid-argument', 'Rol no válido.');
   }
 
+  const privileges = sanitizePrivileges(request.data?.privileges);
+
   const registryRef = db.collection('user_registry').doc(username);
   const registrySnapshot = await registryRef.get();
   if (registrySnapshot.exists) {
@@ -217,26 +246,41 @@ exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
   }
 
   const secret = hashPasswordScrypt(password);
+
+  let authUser;
+  try {
+    authUser = await auth.createUser({ email: internalEmail, password, displayName, disabled: false });
+  } catch (createError) {
+    if (createError.code === 'auth/email-already-exists') {
+      throw new HttpsError('already-exists', 'Ese nombre de usuario ya existe.');
+    }
+    throw new HttpsError('internal', 'No se pudo crear la cuenta: ' + (createError.message || createError.code));
+  }
+
   await registryRef.set({
     username,
+    uid: authUser.uid,
     passwordHash: secret.passwordHash,
     salt: secret.salt,
     displayName,
     role,
+    privileges,
     createdAt: FieldValue.serverTimestamp(),
     active: true,
     internalEmail
   });
 
-  await db.collection('users').add({
+  await db.collection('users').doc(authUser.uid).set({
+    uid: authUser.uid,
     displayName,
     username,
     email: internalEmail,
     role,
+    privileges,
     active: true,
     createdAt: FieldValue.serverTimestamp(),
     createdBy: request.auth.uid
   });
 
-  return { username, role };
+  return { username, role, uid: authUser.uid };
 });
