@@ -41,7 +41,8 @@ const AccessControl = {
     },
 
     currentUser() {
-        return window.Auth && Auth.userData ? Auth.userData : null;
+        const auth = (typeof Auth !== 'undefined') ? Auth : (window.Auth || null);
+        return auth && auth.userData ? auth.userData : null;
     },
 
     canView(moduleName, user) {
