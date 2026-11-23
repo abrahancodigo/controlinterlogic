@@ -41,28 +41,47 @@ const AccessControl = {
     },
 
     currentUser() {
-        return Auth && Auth.userData ? Auth.userData : null;
+        return window.Auth && Auth.userData ? Auth.userData : null;
     },
 
     canView(moduleName, user) {
         return this.level(moduleName, user) !== 'hidden';
     },
 
+    basePermissions(user) {
+        const role = this.role(user);
+        const priv = (user && user.privileges) || {};
+        const granted = (key, fallback) => typeof priv[key] === 'boolean' ? priv[key] : fallback;
+        const readOnly = role !== 'admin' && priv.readOnly === true;
+        const canWriteRole = (role === 'admin' || role === 'editor') && !readOnly;
+        const perms = {
+            isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
+            canCreate: canWriteRole, canEdit: canWriteRole, canDelete: role === 'admin' && !readOnly,
+            readOnly: readOnly,
+            modules: role === 'admin' || !Array.isArray(priv.modules) || !priv.modules.length ? null : priv.modules,
+            entregaScope: role === 'admin' || !Array.isArray(priv.entregaScope) ? [] : priv.entregaScope.map(v => String(v).toUpperCase()),
+            manageMetas: role === 'admin' ? true : granted('manageMetas', canWriteRole),
+            exportData: role === 'admin' ? true : granted('exportData', true),
+            themeDefault: null
+        };
+        const catalog = window.PRIVILEGES || [];
+        catalog.forEach(p => {
+            perms[p.key] = role === 'admin' ? true : (typeof priv[p.key] === 'boolean' ? priv[p.key] : p.def);
+        });
+        return perms;
+    },
+
     apply(moduleName) {
         const user = this.currentUser();
         const role = this.role(user);
-        const canWrite = this.level(moduleName, user) === 'write';
-        const priv = (user && user.privileges) || {};
-        const granted = (key, fallback) => typeof priv[key] === 'boolean' ? priv[key] : fallback;
-        const entregaScope = role === 'admin' || !Array.isArray(priv.entregaScope) ? [] : priv.entregaScope.map(v => String(v).toUpperCase());
-        window.permissions = Object.assign({}, window.permissions, {
-            isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
-            canCreate: canWrite, canEdit: canWrite, canDelete: canWrite && role === 'admin',
-            readOnly: role !== 'admin' && priv.readOnly === true,
-            modules: role === 'admin' || !Array.isArray(priv.modules) || !priv.modules.length ? null : priv.modules,
-            entregaScope: entregaScope,
-            manageMetas: granted('manageMetas', canWrite),
-            exportData: granted('exportData', true)
+        const level = this.level(moduleName, user);
+        const canWrite = level === 'write';
+        window.permissions = Object.assign({}, this.basePermissions(user), {
+            canCreate: canWrite,
+            canEdit: canWrite,
+            canDelete: canWrite && role === 'admin',
+            readOnly: level === 'read',
+            themeDefault: (window.permissions && window.permissions.themeDefault) || null
         });
         const roleLabel = document.getElementById('user-role');
         if (roleLabel) roleLabel.textContent = this.label(role);

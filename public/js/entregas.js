@@ -121,14 +121,16 @@ const Entregas = {
         this._renderLoading();
         try {
             const range = this._range();
-            const snapshot = await firebase.firestore().collection('interlogic')
+            const scope = window.permissions && window.permissions.entregaScope;
+            let query = firebase.firestore().collection('interlogic')
                 .where(this.filters.dateField, '>=', range.start)
                 .where(this.filters.dateField, '<=', range.end)
-                .limit(1000)
-                .get();
+                .orderBy(this.filters.dateField, 'desc');
+            if (Array.isArray(scope) && scope.length) query = query.where('entrega', 'in', scope);
+            const all = await fetchAllChunked(query, { chunkSize: 2000 });
             if (currentToken !== this._renderToken) return;
-            this._truncated = snapshot.size === 1000;
-            this.records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            this._truncated = false;
+            this.records = all
                 .filter(record => this._date(record[this.filters.dateField]))
                 .sort((a, b) => this._date(b[this.filters.dateField]) - this._date(a[this.filters.dateField]));
             this._renderResults();
@@ -172,18 +174,31 @@ const Entregas = {
         });
     },
 
+    _isContado(record) {
+        return String(record.condicionPago || '').toLowerCase().trim() === 'contado';
+    },
+
+    _isCredito(record) {
+        const cond = String(record.condicionPago || '').toLowerCase().trim();
+        return cond === 'credito' || cond === 'crédito';
+    },
+
     _summary(records) {
         let contado = 0, credito = 0, total = 0, days = 0, entregados = 0;
         records.forEach(record => {
             const amount = signedAmount(record, 'venta');
             total += amount;
-            if (record.condicionPago === 'Contado') contado += amount;
-            if (record.condicionPago === 'Crédito') credito += amount;
+            if (this._isContado(record)) contado += amount;
+            if (this._isCredito(record)) credito += amount;
             if (record.entregado !== true) return;
             entregados++;
             const carga = this._date(record.fecha);
             const entrega = this._date(record.fechaEntrega);
-            if (carga && entrega) days += Math.max(0, (entrega - carga) / 86400000);
+            if (carga && entrega) {
+                const a = new Date(carga.getFullYear(), carga.getMonth(), carga.getDate());
+                const b = new Date(entrega.getFullYear(), entrega.getMonth(), entrega.getDate());
+                days += Math.max(0, Math.round((b - a) / 86400000));
+            }
         });
         return {
             contado, credito, total,
@@ -264,8 +279,8 @@ const Entregas = {
         rows.forEach(record => {
             const amount = signedAmount(record, 'venta');
             total += amount;
-            if (record.condicionPago === 'Contado') contado += amount;
-            if (record.condicionPago === 'Crédito') credito += amount;
+            if (this._isContado(record)) contado += amount;
+            if (this._isCredito(record)) credito += amount;
         });
         return { total, contado, credito };
     },
@@ -405,8 +420,8 @@ const Entregas = {
         filtered.forEach(record => {
             const amount = signedAmount(record, 'venta');
             tableTotal += amount;
-            if (record.condicionPago === 'Contado') tableContado += amount;
-            if (record.condicionPago === 'Crédito') tableCredito += amount;
+            if (this._isContado(record)) tableContado += amount;
+            if (this._isCredito(record)) tableCredito += amount;
         });
         const cols = this._columns();
         const summary = this._summary(filtered);

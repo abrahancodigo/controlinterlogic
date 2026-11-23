@@ -435,6 +435,14 @@ const Users = {
         }
 
         try {
+            // 0. Eliminar también la cuenta de Firebase Auth (si la Function está desplegada)
+            try {
+                const deleteAuthUser = firebase.functions().httpsCallable('deleteManagedUser');
+                await deleteAuthUser({ uid: userId, username: username || '' });
+            } catch (authError) {
+                console.warn('No se pudo eliminar la cuenta de Auth:', authError.code || authError.message);
+            }
+
             // 1. Delete from 'users' collection
             await firebase.firestore().collection('users').doc(userId).delete();
 

@@ -411,17 +411,11 @@ const KpiEvaluation = {
     },
 
     async deleteRecord(recordId) {
-        if (!window.showCenteredConfirm) {
-            if (!confirm('¿Eliminar esta evaluación?')) return;
-        } else {
-            const confirmed = await window.showCenteredConfirm(
-                '¿Eliminar evaluación?',
-                'Esta acción no se puede deshacer.',
-                'Eliminar',
-                'Cancelar'
-            );
-            if (!confirmed) return;
-        }
+        const confirmed = await showConfirm(
+            '¿Eliminar evaluación?',
+            'Esta acción no se puede deshacer.'
+        );
+        if (!confirmed) return;
 
         try {
             await firebase.firestore().collection('kpiEvaluations').doc(recordId).delete();

@@ -280,34 +280,18 @@ const Auth = {
             userRole.textContent = roleLabel;
         }
 
-        window.permissions = {
-            isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
-            canCreate: role === 'admin' || role === 'editor',
-            canEdit: role === 'admin' || role === 'editor', canDelete: role === 'admin'
-        };
-        // Privilegios granulares por usuario (catálogo en utils.js)
-        const priv = userData.privileges || {};
-        const cat = window.PRIVILEGES || [];
-        cat.forEach(p => {
-            window.permissions[p.key] = role === 'admin'
-                ? true
-                : (typeof priv[p.key] === 'boolean' ? priv[p.key] : p.def);
-        });
-        const readOnly = role !== 'admin' && priv.readOnly === true;
-        window.permissions.readOnly = readOnly;
-        window.permissions.modules = role === 'admin'
-            ? null
-            : (Array.isArray(priv.modules) && priv.modules.length ? priv.modules : null);
-        window.permissions.entregaScope = role === 'admin'
-            ? []
-            : (Array.isArray(priv.entregaScope) ? priv.entregaScope.map(v => String(v).toUpperCase()) : []);
+        // Fuente única de permisos: AccessControl.basePermissions (access.js).
+        if (window.AccessControl && typeof window.AccessControl.basePermissions === 'function') {
+            window.permissions = window.AccessControl.basePermissions(userData);
+        } else {
+            window.permissions = {
+                isAdmin: role === 'admin', isEditor: role === 'editor', isUser: role === 'user',
+                canCreate: role === 'admin' || role === 'editor',
+                canEdit: role === 'admin' || role === 'editor', canDelete: role === 'admin'
+            };
+        }
         const themeDefault = String((userData.preferences && userData.preferences.theme) || '') || null;
         window.permissions.themeDefault = ['light', 'dark', 'auto'].includes(themeDefault) ? themeDefault : null;
-        if (readOnly) {
-            window.permissions.canCreate = false;
-            window.permissions.canEdit = false;
-            window.permissions.canDelete = false;
-        }
 
         document.querySelectorAll('.admin-only').forEach(el => {
             if (el.getAttribute('data-module') !== 'users') {

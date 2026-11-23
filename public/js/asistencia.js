@@ -398,7 +398,7 @@ const Asistencia = {
             let totalDesc = 0;
             this.dateColumns.forEach(col => {
                 const cell = rowData.cells[col.key] || { hours:'', status:null };
-                if (parseFloat(cell.hours)) totalHours += parseFloat(cell.hours);
+                if (parseFloat(cell.hours)) totalHours = Math.round((totalHours + parseFloat(cell.hours)) * 100) / 100;
                 if (cell.status === 'cruce') totalCruce++;
                 else if (cell.status === 'iss') totalIss++;
                 else if (cell.status === 'descuento') totalDesc++;
@@ -464,7 +464,7 @@ const Asistencia = {
                 const cell = row.cells?.[col.key];
                 if (!cell) return;
                 const h = parseFloat(cell.hours);
-                if (h) { totalHours += h; filled++; }
+                if (h) { totalHours = Math.round((totalHours + h) * 100) / 100; filled++; }
                 if (cell.status === 'cruce') cruce++;
                 else if (cell.status === 'iss') iss++;
                 else if (cell.status === 'descuento') desc++;

@@ -535,7 +535,7 @@ const InterlogicFilters = {
             ? this._renderClienteRows(field, pending)
             : uniqueValues.map((val, idx) => {
             const valHtml = sanitizeHTML(val);
-            const valJs = String(val).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+            const valJs = String(val).replace(/&/g, '&amp;').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
             const valAttr = String(val).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             const safeId = `chk-${field}-${idx}`;
             const lc = String(val).toLowerCase().replace(/"/g, '&quot;');
@@ -569,7 +569,7 @@ const InterlogicFilters = {
         let total = 0;
         const html = rows.map((r, idx) => {
             const key = r.id || (r.guia ? 'guia:' + r.guia : String(r.cliente || ''));
-            const keyJs = String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+            const keyJs = String(key).replace(/&/g, '&amp;').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
             const keyAttr = String(key).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             const safeId = `chk-${field}-${idx}`;
             const fecha = r.fecha ? formatDateShort(r.fecha.toDate ? r.fecha.toDate() : r.fecha) : '—';

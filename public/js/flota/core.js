@@ -84,11 +84,9 @@ const FlotaCore = {
         return sanitizeHTML(str);
     },
 
-    // Nota: usa locale 'es-ES' (formato europeo: 1.234,56).
-    // utils.js tiene formatNumber() con 'en-US' (1,234.56).
-    // Mantener separada porque flota mostró números en formato local.
+    // Mismo formato numérico que el resto del sistema (en-US: 1,234.56).
     formatNumber(num, decimals = 0) {
-        return Number(num || 0).toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        return Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     },
 
     diasParaVencimiento(fechaTs) {

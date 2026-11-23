@@ -16,7 +16,7 @@ const InterlogicRoutes = {
         }
         const clientesUnicos = [...new Set(selectedRecords.map(r => (r.cliente || '').trim()).filter(Boolean))];
         const zonasUnicas = [...new Set(selectedRecords.map(r => (r.departamento || r.zona || '').trim()).filter(Boolean))];
-        const totalVenta = selectedRecords.reduce((s, r) => s + (Number(r.venta) || 0), 0);
+        const totalVenta = selectedRecords.reduce((s, r) => s + signedAmount(r, 'venta'), 0);
 
         let repartidoresOpts = '<option value="">Cargando repartidores...</option>';
         try {
@@ -126,7 +126,7 @@ const InterlogicRoutes = {
                         guia: r.guia || '',
                         cliente: r.cliente || '',
                         direccion: r.direccion || '',
-                        venta: Number(r.venta) || 0,
+                        venta: signedAmount(r, 'venta'),
                         condicionPago: r.condicionPago || '',
                         costoEnvio: Number(r.costoEnvio) || 0,
                         montoCobrado: Number(r.montoCobrado || (r.cobrado === true ? r.venta : 0)) || 0,

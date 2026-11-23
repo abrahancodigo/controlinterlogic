@@ -215,6 +215,21 @@ const Settings = {
         return false;
     },
 
+    _captureUnsavedInputs() {
+        return {
+            companyName: document.getElementById('company-name')?.value,
+            sourceZipUrl: document.getElementById('source-zip-url')?.value
+        };
+    },
+
+    _restoreUnsavedInputs(saved) {
+        if (!saved) return;
+        const companyName = document.getElementById('company-name');
+        const sourceZipUrl = document.getElementById('source-zip-url');
+        if (companyName && saved.companyName !== undefined) companyName.value = saved.companyName;
+        if (sourceZipUrl && saved.sourceZipUrl !== undefined) sourceZipUrl.value = saved.sourceZipUrl;
+    },
+
     async handleLogoUpload(event, logoNumber) {
         if (!this._requireWrite()) return;
         const file = event.target.files[0];
@@ -244,8 +259,10 @@ const Settings = {
                     this.settings.logo2 = base64;
                 }
 
-                // Re-render to show the new logo
+                // Re-render to show the new logo sin perder lo escrito sin guardar
+                const unsaved = this._captureUnsavedInputs();
                 this.render();
+                this._restoreUnsavedInputs(unsaved);
                 showToast(`Logo ${logoNumber} cargado. Guarda para aplicar cambios.`, 'info');
             };
             reader.readAsDataURL(file);
@@ -263,7 +280,9 @@ const Settings = {
         } else {
             this.settings.logo2 = '';
         }
+        const unsaved = this._captureUnsavedInputs();
         this.render();
+        this._restoreUnsavedInputs(unsaved);
         showToast(`Logo ${logoNumber} eliminado. Guarda para aplicar cambios.`, 'info');
     },
 

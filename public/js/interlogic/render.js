@@ -22,6 +22,13 @@ const InterlogicRender = {
         this.isMobile = false;
         const contentArea = document.getElementById('content-area');
 
+        if (this._contentAbortController) {
+            this._contentAbortController.abort();
+            this._contentAbortController = null;
+        }
+        this.eventDelegationSetup = false;
+        this._mobileDelegationSetup = false;
+
         if (this._desktopAbortController) {
             this._desktopAbortController.abort();
         }
@@ -455,6 +462,8 @@ const InterlogicRender = {
         }, { signal });
 
         if (!this.eventDelegationSetup) {
+            this._contentAbortController = new AbortController();
+            const contentSignal = this._contentAbortController.signal;
             contentArea.addEventListener('click', (e) => {
                 if (!this.isMobile && e.target.closest('[data-il-retry]')) { this.reloadListener(true); return; }
                 const pageBtnAll = e.target.closest('.page-btn-all');
@@ -503,7 +512,7 @@ const InterlogicRender = {
                     if (id && field) this.editCellField(id, field, editableCell);
                     return;
                 }
-            });
+            }, { signal: contentSignal });
             this.eventDelegationSetup = true;
         }
     },
@@ -511,6 +520,13 @@ const InterlogicRender = {
     async renderMobile() {
         const contentArea = document.getElementById('content-area');
         this.isMobile = true;
+
+        if (this._contentAbortController) {
+            this._contentAbortController.abort();
+            this._contentAbortController = null;
+        }
+        this.eventDelegationSetup = false;
+        this._mobileDelegationSetup = false;
 
         contentArea.innerHTML = `
             <section class="mf-interlogic">
@@ -552,6 +568,8 @@ const InterlogicRender = {
 
         if (!this._mobileDelegationSetup) {
             this._mobileDelegationSetup = true;
+            this._contentAbortController = new AbortController();
+            const contentSignal = this._contentAbortController.signal;
             contentArea.addEventListener('click', (e) => {
                 if (this.isMobile && e.target.closest('[data-il-retry]')) { this.reloadListener(true); return; }
                 const button = e.target.closest('button');
@@ -583,7 +601,7 @@ const InterlogicRender = {
                 if (mEditable) { e.stopPropagation(); const id = mEditable.getAttribute('data-record-id'); const field = mEditable.getAttribute('data-field'); if (id && field) this.editCellField(id, field, mEditable); return; }
                 const mCard = e.target.closest('.m-data-card');
                 if (mCard && !e.target.closest('summary, a')) { const id = mCard.getAttribute('data-record-id'); if (id) this.showMobileDetail(id); return; }
-            });
+            }, { signal: contentSignal });
             contentArea.addEventListener('keydown', (e) => {
                 const card = e.target.closest('.m-data-card[data-record-id]');
                 if (card && e.target === card && ['Enter', ' '].includes(e.key)) { e.preventDefault(); this.showMobileDetail(card.dataset.recordId); }
@@ -595,7 +613,7 @@ const InterlogicRender = {
                 const first = controls[0], last = controls[controls.length - 1];
                 if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
                 else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
-            });
+            }, { signal: contentSignal });
         }
         this.updateMobileControls();
         await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));

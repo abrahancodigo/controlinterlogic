@@ -62,6 +62,12 @@ function sanitizePrivileges(input) {
   if (typeof input?.readOnly === 'boolean') {
     privileges.readOnly = input.readOnly;
   }
+  if (typeof input?.manageMetas === 'boolean') {
+    privileges.manageMetas = input.manageMetas;
+  }
+  if (typeof input?.exportData === 'boolean') {
+    privileges.exportData = input.exportData;
+  }
   return privileges;
 }
 
@@ -136,7 +142,7 @@ exports.authenticateUsername = onCall({ maxInstances: 20 }, async request => {
 
   await attemptRef.delete();
 
-  if (!registry.passwordHash || legacyPasswordHash) {
+  if (!registry.passwordHash || legacyPasswordHash || !scryptPasswordHash) {
     const upgraded = hashPasswordScrypt(password);
     await registryRef.update({
       passwordHash: upgraded.passwordHash,
@@ -210,14 +216,51 @@ exports.authenticateUsername = onCall({ maxInstances: 20 }, async request => {
   return { customToken };
 });
 
+exports.deleteManagedUser = onCall({ maxInstances: 10 }, async request => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+  }
+
+  const adminProfile = await db.collection('users').doc(request.auth.uid).get();
+  if (!adminProfile.exists) {
+    throw new HttpsError('permission-denied', 'Solo un administrador puede eliminar usuarios.');
+  }
+  const adminData = adminProfile.data();
+  if (String(adminData.role || '').toLowerCase() !== 'admin' || adminData.active === false) {
+    throw new HttpsError('permission-denied', 'Solo un administrador puede eliminar usuarios.');
+  }
+
+  const targetUid = String(request.data?.uid || '');
+  if (!targetUid) {
+    throw new HttpsError('invalid-argument', 'Falta el uid del usuario.');
+  }
+  if (targetUid === request.auth.uid) {
+    throw new HttpsError('invalid-argument', 'No puedes eliminar tu propia cuenta.');
+  }
+
+  try {
+    await auth.deleteUser(targetUid);
+  } catch (deleteError) {
+    if (deleteError.code !== 'auth/user-not-found') {
+      throw new HttpsError('internal', 'No se pudo eliminar la cuenta: ' + (deleteError.message || deleteError.code));
+    }
+  }
+
+  return { ok: true };
+});
+
 exports.createManagedUser = onCall({ maxInstances: 10 }, async request => {
   if (!request.auth || !request.auth.uid) {
     throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
   }
 
   const adminProfile = await db.collection('users').doc(request.auth.uid).get();
-  const adminRole = String(adminProfile.exists ? adminProfile.data().role : '').toLowerCase();
-  if (adminRole !== 'admin' || adminProfile.data().active === false) {
+  if (!adminProfile.exists) {
+    throw new HttpsError('permission-denied', 'Solo un administrador puede crear usuarios.');
+  }
+  const adminData = adminProfile.data();
+  const adminRole = String(adminData.role || '').toLowerCase();
+  if (adminRole !== 'admin' || adminData.active === false) {
     throw new HttpsError('permission-denied', 'Solo un administrador puede crear usuarios.');
   }
 

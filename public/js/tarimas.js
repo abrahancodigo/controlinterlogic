@@ -181,14 +181,21 @@ const Tarimas = {
                 this.calcularTotales();
                 this.renderStats();
                 this.renderTable();
-                if (snapshot.size >= 500) this._completarTotalesHistoricos();
+                if (snapshot.size >= 500) this._scheduleCompletarTotales();
             }, error => {
                 console.error('Error loading tarimas:', error);
                 showToast('Error al cargar movimientos: ' + error.message, 'error');
             });
     },
 
+    _scheduleCompletarTotales() {
+        clearTimeout(this._histTimer);
+        this._histTimer = setTimeout(() => this._completarTotalesHistoricos(), 1200);
+    },
+
     async _completarTotalesHistoricos() {
+        if (this._histLoading) { this._histPending = true; return; }
+        this._histLoading = true;
         try {
             const snapshot = await firebase.firestore().collection('tarimas_walmart').get();
             let entradas = 0;
@@ -204,6 +211,9 @@ const Tarimas = {
             this.renderStats();
         } catch (e) {
             console.error('Error al calcular totales historicos:', e);
+        } finally {
+            this._histLoading = false;
+            if (this._histPending) { this._histPending = false; this._scheduleCompletarTotales(); }
         }
     },
 

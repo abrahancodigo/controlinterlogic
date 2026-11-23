@@ -31,7 +31,7 @@ function formatDate(date, includeTime = true) {
         options.minute = '2-digit';
     }
 
-    return d.toLocaleDateString('es-ES', options);
+    return includeTime ? d.toLocaleString('es-ES', options) : d.toLocaleDateString('es-ES', options);
 }
 
 /**
@@ -171,7 +171,7 @@ function showToast(message, type = 'info', duration = 4000) {
         container = document.createElement('div');
         container.id = 'toast-container';
         container.className = 'toast-container';
-        container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+        container.style.cssText = 'position:fixed;top:auto;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
         document.body.appendChild(container);
     }
 
@@ -242,7 +242,6 @@ function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
-            clearTimeout(timeout);
             func(...args);
         };
         clearTimeout(timeout);

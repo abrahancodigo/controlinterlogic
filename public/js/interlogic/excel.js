@@ -564,13 +564,14 @@ const InterlogicExcel = {
                         const ref = db.collection('interlogic').doc();
                         const esNC = String(record.doc || '').trim().toUpperCase() === 'NC';
                         const venta = esNC ? Math.abs(record.venta || 0) : (record.venta || 0);
-                        const costoEnvio = record.bultos * 1.85;
+                        const costoEnvio = Math.round(record.bultos * 185) / 100;
                         const costoPorcentaje = venta > 0 ? (costoEnvio / venta) * 100 : 0;
 
                         let firebaseDate = customFirebaseDate || toFirebaseDate(record.fecha);
 
                         batch.set(ref, {
                             ...record,
+                            entrega: String(record.entrega || '').trim().toUpperCase(),
                             fecha: firebaseDate,
                             impresa: toFirebaseDate(record.impresa),
                             venta,

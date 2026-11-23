@@ -581,14 +581,21 @@ const Ivette = {
                 this._renderProdComboList();
                 this._renderProdComboListMobile();
                 this._syncProdLabel(); this._syncProdLabelMobile();
-                if (this._truncated) this._completarStatsHistoricas();
+                if (this._truncated) this._scheduleCompletarStats();
             }, error => {
                 console.error('Error loading ivette:', error);
                 showToast('Error al cargar movimientos: ' + error.message, 'error');
             });
     },
 
+    _scheduleCompletarStats() {
+        clearTimeout(this._histTimer);
+        this._histTimer = setTimeout(() => this._completarStatsHistoricas(), 1200);
+    },
+
     async _completarStatsHistoricas() {
+        if (this._histLoading) { this._histPending = true; return; }
+        this._histLoading = true;
         try {
             const snapshot = await firebase.firestore().collection('ivette_movimientos').get();
             this._fullRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -598,6 +605,9 @@ const Ivette = {
             this._renderProdComboList(); this._renderProdComboListMobile();
         } catch (e) {
             console.error('Error al calcular estadisticas historicas:', e);
+        } finally {
+            this._histLoading = false;
+            if (this._histPending) { this._histPending = false; this._scheduleCompletarStats(); }
         }
     },
 

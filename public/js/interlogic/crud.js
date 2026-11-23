@@ -18,6 +18,29 @@ const InterlogicCRUD = {
         return scope ? query.where('entrega', 'in', scope) : query;
     },
 
+    _ncCcfUpdate(ccfData, deltaCents) {
+        const cobradoActualCents = toCents(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
+        const ventaCCFCents = toCents(ccfData.venta || 0);
+        const nuevoCobradoCents = Math.max(0, cobradoActualCents + deltaCents);
+        const nuevoPendienteCents = Math.max(0, ventaCCFCents - nuevoCobradoCents);
+        return {
+            montoCobrado: nuevoCobradoCents / 100,
+            montoPendiente: nuevoPendienteCents / 100,
+            estadoCobro: nuevoCobradoCents >= ventaCCFCents ? 'pagado' : (nuevoCobradoCents > 0 ? 'parcial' : 'pendiente'),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+    },
+
+    async _applyNcDelta(db, ccfId, deltaCents, batch) {
+        if (!ccfId || !deltaCents) return false;
+        const ccfDoc = await db.collection('interlogic').doc(ccfId).get();
+        if (!ccfDoc.exists) return false;
+        const update = this._ncCcfUpdate(ccfDoc.data(), deltaCents);
+        if (batch) batch.update(db.collection('interlogic').doc(ccfId), update);
+        else await db.collection('interlogic').doc(ccfId).update(update);
+        return true;
+    },
+
     _normalizeClientName(value) {
         return String(value || '')
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -28,8 +51,18 @@ const InterlogicCRUD = {
         const target = this._normalizeClientName(clienteLower);
         this._ccfCache = this._ccfCache || {};
         if (this._ccfCache[target]) return this._ccfCache[target];
-        const base = this._scopeQuery(firebase.firestore().collection('interlogic').where('doc', 'in', ['CCF', 'FT']));
-        const all = await fetchAllChunked(base, { chunkSize: 2000 });
+        const db = firebase.firestore();
+        const scope = this._entregaScope();
+        let all;
+        if (scope) {
+            // Evita dos operadores `in` en una misma consulta.
+            const ccf = await fetchAllChunked(db.collection('interlogic').where('doc', '==', 'CCF').where('entrega', 'in', scope), { chunkSize: 2000 });
+            const ft = await fetchAllChunked(db.collection('interlogic').where('doc', '==', 'FT').where('entrega', 'in', scope), { chunkSize: 2000 });
+            all = ccf.concat(ft);
+        } else {
+            const base = db.collection('interlogic').where('doc', 'in', ['CCF', 'FT']);
+            all = await fetchAllChunked(base, { chunkSize: 2000 });
+        }
         let recs = all.filter(r =>
             r.anulado !== true &&
             this._normalizeClientName(r.cliente) === target
@@ -121,7 +154,7 @@ const InterlogicCRUD = {
             const sParts = startDate.split('-').map(Number);
             const eParts = endDate.split('-').map(Number);
             const startTs = firebase.firestore.Timestamp.fromDate(new Date(sParts[0], sParts[1]-1, sParts[2], 0, 0, 0));
-            const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1]-1, eParts[2], 23, 59, 59));
+            const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1]-1, eParts[2], 23, 59, 59, 999));
 
             query = this._scopeQuery(db.collection('interlogic')
                 .where('fecha', '>=', startTs)
@@ -183,7 +216,7 @@ const InterlogicCRUD = {
         const sParts = startDate.split('-').map(Number);
         const eParts = endDate.split('-').map(Number);
         const startTs = firebase.firestore.Timestamp.fromDate(new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0));
-        const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1] - 1, eParts[2], 23, 59, 59));
+        const endTs = firebase.firestore.Timestamp.fromDate(new Date(eParts[0], eParts[1] - 1, eParts[2], 23, 59, 59, 999));
 
         const db = firebase.firestore();
         const baseQuery = this._scopeQuery(db.collection('interlogic')
@@ -547,6 +580,8 @@ const InterlogicCRUD = {
             if (afecta) populateCCFList();
         };
         ncAfectaSaldo.addEventListener('change', toggleNCCcfGroup);
+        var ncLinkTouched = false;
+        ncAfectaSaldo.addEventListener('change', function() { ncLinkTouched = true; });
 
         var populateCCFList = async function() {
             var clienteActual = document.getElementById('il-cliente').value.trim();
@@ -584,6 +619,7 @@ const InterlogicCRUD = {
         };
 
         ncInterlogicId.addEventListener('change', function() {
+            ncLinkTouched = true;
             var selectedId = ncInterlogicId.value;
             if (selectedId && ncCcfInfo) {
                 var record = (self._ccfCache && self._ccfCache[self._normalizeClientName(document.getElementById('il-cliente').value)])
@@ -827,7 +863,7 @@ const InterlogicCRUD = {
                 const venta = Number(document.getElementById('il-venta').value) || 0;
                 const bultos = Number(document.getElementById('il-bultos').value) || 0;
 
-                const costoEnvio = bultos * 1.85;
+                const costoEnvio = Math.round(bultos * 185) / 100;
                 const costoPorcentaje = venta > 0 ? (costoEnvio / venta) * 100 : 0;
 
                 const data = {
@@ -851,7 +887,7 @@ const InterlogicCRUD = {
                     costoEnvio: costoEnvio,
                     costoPorcentaje: costoPorcentaje,
                     observations: document.getElementById('il-observations').value.trim() || '',
-                    entrega: responsibleValue('entrega'),
+                    entrega: responsibleValue('entrega').toUpperCase(),
                     cobra: responsibleValue('cobra'),
                     encargado: document.getElementById('il-encargado').value.trim() || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -878,6 +914,12 @@ const InterlogicCRUD = {
                     // CREAR nueva Nota de Crédito (solo cuando es un registro nuevo)
                     var ncAfectaVal = document.getElementById('il-nc-afectaSaldo').value;
                     var ncInterlogicIdVal = document.getElementById('il-nc-interlogicId').value;
+                    var ncRef = db.collection('interlogic').doc();
+                    var ncMetaRef = db.collection('notasCredito').doc();
+
+                    data.ncAfectaSaldo = ncAfectaVal === 'si';
+                    data.ncInterlogicId = ncInterlogicIdVal || '';
+                    data.notasCreditoId = ncMetaRef.id;
 
                     var ncData = {
                         ncNum: data.docNum,
@@ -898,43 +940,72 @@ const InterlogicCRUD = {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     data.createdBy = firebase.auth().currentUser?.uid || null;
 
-                    if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
-                        var batch = db.batch();
-                        batch.set(db.collection('notasCredito').doc(), ncData);
-                        batch.set(db.collection('interlogic').doc(), data);
+                    var batch = db.batch();
+                    batch.set(ncMetaRef, ncData);
+                    batch.set(ncRef, data);
+                    if (data.ncAfectaSaldo && ncInterlogicIdVal) {
+                        await Interlogic._applyNcDelta(db, ncInterlogicIdVal, toCents(venta), batch);
+                    }
+                    await batch.commit();
+                    showToast(data.ncAfectaSaldo && ncInterlogicIdVal ? '✓ Nota de Crédito creada y saldo actualizado' : '✓ Nota de Crédito creada', 'success');
+                } else if (recordId) {
+                    if (isNC) {
+                        // EDitar una NC: revertir el efecto anterior y aplicar el nuevo.
+                        var oldDoc = await db.collection('interlogic').doc(recordId).get();
+                        var old = oldDoc.exists ? oldDoc.data() : null;
+                        var ncAfectaVal = document.getElementById('il-nc-afectaSaldo') ? document.getElementById('il-nc-afectaSaldo').value : 'no';
+                        var ncInterlogicIdVal = document.getElementById('il-nc-interlogicId') ? document.getElementById('il-nc-interlogicId').value : '';
+                        if (!ncLinkTouched && old) {
+                            ncAfectaVal = old.ncAfectaSaldo === true ? 'si' : 'no';
+                            ncInterlogicIdVal = old.ncInterlogicId || '';
+                        }
+                        data.ncAfectaSaldo = ncAfectaVal === 'si';
+                        data.ncInterlogicId = ncInterlogicIdVal || '';
+                        if (old && old.notasCreditoId) data.notasCreditoId = old.notasCreditoId;
 
-                        var ccfDoc = await db.collection('interlogic').doc(ncInterlogicIdVal).get();
-                        if (ccfDoc.exists) {
-                            var ccfData = ccfDoc.data();
-                            var cobradoActualCents = toCents(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
-                            var ventaCCFCents = toCents(ccfData.venta || 0);
-                            var ventaCents = toCents(venta);
-                            var nuevoCobradoCents = cobradoActualCents + ventaCents;
-                            var nuevoPendienteCents = Math.max(0, ventaCCFCents - nuevoCobradoCents);
-                            var nuevoCobrado = nuevoCobradoCents / 100;
-                            var nuevoPendiente = nuevoPendienteCents / 100;
-                            var nuevoEstado = nuevoCobradoCents >= ventaCCFCents ? 'pagado' : (nuevoCobradoCents > 0 ? 'parcial' : 'pendiente');
-
-                            batch.update(db.collection('interlogic').doc(ncInterlogicIdVal), {
-                                montoCobrado: nuevoCobrado,
-                                montoPendiente: nuevoPendiente,
-                                estadoCobro: nuevoEstado,
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
+                        var deltas = {};
+                        if (old && old.doc === 'NC' && old.ncAfectaSaldo === true && old.ncInterlogicId) {
+                            deltas[old.ncInterlogicId] = (deltas[old.ncInterlogicId] || 0) - toCents(old.venta);
+                        }
+                        if (data.ncAfectaSaldo && ncInterlogicIdVal) {
+                            deltas[ncInterlogicIdVal] = (deltas[ncInterlogicIdVal] || 0) + toCents(venta);
                         }
 
-                        await batch.commit();
-                        showToast('✓ Nota de Crédito creada y saldo actualizado', 'success');
+                        var ncBatch = db.batch();
+                        ncBatch.update(db.collection('interlogic').doc(recordId), data);
+                        var deltaKeys = Object.keys(deltas).filter(function(key) { return deltas[key] !== 0; });
+                        for (var di = 0; di < deltaKeys.length; di++) {
+                            await Interlogic._applyNcDelta(db, deltaKeys[di], deltas[deltaKeys[di]], ncBatch);
+                        }
+                        if (data.notasCreditoId) {
+                            ncBatch.update(db.collection('notasCredito').doc(data.notasCreditoId), {
+                                monto: venta,
+                                motivo: data.observations,
+                                fecha: data.fecha,
+                                afectaSaldo: data.ncAfectaSaldo,
+                                estado: data.anulado === true ? 'anulada' : 'activa'
+                            });
+                        }
+                        await ncBatch.commit();
+                        showToast('✓ Nota de Crédito actualizada', 'success');
                     } else {
-                        var batch2 = db.batch();
-                        batch2.set(db.collection('notasCredito').doc(), ncData);
-                        batch2.set(db.collection('interlogic').doc(), data);
-                        await batch2.commit();
-                        showToast('✓ Nota de Crédito creada', 'success');
+                        // Si el registro editado antes era una NC que afectaba saldo,
+                        // revertir ese efecto al convertirlo en otro tipo de documento.
+                        var prevDoc = await db.collection('interlogic').doc(recordId).get();
+                        var prev = prevDoc.exists ? prevDoc.data() : null;
+                        if (prev && prev.doc === 'NC' && prev.ncAfectaSaldo === true && prev.ncInterlogicId) {
+                            var revertBatch = db.batch();
+                            await Interlogic._applyNcDelta(db, prev.ncInterlogicId, -toCents(prev.venta), revertBatch);
+                            revertBatch.update(db.collection('interlogic').doc(recordId), data);
+                            if (prev.notasCreditoId) {
+                                revertBatch.update(db.collection('notasCredito').doc(prev.notasCreditoId), { estado: 'anulada' });
+                            }
+                            await revertBatch.commit();
+                        } else {
+                            await db.collection('interlogic').doc(recordId).update(data);
+                        }
+                        showToast('✓ Registro actualizado', 'success');
                     }
-                } else if (recordId) {
-                    await db.collection('interlogic').doc(recordId).update(data);
-                    showToast('✓ Registro actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     data.createdBy = firebase.auth().currentUser?.uid || null;
@@ -981,7 +1052,7 @@ const InterlogicCRUD = {
                                             .where('condicionPago', '==', 'Crédito').get();
                                         const deudaTotal = crSnap.docs.reduce((s, doc) => {
                                             const d = doc.data();
-                                            if (d.anulado === true) return s;
+                                            if (d.anulado === true || d.doc === 'NC') return s;
                                             const cob = Number(d.montoCobrado || (d.cobrado === true ? d.venta : 0));
                                             return s + Math.max(0, Number(d.venta || 0) - cob);
                                         }, 0);
@@ -1028,7 +1099,19 @@ const InterlogicCRUD = {
 
         try {
             console.log('🗑️ Intentando eliminar registro:', recordId);
-            await firebase.firestore().collection('interlogic').doc(recordId).delete();
+            const db = firebase.firestore();
+            if (record && record.doc === 'NC' && record.ncAfectaSaldo === true && record.ncInterlogicId) {
+                const batch = db.batch();
+                await this._applyNcDelta(db, record.ncInterlogicId, -toCents(record.venta), batch);
+                batch.delete(db.collection('interlogic').doc(recordId));
+                if (record.notasCreditoId) batch.delete(db.collection('notasCredito').doc(record.notasCreditoId));
+                await batch.commit();
+            } else {
+                if (record && record.notasCreditoId) {
+                    db.collection('notasCredito').doc(record.notasCreditoId).delete().catch(() => {});
+                }
+                await db.collection('interlogic').doc(recordId).delete();
+            }
             console.log('✅ Registro eliminado de Firestore');
 
             this.records = this.records.filter(r => r.id !== recordId);
@@ -1107,7 +1190,9 @@ const InterlogicCRUD = {
             if (!editor.contains(e.target)) close();
         };
         const save = async () => {
-            const next = isGuide ? input.value.replace(/\s+/g, '') : input.value.trim();
+            const next = field === 'entrega'
+                ? input.value.trim().toUpperCase()
+                : (isGuide ? input.value.replace(/\s+/g, '') : input.value.trim());
             if (isGuide && next && !/^\d+$/.test(next)) {
                 showToast('El número de guía debe contener solo dígitos.', 'warning');
                 input.focus();
@@ -1276,6 +1361,29 @@ const InterlogicCRUD = {
                 update.reactivadoPor = user ? user.uid : null;
             }
             const ids = selected.map(record => record.id);
+
+            // Las NC que afectan saldo deben revertir/aplicar el cobro del CCF aunque
+            // el registro quede anulado (anulado = 0 no debe dejar el cobro aplicado).
+            const ncChanging = selected.filter(record =>
+                record.doc === 'NC' && record.ncAfectaSaldo === true && record.ncInterlogicId && record.anulado !== anular);
+            if (ncChanging.length) {
+                const db = firebase.firestore();
+                const ncBatch = db.batch();
+                const deltas = {};
+                ncChanging.forEach(record => {
+                    const dir = anular ? -1 : 1;
+                    deltas[record.ncInterlogicId] = (deltas[record.ncInterlogicId] || 0) + dir * toCents(record.venta);
+                    if (record.notasCreditoId) {
+                        ncBatch.update(db.collection('notasCredito').doc(record.notasCreditoId), { estado: anular ? 'anulada' : 'activa' });
+                    }
+                });
+                const ccfIds = Object.keys(deltas).filter(id => deltas[id] !== 0);
+                for (let i = 0; i < ccfIds.length; i++) {
+                    await this._applyNcDelta(db, ccfIds[i], deltas[ccfIds[i]], ncBatch);
+                }
+                await ncBatch.commit();
+            }
+
             await this._commitInChunks(ids, (batch, ref) => batch.update(ref, update));
 
             this.records.forEach(record => {
@@ -1306,6 +1414,24 @@ const InterlogicCRUD = {
 
         try {
             const ids = [...this.selectedRecords];
+            const ncRecords = this.records.filter(r => this.selectedRecords.has(r.id) && r.doc === 'NC');
+            if (ncRecords.length) {
+                const db = firebase.firestore();
+                const ncBatch = db.batch();
+                const deltas = {};
+                for (let i = 0; i < ncRecords.length; i++) {
+                    const rec = ncRecords[i];
+                    if (rec.ncAfectaSaldo === true && rec.ncInterlogicId) {
+                        deltas[rec.ncInterlogicId] = (deltas[rec.ncInterlogicId] || 0) - toCents(rec.venta);
+                    }
+                    if (rec.notasCreditoId) ncBatch.delete(db.collection('notasCredito').doc(rec.notasCreditoId));
+                }
+                const ccfIds = Object.keys(deltas).filter(id => deltas[id] !== 0);
+                for (let i = 0; i < ccfIds.length; i++) {
+                    await this._applyNcDelta(db, ccfIds[i], deltas[ccfIds[i]], ncBatch);
+                }
+                await ncBatch.commit();
+            }
             await this._commitInChunks(ids, (batch, ref) => batch.delete(ref));
 
             this.records = this.records.filter(r => !this.selectedRecords.has(r.id));
@@ -1424,17 +1550,18 @@ const InterlogicCRUD = {
             const btns = ['ba-dalse', 'ba-interlogistic', 'ba-xpress', 'ba-clear', 'ba-custom-btn'].map(id => document.getElementById(id));
             btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.6'; } });
 
+            const normalizedValue = field === 'entrega' ? String(value || '').trim().toUpperCase() : value;
             const ids = selected.map(record => record.id);
             try {
                 await self._commitInChunks(ids, (batch, ref) => {
                     batch.update(ref, {
-                        [field]: value,
+                        [field]: normalizedValue,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 });
 
                 self.records.forEach(r => {
-                    if (ids.includes(r.id)) r[field] = value;
+                    if (ids.includes(r.id)) r[field] = normalizedValue;
                 });
                 self._recordsRev = (self._recordsRev || 0) + 1;
                 self.selectedRecords.clear();
@@ -1787,12 +1914,17 @@ const InterlogicCRUD = {
         mfDoc.addEventListener('change', mfToggleNC);
         mfToggleNC();
 
+        var mfNcLinkTouched = false;
         if (mfNcAfecta) {
             mfNcAfecta.addEventListener('change', function() {
+                mfNcLinkTouched = true;
                 var afecta = mfNcAfecta.value === 'si';
                 if (mfNcCcfGroup) mfNcCcfGroup.style.display = afecta ? 'block' : 'none';
                 if (afecta) mfPopulateCCFList();
             });
+        }
+        if (mfNcInterlogicId) {
+            mfNcInterlogicId.addEventListener('change', function() { mfNcLinkTouched = true; });
         }
 
         var mfPopulateCCFList = async function() {
@@ -1879,12 +2011,12 @@ const InterlogicCRUD = {
                 venta: parseFloat(document.getElementById('mf-venta').value) || 0,
                 bultos: parseInt(document.getElementById('mf-bultos').value) || 0,
                 observations: document.getElementById('mf-observations').value,
-                entrega: document.getElementById('mf-entrega').value || '',
+                entrega: (document.getElementById('mf-entrega').value || '').toUpperCase(),
                 cobra: document.getElementById('mf-cobra').value || '',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            data.costoEnvio = data.bultos * 1.85;
+            data.costoEnvio = Math.round(data.bultos * 185) / 100;
             data.costoPorcentaje = data.venta > 0 ? (data.costoEnvio / data.venta) * 100 : 0;
 
             if (data.condicionPago === 'Crédito') {
@@ -1908,6 +2040,14 @@ const InterlogicCRUD = {
                     var ncAfectaVal = document.getElementById('mf-nc-afectaSaldo') ? document.getElementById('mf-nc-afectaSaldo').value : 'no';
                     var ncInterlogicIdVal = document.getElementById('mf-nc-interlogicId') ? document.getElementById('mf-nc-interlogicId').value : '';
 
+                    var mdb = firebase.firestore();
+                    var ncRef = mdb.collection('interlogic').doc();
+                    var ncMetaRef = mdb.collection('notasCredito').doc();
+
+                    data.ncAfectaSaldo = ncAfectaVal === 'si';
+                    data.ncInterlogicId = ncInterlogicIdVal || '';
+                    data.notasCreditoId = ncMetaRef.id;
+
                     var ncData = {
                         ncNum: data.docNum,
                         cliente: data.cliente,
@@ -1927,42 +2067,71 @@ const InterlogicCRUD = {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     data.createdBy = firebase.auth().currentUser?.uid || null;
 
-                    if (ncAfectaVal === 'si' && ncInterlogicIdVal) {
-                        var db = firebase.firestore();
-                        var batch = db.batch();
-                        batch.set(db.collection('notasCredito').doc(), ncData);
-                        batch.set(db.collection('interlogic').doc(), data);
-                        var ccfDoc = await db.collection('interlogic').doc(ncInterlogicIdVal).get();
-                        if (ccfDoc.exists) {
-                            var ccfData = ccfDoc.data();
-                            var cobradoActualCents = toCents(ccfData.montoCobrado || (ccfData.cobrado === true ? ccfData.venta : 0));
-                            var ventaCCFCents = toCents(ccfData.venta || 0);
-                            var dataVentaCents = toCents(data.venta);
-                            var nuevoCobradoCents = cobradoActualCents + dataVentaCents;
-                            var nuevoPendienteCents = Math.max(0, ventaCCFCents - nuevoCobradoCents);
-                            var nuevoCobrado = nuevoCobradoCents / 100;
-                            var nuevoPendiente = nuevoPendienteCents / 100;
-                            var nuevoEstado = nuevoCobradoCents >= ventaCCFCents ? 'pagado' : (nuevoCobradoCents > 0 ? 'parcial' : 'pendiente');
-                            batch.update(db.collection('interlogic').doc(ncInterlogicIdVal), {
-                                montoCobrado: nuevoCobrado,
-                                montoPendiente: nuevoPendiente,
-                                estadoCobro: nuevoEstado,
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    var batch = mdb.batch();
+                    batch.set(ncMetaRef, ncData);
+                    batch.set(ncRef, data);
+                    if (data.ncAfectaSaldo && ncInterlogicIdVal) {
+                        await self._applyNcDelta(mdb, ncInterlogicIdVal, toCents(data.venta), batch);
+                    }
+                    await batch.commit();
+                    showToast(data.ncAfectaSaldo && ncInterlogicIdVal ? 'Nota de Credito creada y saldo actualizado' : 'Nota de Credito creada', 'success');
+                } else if (isEdit) {
+                    if (isNC) {
+                        var mdbEdit = firebase.firestore();
+                        var oldDoc = await mdbEdit.collection('interlogic').doc(id).get();
+                        var old = oldDoc.exists ? oldDoc.data() : null;
+                        var ncAfectaVal = document.getElementById('mf-nc-afectaSaldo') ? document.getElementById('mf-nc-afectaSaldo').value : 'no';
+                        var ncInterlogicIdVal = document.getElementById('mf-nc-interlogicId') ? document.getElementById('mf-nc-interlogicId').value : '';
+                        if (!mfNcLinkTouched && old) {
+                            ncAfectaVal = old.ncAfectaSaldo === true ? 'si' : 'no';
+                            ncInterlogicIdVal = old.ncInterlogicId || '';
+                        }
+                        data.ncAfectaSaldo = ncAfectaVal === 'si';
+                        data.ncInterlogicId = ncInterlogicIdVal || '';
+                        if (old && old.notasCreditoId) data.notasCreditoId = old.notasCreditoId;
+
+                        var deltas = {};
+                        if (old && old.doc === 'NC' && old.ncAfectaSaldo === true && old.ncInterlogicId) {
+                            deltas[old.ncInterlogicId] = (deltas[old.ncInterlogicId] || 0) - toCents(old.venta);
+                        }
+                        if (data.ncAfectaSaldo && ncInterlogicIdVal) {
+                            deltas[ncInterlogicIdVal] = (deltas[ncInterlogicIdVal] || 0) + toCents(data.venta);
+                        }
+
+                        var ncBatch = mdbEdit.batch();
+                        ncBatch.update(mdbEdit.collection('interlogic').doc(id), data);
+                        var deltaKeys = Object.keys(deltas).filter(function(key) { return deltas[key] !== 0; });
+                        for (var di = 0; di < deltaKeys.length; di++) {
+                            await self._applyNcDelta(mdbEdit, deltaKeys[di], deltas[deltaKeys[di]], ncBatch);
+                        }
+                        if (data.notasCreditoId) {
+                            ncBatch.update(mdbEdit.collection('notasCredito').doc(data.notasCreditoId), {
+                                monto: data.venta,
+                                motivo: data.observations,
+                                fecha: data.fecha,
+                                afectaSaldo: data.ncAfectaSaldo,
+                                estado: data.anulado === true ? 'anulada' : 'activa'
                             });
                         }
-                        await batch.commit();
-                        showToast('Nota de Credito creada y saldo actualizado', 'success');
+                        await ncBatch.commit();
+                        showToast('Nota de Credito actualizada', 'success');
                     } else {
-                        var db2 = firebase.firestore();
-                        var batch2 = db2.batch();
-                        batch2.set(db2.collection('notasCredito').doc(), ncData);
-                        batch2.set(db2.collection('interlogic').doc(), data);
-                        await batch2.commit();
-                        showToast('Nota de Credito creada', 'success');
+                        var mdbPrev = firebase.firestore();
+                        var prevDoc = await mdbPrev.collection('interlogic').doc(id).get();
+                        var prev = prevDoc.exists ? prevDoc.data() : null;
+                        if (prev && prev.doc === 'NC' && prev.ncAfectaSaldo === true && prev.ncInterlogicId) {
+                            var revertBatch = mdbPrev.batch();
+                            await self._applyNcDelta(mdbPrev, prev.ncInterlogicId, -toCents(prev.venta), revertBatch);
+                            revertBatch.update(mdbPrev.collection('interlogic').doc(id), data);
+                            if (prev.notasCreditoId) {
+                                revertBatch.update(mdbPrev.collection('notasCredito').doc(prev.notasCreditoId), { estado: 'anulada' });
+                            }
+                            await revertBatch.commit();
+                        } else {
+                            await mdbPrev.collection('interlogic').doc(id).update(data);
+                        }
+                        showToast('Registro actualizado', 'success');
                     }
-                } else if (isEdit) {
-                    await firebase.firestore().collection('interlogic').doc(id).update(data);
-                    showToast('Registro actualizado', 'success');
                 } else {
                     data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     data.createdBy = firebase.auth().currentUser?.uid || null;

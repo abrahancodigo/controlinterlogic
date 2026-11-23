@@ -495,13 +495,19 @@ const Dashboard = {
         return i.getTime() === today.getTime() && f.getTime() === today.getTime();
     },
 
+    _scopeQuery(query) {
+        const scope = window.permissions && window.permissions.entregaScope;
+        return Array.isArray(scope) && scope.length ? query.where('entrega', 'in', scope) : query;
+    },
+
     subscribeToData() {
         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         const requestKey = this._prevRequestKey = {};
         this.prevRecords = [];
         this._trendKey = null;
+        this._trendRawKey = null;
 
-        const baseQuery = firebase.firestore().collection('interlogic')
+        const baseQuery = this._scopeQuery(firebase.firestore().collection('interlogic'))
             .where('fecha', '>=', this.fechaInicio)
             .where('fecha', '<=', this.fechaFin)
             .orderBy('fecha', 'desc');
@@ -560,7 +566,7 @@ const Dashboard = {
         const requestKey = this._prevRequestKey;
         const prev = this.getPrevPeriod(this.fechaInicio, this.fechaFin);
         fetchAllChunked(
-            firebase.firestore().collection('interlogic')
+            this._scopeQuery(firebase.firestore().collection('interlogic'))
                 .where('fecha', '>=', prev.inicio)
                 .where('fecha', '<=', prev.fin)
                 .orderBy('fecha', 'desc'),
@@ -741,6 +747,7 @@ const Dashboard = {
 
         records.forEach(r => {
             const m = signedAmount(r, 'venta');
+            const isNc = r.doc === 'NC';
             const cond = (r.condicionPago || '').toLowerCase().trim();
             const isContado = cond === 'contado';
             const isCredito = cond === 'credito' || cond === 'crédito';
@@ -752,29 +759,30 @@ const Dashboard = {
             const dk = toDateKey(fec);
             const dl = this.formatDateShort(fec);
 
-            stats.total += m; stats.totalCount++;
-            if (isContado) { stats.contado += m; stats.contadoCount++; }
-            else if (isCredito) { stats.credito += m; stats.creditoCount++; }
-            if (emp === 'DALSE') { stats.dalse += m; stats.dalseCount++; }
-            if (emp === 'INCEDE') { stats.incede += m; stats.incedeCount++; }
+            stats.total += m;
+            if (!isNc) stats.totalCount++;
+            if (isContado) { stats.contado += m; if (!isNc) stats.contadoCount++; }
+            else if (isCredito) { stats.credito += m; if (!isNc) stats.creditoCount++; }
+            if (emp === 'DALSE') { stats.dalse += m; if (!isNc) stats.dalseCount++; }
+            if (emp === 'INCEDE') { stats.incede += m; if (!isNc) stats.incedeCount++; }
 
             if (!carrierStats[ent]) carrierStats[ent] = { monto: 0, count: 0, contado: 0, credito: 0 };
             carrierStats[ent].monto += m;
-            carrierStats[ent].count++;
+            if (!isNc) carrierStats[ent].count++;
             if (isContado) carrierStats[ent].contado += m;
             else carrierStats[ent].credito += m;
 
             /* Vendedor aggregation */
             if (!vendedorStats[vendedor]) vendedorStats[vendedor] = { monto: 0, count: 0, contado: 0, credito: 0 };
             vendedorStats[vendedor].monto += m;
-            vendedorStats[vendedor].count++;
+            if (!isNc) vendedorStats[vendedor].count++;
             if (isContado) vendedorStats[vendedor].contado += m;
             else if (isCredito) vendedorStats[vendedor].credito += m;
 
             /* Zona aggregation */
             if (!zonaStats[zona]) zonaStats[zona] = { monto: 0, count: 0, contado: 0, credito: 0 };
             zonaStats[zona].monto += m;
-            zonaStats[zona].count++;
+            if (!isNc) zonaStats[zona].count++;
             if (isContado) zonaStats[zona].contado += m;
             else if (isCredito) zonaStats[zona].credito += m;
 
@@ -782,24 +790,24 @@ const Dashboard = {
             if (!matriz[vendedor]) matriz[vendedor] = {};
             if (!matriz[vendedor][zona]) matriz[vendedor][zona] = { monto: 0, count: 0, contado: 0, credito: 0 };
             matriz[vendedor][zona].monto += m;
-            matriz[vendedor][zona].count++;
+            if (!isNc) matriz[vendedor][zona].count++;
             if (isContado) matriz[vendedor][zona].contado += m;
             else if (isCredito) matriz[vendedor][zona].credito += m;
 
             /* Cliente / Empresa / Municipio */
             const cli = (r.cliente || 'Sin cliente').trim() || 'Sin cliente';
             if (!clienteStats[cli]) clienteStats[cli] = { monto: 0, count: 0, contado: 0, credito: 0 };
-            clienteStats[cli].monto += m; clienteStats[cli].count++;
+            clienteStats[cli].monto += m; if (!isNc) clienteStats[cli].count++;
             if (isContado) clienteStats[cli].contado += m; else if (isCredito) clienteStats[cli].credito += m;
 
             const empN = (r.empresa || 'Sin empresa').trim() || 'Sin empresa';
             if (!empresaStats[empN]) empresaStats[empN] = { monto: 0, count: 0, contado: 0, credito: 0 };
-            empresaStats[empN].monto += m; empresaStats[empN].count++;
+            empresaStats[empN].monto += m; if (!isNc) empresaStats[empN].count++;
             if (isContado) empresaStats[empN].contado += m; else if (isCredito) empresaStats[empN].credito += m;
 
             const mun = (r.municipio || 'Sin municipio').trim() || 'Sin municipio';
             if (!municipioStats[mun]) municipioStats[mun] = { monto: 0, count: 0, contado: 0, credito: 0 };
-            municipioStats[mun].monto += m; municipioStats[mun].count++;
+            municipioStats[mun].monto += m; if (!isNc) municipioStats[mun].count++;
             if (isContado) municipioStats[mun].contado += m; else if (isCredito) municipioStats[mun].credito += m;
 
             if (!dailyStats[dk]) dailyStats[dk] = {
@@ -807,9 +815,9 @@ const Dashboard = {
                 contado: 0, contadoCount: 0, credito: 0, creditoCount: 0, dalse: 0, incede: 0
             };
             dailyStats[dk].total += m;
-            dailyStats[dk].totalCount++;
-            if (isContado) { dailyStats[dk].contado += m; dailyStats[dk].contadoCount++; }
-            else if (isCredito) { dailyStats[dk].credito += m; dailyStats[dk].creditoCount++; }
+            if (!isNc) dailyStats[dk].totalCount++;
+            if (isContado) { dailyStats[dk].contado += m; if (!isNc) dailyStats[dk].contadoCount++; }
+            else if (isCredito) { dailyStats[dk].credito += m; if (!isNc) dailyStats[dk].creditoCount++; }
             if (emp === 'DALSE') dailyStats[dk].dalse += m;
             if (emp === 'INCEDE') dailyStats[dk].incede += m;
         });
@@ -1048,7 +1056,7 @@ const Dashboard = {
     _comisionHtml(name, monto) {
         const pct = Number((this.comisiones || {})[name]) || 0;
         if (!pct) return '';
-        return `<div class="dash-comision-line">Comisión ${pct}%: <strong>${this.formatMoney(monto * pct / 100)}</strong></div>`;
+        return `<div class="dash-comision-line">Comisión ${pct}%: <strong>${this.formatMoney(Math.round(monto * pct) / 100)}</strong></div>`;
     },
 
     showMetasModal() {
@@ -1179,14 +1187,20 @@ const Dashboard = {
         const months = 6;
         const end = new Date(this.fechaFin);
         const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1, 0, 0, 0);
+        const rangeKey = formatDateForInput(start) + '|' + formatDateForInput(end);
         try {
-            const base = firebase.firestore().collection('interlogic')
-                .where('fecha', '>=', start)
-                .where('fecha', '<=', end)
-                .orderBy('fecha', 'desc');
-            const all = await fetchAllChunked(base, { chunkSize: 2000 });
-            let recs = all.filter(r => r.anulado !== true);
-            recs = this._applyDimFilters(recs);
+            // Los 6 meses se leen una sola vez; cambiar filtros de dimensión solo
+            // re-filtra en memoria en vez de volver a descargar el rango.
+            if (this._trendRawKey !== rangeKey) {
+                const base = this._scopeQuery(firebase.firestore().collection('interlogic'))
+                    .where('fecha', '>=', start)
+                    .where('fecha', '<=', end)
+                    .orderBy('fecha', 'desc');
+                const all = await fetchAllChunked(base, { chunkSize: 2000 });
+                this._trendRaw = all.filter(r => r.anulado !== true);
+                this._trendRawKey = rangeKey;
+            }
+            let recs = this._applyDimFilters(this._trendRaw || []);
             const buckets = [];
             for (let i = 0; i < months; i++) {
                 const d = new Date(end.getFullYear(), end.getMonth() - (months - 1) + i, 1);
@@ -1384,7 +1398,7 @@ const Dashboard = {
                 el.innerHTML = '<span class="dash-delta-neutral">—</span>';
                 return;
             }
-            const pct = ((c - p) / p * 100);
+            const pct = ((c - p) / Math.abs(p) * 100);
             const arrow = pct >= 0 ? '▲' : '▼';
             const cls = pct >= 0 ? 'dash-delta-up' : 'dash-delta-down';
             el.innerHTML = `<span class="${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;

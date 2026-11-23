@@ -247,6 +247,9 @@ const App = {
         var bulkContainer = document.getElementById('bulk-actions-container');
         if (bulkContainer) bulkContainer.remove();
 
+        // Cierra modales/hojas que hayan quedado abiertos al cambiar de módulo.
+        document.querySelectorAll('.modal-backdrop, .dash-detail-backdrop, .dash-detail-modal, .mf-sheet-root').forEach(el => el.remove());
+
         AccessControl.apply(moduleName);
         this.currentModule = moduleName;
         this.updateBottomNavActive(moduleName);

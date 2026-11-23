@@ -29,6 +29,10 @@ if (window.ModuleRegistry) {
                 Interlogic._desktopAbortController.abort();
                 Interlogic._desktopAbortController = null;
             }
+            if (Interlogic._contentAbortController) {
+                Interlogic._contentAbortController.abort();
+                Interlogic._contentAbortController = null;
+            }
             if (typeof Interlogic._detachPopupScroll === 'function') Interlogic._detachPopupScroll();
             if (typeof Interlogic._excelDetachGlobalHandlers === 'function') Interlogic._excelDetachGlobalHandlers();
             Interlogic.eventDelegationSetup = false;

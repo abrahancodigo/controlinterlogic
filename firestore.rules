@@ -57,9 +57,16 @@ service cloud.firestore {
       return entregaScope().size() == 0;
     }
 
-    function inEntregaScope(data) {
+    // Acepta el valor tal cual o en mayúsculas para no depender de cómo se
+    // haya guardado históricamente (los formularios normalizan a mayúsculas).
+    function scopeAllows(data) {
       return scopeEmpty()
-        || (data.get('entrega', '') in entregaScope());
+        || (data.get('entrega', '') in entregaScope())
+        || (data.get('entrega', '').upper() in entregaScope());
+    }
+
+    function inEntregaScope(data) {
+      return scopeAllows(data);
     }
 
     // Users collection: solo un admin puede leer todo, cada usuario solo el suyo.
@@ -83,9 +90,13 @@ service cloud.firestore {
     // Interlogic collection
     match /interlogic/{recordId} {
       allow read: if isAuthenticated() && inEntregaScope(resource.data);
-      allow create: if canWrite() && !isReadOnly();
-      allow update: if canWrite() && !isReadOnly();
-      allow delete: if isAdmin() && !isReadOnly();
+      allow create: if canWrite() && !isReadOnly()
+        && scopeAllows(request.resource.data);
+      allow update: if canWrite() && !isReadOnly()
+        && scopeAllows(resource.data)
+        && scopeAllows(request.resource.data);
+      allow delete: if isAdmin() && !isReadOnly()
+        && scopeAllows(resource.data);
     }
     
     // Clientes collection
