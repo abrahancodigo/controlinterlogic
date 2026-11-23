@@ -1511,7 +1511,8 @@ tbody tr:hover {
    =================================== */
 .toast-container {
     position: fixed;
-    top: var(--spacing-lg);
+    top: auto !important;
+    bottom: var(--spacing-lg);
     right: var(--spacing-lg);
     z-index: 10000;
     display: flex;
