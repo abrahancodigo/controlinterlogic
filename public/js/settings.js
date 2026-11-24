@@ -197,6 +197,7 @@ const Settings = {
         const logo1Input = document.getElementById('logo1-input');
         if (logo1Upload && logo1Input) {
             logo1Upload.addEventListener('click', () => logo1Input.click());
+            logo1Input.addEventListener('click', (e) => e.stopPropagation());
             logo1Input.addEventListener('change', (e) => this.handleLogoUpload(e, 1));
         }
 
@@ -205,6 +206,7 @@ const Settings = {
         const logo2Input = document.getElementById('logo2-input');
         if (logo2Upload && logo2Input) {
             logo2Upload.addEventListener('click', () => logo2Input.click());
+            logo2Input.addEventListener('click', (e) => e.stopPropagation());
             logo2Input.addEventListener('change', (e) => this.handleLogoUpload(e, 2));
         }
     },
@@ -231,46 +233,108 @@ const Settings = {
     },
 
     async handleLogoUpload(event, logoNumber) {
-        if (!this._requireWrite()) return;
-        const file = event.target.files[0];
+        const input = event.target;
+        if (!this._requireWrite()) { input.value = ''; return; }
+        const file = input.files && input.files[0];
         if (!file) return;
 
-        // Validate file type
         if (!file.type.startsWith('image/')) {
             showToast('Por favor selecciona una imagen válida', 'error');
+            input.value = '';
             return;
         }
 
-        // Validate file size (max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            showToast('La imagen debe ser menor a 2MB', 'error');
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('La imagen debe ser menor a 5MB', 'error');
+            input.value = '';
             return;
         }
 
         try {
-            // Convert to base64 for storage
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const base64 = e.target.result;
+            const base64 = await this._compressLogo(file);
 
-                if (logoNumber === 1) {
-                    this.settings.logo1 = base64;
-                } else {
-                    this.settings.logo2 = base64;
-                }
+            if (logoNumber === 1) {
+                this.settings.logo1 = base64;
+            } else {
+                this.settings.logo2 = base64;
+            }
 
-                // Re-render to show the new logo sin perder lo escrito sin guardar
-                const unsaved = this._captureUnsavedInputs();
-                this.render();
-                this._restoreUnsavedInputs(unsaved);
-                showToast(`Logo ${logoNumber} cargado. Guarda para aplicar cambios.`, 'info');
-            };
-            reader.readAsDataURL(file);
-            reader.onerror = () => { showToast('Error al leer el archivo', 'error'); };
+            this._updateLogoArea(logoNumber, base64);
+            showToast(`Logo ${logoNumber} cargado. Guarda para aplicar cambios.`, 'info');
         } catch (error) {
             console.error('Error uploading logo:', error);
             showToast('Error al cargar el logo', 'error');
+        } finally {
+            input.value = '';
         }
+    },
+
+    _compressLogo(file, maxWidth = 400) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+            reader.onload = () => {
+                if (file.type === 'image/svg+xml') {
+                    resolve(reader.result);
+                    return;
+                }
+                const img = new Image();
+                img.onerror = () => reject(new Error('Imagen inválida'));
+                img.onload = () => {
+                    const scale = Math.min(1, maxWidth / img.width);
+                    const width = Math.max(1, Math.round(img.width * scale));
+                    const height = Math.max(1, Math.round(img.height * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) { resolve(reader.result); return; }
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const isPng = file.type === 'image/png';
+                    const out = isPng
+                        ? canvas.toDataURL('image/png')
+                        : canvas.toDataURL('image/jpeg', 0.9);
+                    resolve(out.length < reader.result.length ? out : reader.result);
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    },
+
+    _updateLogoArea(logoNumber, base64) {
+        const area = document.getElementById(`logo${logoNumber}-upload`);
+        if (!area) return;
+        const input = document.getElementById(`logo${logoNumber}-input`);
+        const existing = area.querySelector('img');
+        if (existing) {
+            existing.src = this._sanitizeUrl(base64);
+        } else {
+            area.querySelector('p')?.remove();
+            const img = document.createElement('img');
+            img.src = this._sanitizeUrl(base64);
+            img.alt = `Logo ${logoNumber}`;
+            img.style.cssText = 'max-height: 80px; max-width: 100%; object-fit: contain;';
+            if (input) {
+                area.insertBefore(img, input);
+            } else {
+                area.appendChild(img);
+            }
+        }
+
+        const group = area.closest('.form-group');
+        if (group && !document.getElementById(`logo${logoNumber}-remove`)) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = `logo${logoNumber}-remove`;
+            btn.className = 'btn btn-sm btn-secondary';
+            btn.style.cssText = 'margin-top:0.5rem;width:100%;';
+            btn.textContent = `Eliminar Logo ${logoNumber}`;
+            btn.addEventListener('click', () => this.removeLogo(logoNumber));
+            group.appendChild(btn);
+        }
+
+        this.updateBranding();
     },
 
     removeLogo(logoNumber) {
@@ -280,9 +344,20 @@ const Settings = {
         } else {
             this.settings.logo2 = '';
         }
-        const unsaved = this._captureUnsavedInputs();
-        this.render();
-        this._restoreUnsavedInputs(unsaved);
+
+        const area = document.getElementById(`logo${logoNumber}-upload`);
+        if (area) {
+            area.querySelector('img')?.remove();
+            if (!area.querySelector('p')) {
+                const hint = document.createElement('p');
+                hint.style.cssText = 'color: var(--text-tertiary); font-size:0.85rem;';
+                hint.textContent = `Haz clic para subir Logo ${logoNumber}`;
+                area.appendChild(hint);
+            }
+        }
+        document.getElementById(`logo${logoNumber}-remove`)?.remove();
+
+        this.updateBranding();
         showToast(`Logo ${logoNumber} eliminado. Guarda para aplicar cambios.`, 'info');
     },
 
@@ -305,6 +380,12 @@ const Settings = {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
+            const totalBytes = new Blob([JSON.stringify(settingsData)]).size;
+            if (totalBytes > 900 * 1024) {
+                showToast(`Los logos pesan demasiado (${Math.round(totalBytes / 1024)} KB). Usa imágenes más livianas.`, 'error', 6000);
+                return;
+            }
+
             await firebase.firestore().collection('config').doc('settings').set(settingsData, { merge: true });
 
             this.settings = settingsData;
@@ -313,7 +394,10 @@ const Settings = {
             showToast('✓ Configuración guardada exitosamente', 'success');
         } catch (error) {
             console.error('Error saving settings:', error);
-            showToast('Error al guardar la configuración', 'error');
+            const detail = error?.code === 'invalid-argument'
+                ? 'El documento excede el límite de Firestore. Reduce el peso de los logos.'
+                : (error?.message || 'Intenta de nuevo.');
+            showToast(`Error al guardar: ${detail}`, 'error', 6000);
         } finally {
             setButtonLoading(submitBtn, false);
         }
