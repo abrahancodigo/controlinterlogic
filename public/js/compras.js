@@ -678,7 +678,7 @@ const Compras = {
             </tr>`;
         }).join('');
 
-        return `<div style="font-family:Arial,Helvetica,sans-serif;padding:20px;max-width:800px;margin:0 auto;color:#172b4d;background:#fff;line-height:1.4;overflow-wrap:anywhere;">
+        return `<div style="font-family:Arial,Helvetica,sans-serif;padding:0;max-width:100%;margin:0;color:#172b4d;background:#fff;line-height:1.4;overflow-wrap:anywhere;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:24px;border-top:5px solid #173b63;border-bottom:1px solid #cbd5e1;padding:22px 8px;margin-bottom:20px;break-inside:avoid;">
                 ${logo1
                     ? `<img src="${logo1}" alt="Logo DALSE" style="height:78px;max-width:220px;object-fit:contain;">`
@@ -756,14 +756,14 @@ const Compras = {
                     <div style="height:64px;"></div>
                     <div style="border-top:1.5px solid #0f172a;padding-top:8px;">
                         <strong style="display:block;font-size:0.85rem;">Entrega</strong>
-                        <span style="font-size:10px;color:#64748b;">DALSE</span>
+                        <span style="font-size:10px;color:#64748b;">Almacén Pacífico</span>
                     </div>
                 </div>
                 <div style="text-align:center;">
                     <div style="height:64px;"></div>
                     <div style="border-top:1.5px solid #0f172a;padding-top:8px;">
                         <strong style="display:block;font-size:0.85rem;">Recibe</strong>
-                        <span style="font-size:10px;color:#64748b;">${esc(order.proveedor || 'Proveedor')}</span>
+                        <span style="font-size:10px;color:#64748b;">${esc(companyName)}</span>
                     </div>
                 </div>
             </div>
@@ -842,14 +842,14 @@ const Compras = {
                 wrapper = document.createElement('div');
                 wrapper.style.cssText = 'position:fixed;left:-10000px;top:0;';
                 const source = document.createElement('div');
-                source.style.cssText = 'width:7.5in;background:#ffffff;';
+                source.style.cssText = 'width:7.5in;box-sizing:border-box;padding:0.5in;background:#ffffff;';
                 source.innerHTML = docHtml;
                 wrapper.appendChild(source);
                 document.body.appendChild(wrapper);
                 await this._waitImages(source);
 
                 const opt = {
-                    margin: [0.5, 0.5, 0.5, 0.5],
+                    margin: [0, 0, 0, 0],
                     filename: `OrdenCompra_${order.folio || order.id}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
