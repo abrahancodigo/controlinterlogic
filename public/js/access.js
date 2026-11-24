@@ -7,6 +7,7 @@ const AccessControl = {
         { key: 'ivette', label: 'Inventario Ivette' },
         { key: 'problemas', label: 'Problemas' },
         { key: 'clientes', label: 'Clientes' },
+        { key: 'compras', label: 'Órdenes de Compra' },
         { key: 'flota', label: 'Flota y Mantenimiento' },
         { key: 'deliveries', label: 'Entrega de Muebles' },
         { key: 'kpi', label: 'Evaluación KPI' },
