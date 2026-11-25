@@ -411,6 +411,7 @@ const InterlogicRender = {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(cb => {
                 cb.checked = e.target.checked;
+                cb.closest('tr')?.classList.toggle('il-row-selected', e.target.checked);
                 if (e.target.checked) {
                     this.selectedRecords.add(cb.dataset.id);
                 } else {
@@ -428,6 +429,7 @@ const InterlogicRender = {
                 } else {
                     this.selectedRecords.delete(id);
                 }
+                e.target.closest('tr')?.classList.toggle('il-row-selected', e.target.checked);
                 const checkboxes = document.querySelectorAll('.row-checkbox');
                 const selectAll = document.getElementById('select-all-checkbox');
                 selectAll.checked = this.selectedRecords.size >= checkboxes.length && checkboxes.length > 0;
@@ -863,7 +865,7 @@ const InterlogicRender = {
         const pageRecords = this.showAll ? this.filteredRecords : this.filteredRecords.slice(startIdx, startIdx + pageSize);
 
         tableBody.innerHTML = pageRecords.map(record => `
-            <tr class="${record.anulado === true ? 'il-row-anulada' : (record.entregado === true ? 'il-row-entregada' : '')}">
+            <tr class="${record.anulado === true ? 'il-row-anulada' : (record.entregado === true ? 'il-row-entregada' : '')}${this.selectedRecords.has(record.id) ? ' il-row-selected' : ''}">
                 <td style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${record.id}" ${this.selectedRecords.has(record.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;"></td>
                 <td data-label="Guía"${canEdit && record.anulado !== true ? ` class="il-editable-cell" data-record-id="${record.id}" data-field="guia" style="cursor: pointer;" title="Clic para editar la guía"` : ''}><strong>${record.anulado === true ? 'ANULADO · ' : ''}${sanitizeHTML(record.guia || '')}${canEdit && record.anulado !== true && !record.guia ? '<span style="color: var(--text-secondary);">—</span>' : ''}</strong></td>
                 <td data-label="Empresa"><span class="badge ${this._badgeTransportista(record.empresa)}">${sanitizeHTML(record.empresa || '')}</span></td>

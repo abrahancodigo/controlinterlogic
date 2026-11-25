@@ -51,7 +51,7 @@ const Clientes = {
                 </div>
 
                 <div class="table-container" style="overflow-x: auto;">
-                    <table class="data-table">
+                    <table class="data-table" id="clientes-table">
                         <thead>
                             <tr>
                                 <th style="width: 40px; text-align: center;">
@@ -89,6 +89,7 @@ const Clientes = {
             const checkboxes = document.querySelectorAll('.cliente-checkbox');
             checkboxes.forEach(cb => {
                 cb.checked = e.target.checked;
+                cb.closest('tr')?.classList.toggle('cliente-row-selected', e.target.checked);
                 if (e.target.checked) {
                     this.selectedRecords.add(cb.dataset.id);
                 } else {
@@ -107,6 +108,7 @@ const Clientes = {
                 } else {
                     this.selectedRecords.delete(id);
                 }
+                e.target.closest('tr')?.classList.toggle('cliente-row-selected', e.target.checked);
                 // Update select-all state
                 const checkboxes = document.querySelectorAll('.cliente-checkbox');
                 const selectAll = document.getElementById('select-all-clientes');
@@ -297,7 +299,7 @@ const Clientes = {
         const canDelete = window.permissions?.canDelete;
 
         tableBody.innerHTML = this.filteredRecords.map(c => `
-            <tr>
+            <tr data-id="${sanitizeHTML(c.id)}" class="${this.selectedRecords.has(c.id) ? 'cliente-row-selected' : ''}">
                 <td style="text-align: center;">
                     <input type="checkbox" class="cliente-checkbox" data-id="${sanitizeHTML(c.id)}" ${this.selectedRecords.has(c.id) ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;">
                 </td>

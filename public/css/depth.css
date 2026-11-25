@@ -26,6 +26,10 @@
     --ds-zebra: hsl(262, 30%, 99.2%);
     --ds-row-hover: hsl(262, 62%, 97%);
     --ds-row-hover-bar: #8b5cf6;
+    --ds-row-selected-bg: hsl(262, 78%, 94%);
+    --ds-row-selected-bg-hover: hsl(262, 74%, 90%);
+    --ds-row-selected-bar: #7c3aed;
+    --ds-logo-icon-bg: rgba(124, 58, 237, .12);
     --ds-focus-ring: 0 0 0 3px rgba(124, 58, 237, .28);
 }
 
@@ -44,6 +48,10 @@
     --ds-zebra: #131e35;
     --ds-row-hover: #1d2b48;
     --ds-row-hover-bar: #a78bfa;
+    --ds-row-selected-bg: #2a2450;
+    --ds-row-selected-bg-hover: #342c63;
+    --ds-row-selected-bar: #a78bfa;
+    --ds-logo-icon-bg: rgba(167, 139, 250, .16);
     --ds-focus-ring: 0 0 0 3px rgba(167, 139, 250, .4);
 }
 
@@ -109,6 +117,150 @@
 
 #il-data-table tbody tr.il-row-anulada:hover {
     background: var(--ds-row-cancelled-bg-hover) !important;
+}
+
+/* ---------- Filas seleccionadas con checkbox ---------- */
+#il-data-table tbody tr.il-row-selected,
+#il-data-table tbody tr.il-row-selected:nth-child(even),
+#il-data-table tbody tr.il-row-selected:nth-child(odd),
+#il-data-table tbody tr.il-row-selected.il-row-entregada,
+#il-data-table tbody tr.il-row-selected.il-row-entregada:nth-child(even),
+#il-data-table tbody tr.il-row-selected.il-row-anulada,
+#il-data-table tbody tr.il-row-selected.il-row-anulada:nth-child(even) {
+    background: var(--ds-row-selected-bg) !important;
+    box-shadow: inset 4px 0 0 0 var(--ds-row-selected-bar) !important;
+}
+
+#il-data-table tbody tr.il-row-selected:hover,
+#il-data-table tbody tr.il-row-selected.il-row-anulada:hover,
+#il-data-table tbody tr.il-row-selected.il-row-entregada:hover {
+    background: var(--ds-row-selected-bg-hover) !important;
+    box-shadow: inset 4px 0 0 0 var(--ds-row-selected-bar) !important;
+}
+
+#il-data-table tbody tr.il-row-selected td {
+    color: var(--text-primary);
+}
+
+#il-data-table tbody tr.il-row-selected td input[type="checkbox"] {
+    accent-color: var(--ds-row-selected-bar);
+}
+
+#clientes-table tbody tr.cliente-row-selected,
+#clientes-table tbody tr.cliente-row-selected:nth-child(even),
+#clientes-table tbody tr.cliente-row-selected:nth-child(odd) {
+    background: var(--ds-row-selected-bg) !important;
+    box-shadow: inset 4px 0 0 0 var(--ds-row-selected-bar) !important;
+}
+
+#clientes-table tbody tr.cliente-row-selected:hover {
+    background: var(--ds-row-selected-bg-hover) !important;
+}
+
+#clientes-table tbody tr.cliente-row-selected td input[type="checkbox"] {
+    accent-color: var(--ds-row-selected-bar);
+}
+
+/* ---------- Areas de subida de logos ---------- */
+.logo-upload-area {
+    border: 2px dashed var(--ds-sep-strong);
+    border-radius: 14px;
+    padding: 1.5rem 1rem;
+    background: var(--bg-primary);
+    transition: border-color var(--depth-dur) var(--depth-ease),
+                background var(--depth-dur) var(--depth-ease),
+                transform var(--depth-dur) var(--depth-ease),
+                box-shadow var(--depth-dur) var(--depth-ease);
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+}
+
+.logo-upload-area:hover {
+    border-color: var(--ds-row-hover-bar);
+    background: var(--ds-row-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--depth-2);
+}
+
+.logo-upload-area .logo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    text-align: center;
+    pointer-events: none;
+    width: 100%;
+}
+
+.logo-upload-area .logo-placeholder .icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--ds-logo-icon-bg);
+    color: var(--ds-row-hover-bar);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.35rem;
+    transition: transform var(--depth-dur) var(--depth-ease);
+}
+
+.logo-upload-area:hover .logo-placeholder .icon {
+    transform: scale(1.12);
+}
+
+.logo-upload-area .logo-placeholder .main {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.logo-upload-area .logo-placeholder .sub {
+    margin: 0;
+    font-size: 0.74rem;
+    color: var(--text-tertiary);
+}
+
+.logo-upload-area .logo-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 110px;
+}
+
+.logo-upload-area .logo-preview img {
+    max-height: 100px;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #fff;
+    padding: 6px;
+    box-shadow: var(--depth-1);
+}
+
+.logo-upload-area .logo-preview-hint {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .58);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity var(--depth-dur) var(--depth-ease);
+    pointer-events: none;
+}
+
+.logo-upload-area:hover .logo-preview-hint {
+    opacity: 1;
 }
 
 /* ---------- Botones: relieve real (luz arriba, sombra abajo) ---------- */

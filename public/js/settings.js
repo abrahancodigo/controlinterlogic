@@ -78,10 +78,10 @@ const Settings = {
                         <div class="form-row" style="${isMobile ? 'grid-template-columns:1fr;gap:0.75rem;' : ''}">
                             <div class="form-group">
                                 <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Principal</label>
-                                <div class="logo-upload-area" id="logo1-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
+                                <div class="logo-upload-area" id="logo1-upload">
                                     ${this.settings?.logo1
-                ? `<img src="${this._sanitizeUrl(this.settings.logo1)}" alt="Logo 1" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
-                : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 1</p>'
+                ? `<div class="logo-preview"><img src="${this._sanitizeUrl(this.settings.logo1)}" alt="Logo 1"><div class="logo-preview-hint"><span>Clic para reemplazar</span></div></div>`
+                : this._logoPlaceholderHTML(1)
             }
                                     <input type="file" id="logo1-input" accept="image/*" style="display: none;">
                                 </div>
@@ -90,10 +90,10 @@ const Settings = {
 
                             <div class="form-group">
                                 <label style="${isMobile ? 'font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;' : ''}">Logo Secundario (Impresión)</label>
-                                <div class="logo-upload-area" id="logo2-upload" style="${isMobile ? 'border-radius:10px;min-height:80px;padding:0.75rem;' : ''}">
+                                <div class="logo-upload-area" id="logo2-upload">
                                     ${this.settings?.logo2
-                ? `<img src="${this._sanitizeUrl(this.settings.logo2)}" alt="Logo 2" style="max-height: 80px; max-width: 100%; object-fit: contain;">`
-                : '<p style="color: var(--text-tertiary); font-size:0.85rem;">Haz clic para subir Logo 2</p>'
+                ? `<div class="logo-preview"><img src="${this._sanitizeUrl(this.settings.logo2)}" alt="Logo 2"><div class="logo-preview-hint"><span>Clic para reemplazar</span></div></div>`
+                : this._logoPlaceholderHTML(2)
             }
                                     <input type="file" id="logo2-input" accept="image/*" style="display: none;">
                                 </div>
@@ -302,23 +302,38 @@ const Settings = {
         });
     },
 
+    _logoPlaceholderHTML(number) {
+        const name = number === 1 ? 'principal' : 'secundario';
+        return `<div class="logo-placeholder">
+            <div class="icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+            <p class="main">Subir logo ${name}</p>
+            <p class="sub">PNG o JPG · máx. 5 MB</p>
+        </div>`;
+    },
+
     _updateLogoArea(logoNumber, base64) {
         const area = document.getElementById(`logo${logoNumber}-upload`);
         if (!area) return;
         const input = document.getElementById(`logo${logoNumber}-input`);
-        const existing = area.querySelector('img');
+        const existing = area.querySelector('.logo-preview img');
         if (existing) {
             existing.src = this._sanitizeUrl(base64);
         } else {
-            area.querySelector('p')?.remove();
+            area.querySelector('.logo-placeholder')?.remove();
+            const wrap = document.createElement('div');
+            wrap.className = 'logo-preview';
             const img = document.createElement('img');
             img.src = this._sanitizeUrl(base64);
             img.alt = `Logo ${logoNumber}`;
-            img.style.cssText = 'max-height: 80px; max-width: 100%; object-fit: contain;';
+            const hint = document.createElement('div');
+            hint.className = 'logo-preview-hint';
+            hint.innerHTML = '<span>Clic para reemplazar</span>';
+            wrap.appendChild(img);
+            wrap.appendChild(hint);
             if (input) {
-                area.insertBefore(img, input);
+                area.insertBefore(wrap, input);
             } else {
-                area.appendChild(img);
+                area.appendChild(wrap);
             }
         }
 
@@ -347,12 +362,11 @@ const Settings = {
 
         const area = document.getElementById(`logo${logoNumber}-upload`);
         if (area) {
-            area.querySelector('img')?.remove();
-            if (!area.querySelector('p')) {
-                const hint = document.createElement('p');
-                hint.style.cssText = 'color: var(--text-tertiary); font-size:0.85rem;';
-                hint.textContent = `Haz clic para subir Logo ${logoNumber}`;
-                area.appendChild(hint);
+            area.querySelector('.logo-preview')?.remove();
+            if (!area.querySelector('.logo-placeholder')) {
+                const wrap = document.createElement('div');
+                wrap.innerHTML = this._logoPlaceholderHTML(logoNumber);
+                area.appendChild(wrap.firstElementChild);
             }
         }
         document.getElementById(`logo${logoNumber}-remove`)?.remove();
