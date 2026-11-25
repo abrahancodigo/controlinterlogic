@@ -85,7 +85,7 @@ const Settings = {
             }
                                     <input type="file" id="logo1-input" accept="image/*" style="display: none;">
                                 </div>
-                                ${this.settings?.logo1 ? '<button type="button" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(1)">Eliminar Logo 1</button>' : ''}
+                                ${this.settings?.logo1 ? '<button type="button" id="logo1-remove" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(1)">Eliminar Logo 1</button>' : ''}
                             </div>
 
                             <div class="form-group">
@@ -97,7 +97,7 @@ const Settings = {
             }
                                     <input type="file" id="logo2-input" accept="image/*" style="display: none;">
                                 </div>
-                                ${this.settings?.logo2 ? '<button type="button" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(2)">Eliminar Logo 2</button>' : ''}
+                                ${this.settings?.logo2 ? '<button type="button" id="logo2-remove" class="btn btn-sm btn-secondary" style="margin-top:0.5rem;width:100%;" onclick="Settings.removeLogo(2)">Eliminar Logo 2</button>' : ''}
                             </div>
                         </div>
 
