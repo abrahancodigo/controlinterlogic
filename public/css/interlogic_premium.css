@@ -398,17 +398,17 @@
     white-space: nowrap;
 }
 
-.il-premium #il-data-table thead th:nth-child(13) .filter-header,
-.il-premium #il-data-table thead th:nth-child(14) .filter-header,
-.il-premium #il-data-table thead th:nth-child(16) .filter-header,
-.il-premium #il-data-table thead th:nth-child(17) .filter-header {
+.il-premium #il-data-table thead th[data-col-key="venta"] .filter-header,
+.il-premium #il-data-table thead th[data-col-key="bultos"] .filter-header,
+.il-premium #il-data-table thead th[data-col-key="costoEnvio"] .filter-header,
+.il-premium #il-data-table thead th[data-col-key="costoPorcentaje"] .filter-header {
     justify-content: flex-end;
 }
 
-.il-premium #il-data-table thead th:nth-child(13) .filter-trigger,
-.il-premium #il-data-table thead th:nth-child(14) .filter-trigger,
-.il-premium #il-data-table thead th:nth-child(16) .filter-trigger,
-.il-premium #il-data-table thead th:nth-child(17) .filter-trigger {
+.il-premium #il-data-table thead th[data-col-key="venta"] .filter-trigger,
+.il-premium #il-data-table thead th[data-col-key="bultos"] .filter-trigger,
+.il-premium #il-data-table thead th[data-col-key="costoEnvio"] .filter-trigger,
+.il-premium #il-data-table thead th[data-col-key="costoPorcentaje"] .filter-trigger {
     order: -1;
 }
 

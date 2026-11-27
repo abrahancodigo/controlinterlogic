@@ -54,7 +54,8 @@ body{
   letter-spacing:-.01em;
   text-rendering:optimizeLegibility;
 }
-::selection{ background:rgba(124,58,237,.18); }
+::selection{ background:rgba(37,99,235,.75); }
+[data-theme="dark"] ::selection{ background:rgba(59,130,246,.85); }
 
 /* Topbar — glass premium */
 .ux-topbar{

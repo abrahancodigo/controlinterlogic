@@ -3,6 +3,17 @@
 // ===================================
 
 const InterlogicRender = {
+    savedColumnOrder: (() => {
+        try {
+            const saved = localStorage.getItem('il_col_order');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length) return parsed;
+            }
+        } catch (e) { console.warn('localStorage parse error:', e); }
+        return null;
+    })(),
+    _dragColumn: null,
     renderLoadError() {
         this.loading = false;
         clearTimeout(this._applyFiltersTimer);
@@ -360,6 +371,8 @@ const InterlogicRender = {
             </div>
         `;
 
+        this._tagHeaderColumns();
+
         await this.loadRecords(Boolean(this.filters.startDate && this.filters.endDate));
 
         document.getElementById('filter-start-date').addEventListener('change', (e) => {
@@ -514,6 +527,40 @@ const InterlogicRender = {
                     if (id && field) this.editCellField(id, field, editableCell);
                     return;
                 }
+            }, { signal: contentSignal });
+
+            contentArea.addEventListener('dragstart', (e) => {
+                const handle = e.target.closest('[data-col-drag]');
+                if (!handle) return;
+                this._dragColumn = handle.dataset.colDrag;
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', this._dragColumn); } catch (err) { }
+                }
+            }, { signal: contentSignal });
+            contentArea.addEventListener('dragend', () => {
+                this._dragColumn = null;
+                this._clearDragMarks();
+            }, { signal: contentSignal });
+            contentArea.addEventListener('dragover', (e) => {
+                const th = e.target.closest('th[data-col-key]');
+                if (!th || !this._dragColumn || th.dataset.colKey === this._dragColumn) return;
+                e.preventDefault();
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                th.style.outline = '2px solid #2563eb';
+            }, { signal: contentSignal });
+            contentArea.addEventListener('dragleave', (e) => {
+                const th = e.target.closest('th[data-col-key]');
+                if (th) th.style.outline = '';
+            }, { signal: contentSignal });
+            contentArea.addEventListener('drop', (e) => {
+                const th = e.target.closest('th[data-col-key]');
+                if (!th || !this._dragColumn) return;
+                e.preventDefault();
+                const from = this._dragColumn;
+                this._dragColumn = null;
+                this._clearDragMarks();
+                this._moveColumn(from, th.dataset.colKey);
             }, { signal: contentSignal });
             this.eventDelegationSetup = true;
         }
@@ -814,6 +861,92 @@ const InterlogicRender = {
         `;
     },
 
+    _orderedColumnKeys() {
+        const keys = this.columnDefs.filter(c => c.key !== 'acciones').map(c => c.key);
+        const saved = Array.isArray(this.savedColumnOrder) ? this.savedColumnOrder : [];
+        const list = saved.filter((k, i) => keys.indexOf(k) !== -1 && saved.indexOf(k) === i);
+        keys.forEach(k => { if (list.indexOf(k) === -1) list.push(k); });
+        return list;
+    },
+
+    _tagHeaderColumns() {
+        const table = document.getElementById('il-data-table');
+        if (!table) return;
+        const row = table.querySelector('thead tr');
+        if (!row) return;
+        const defs = this.columnDefs.filter(c => c.key !== 'acciones');
+        Array.from(row.children).forEach((th, i) => {
+            if (i === 0) return;
+            const def = defs[i - 1];
+            if (!def) return;
+            th.dataset.colKey = def.key;
+            if (th.querySelector('[data-col-drag]')) return;
+            th.style.position = 'relative';
+            const handle = document.createElement('span');
+            handle.dataset.colDrag = def.key;
+            handle.draggable = true;
+            handle.title = 'Arrastra para mover la columna';
+            handle.textContent = '≡';
+            handle.style.cssText = 'position:absolute;left:0;top:50%;transform:translateY(-50%);cursor:grab;user-select:none;color:var(--text-secondary);font-size:10px;line-height:1;padding:1px 2px;z-index:2;';
+            th.appendChild(handle);
+        });
+    },
+
+    _tagBodyColumns() {
+        const body = document.getElementById('interlogic-table-body');
+        if (!body) return;
+        const defs = this.columnDefs.filter(c => c.key !== 'acciones');
+        body.querySelectorAll('tr').forEach(tr => {
+            const cells = tr.children;
+            if (cells.length < 2) return;
+            for (let i = 1; i < cells.length; i++) {
+                const def = defs[i - 1];
+                if (def) cells[i].dataset.colKey = def.key;
+            }
+        });
+    },
+
+    _applyColumnOrder() {
+        const table = document.getElementById('il-data-table');
+        if (!table) return;
+        if (!Array.isArray(this.savedColumnOrder)) return;
+        const order = this._orderedColumnKeys();
+        const rows = table.querySelectorAll('thead tr, #interlogic-table-body tr, #interlogic-table-footer tr');
+        rows.forEach(row => {
+            const cells = Array.from(row.children);
+            if (cells.length < 2) return;
+            const keyed = new Map();
+            const start = [];
+            const end = [];
+            cells.forEach((cell, idx) => {
+                const key = cell.dataset.colKey;
+                if (key && order.indexOf(key) !== -1) keyed.set(key, cell);
+                else if (idx === 0) start.push(cell);
+                else end.push(cell);
+            });
+            const ordered = start.concat(order.map(k => keyed.get(k)).filter(Boolean), end);
+            if (ordered.length !== cells.length) return;
+            ordered.forEach(cell => row.appendChild(cell));
+        });
+    },
+
+    _clearDragMarks() {
+        document.querySelectorAll('#il-data-table th[data-col-key]').forEach(th => { th.style.outline = ''; });
+    },
+
+    _moveColumn(fromKey, toKey) {
+        const list = this._orderedColumnKeys();
+        const from = list.indexOf(fromKey);
+        const to = list.indexOf(toKey);
+        if (from < 0 || to < 0 || from === to) return false;
+        list.splice(from, 1);
+        list.splice(to, 0, fromKey);
+        this.savedColumnOrder = list;
+        try { localStorage.setItem('il_col_order', JSON.stringify(list)); } catch (e) { console.warn('localStorage:', e); }
+        this._applyColumnOrder();
+        return true;
+    },
+
     _renderTableNow() {
         const tableBody = document.getElementById('interlogic-table-body');
         if (!tableBody) return;
@@ -904,6 +1037,8 @@ const InterlogicRender = {
             </tr>
         `).join('');
 
+        this._tagBodyColumns();
+
         const totals = this._totals || this._computeTotals();
 
         const totalPorcentaje = totals.venta > 0 ? (totals.envio / totals.venta) * 100 : 0;
@@ -941,18 +1076,39 @@ const InterlogicRender = {
         const totalsLabel = isAllAnulados ? 'TOTALES (ANULADOS)' : 'TOTALES';
         const totalsBorder = isAllAnulados ? '1px solid #fecaca' : 'none';
 
+        const colOrder = this._orderedColumnKeys();
+        const ventaIdx = colOrder.indexOf('venta');
+        const totalsByCol = {
+            venta: formatCurrencySigned(displayTotals.venta),
+            bultos: formatNumber(displayTotals.bultos),
+            cobrador: formatNumber(displayTotals.cajas),
+            costoEnvio: formatCurrencySigned(displayTotals.envio),
+            costoPorcentaje: formatNumber(displayPorcentaje, 2) + '%'
+        };
+        const prevKey = ventaIdx > 0 ? colOrder[ventaIdx - 1] : null;
+        const labelInPrev = !!prevKey && totalsByCol[prevKey] === undefined;
+        const totalsCells = ['<td></td>'];
+        colOrder.forEach((key, i) => {
+            const isValue = totalsByCol[key] !== undefined;
+            let content = '';
+            let style = '';
+            if (isValue) {
+                content = totalsByCol[key];
+                style = key === 'cobrador' ? `color: ${totalsColor};` : `text-align: right; color: ${totalsColor};`;
+                if (!labelInPrev && key === 'venta') content = `${totalsLabel}: ${content}`;
+            } else if (labelInPrev && i === ventaIdx - 1) {
+                content = totalsLabel;
+                style = `text-align: right; color: ${totalsColor};`;
+            }
+            totalsCells.push(`<td data-col-key="${sanitizeHTML(key)}" style="${style}">${content}</td>`);
+        });
+        totalsCells.push('<td></td>');
+
         tfoot.innerHTML = `
             ${isAllAnulados ? '<tr><td colspan="23" style="padding:6px 10px;text-align:center;font-size:0.78rem;font-weight:700;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">⚠️ Filtraste solo pedidos ANULADOS — esta suma está en rojo y no se cuenta en los totales globales</td></tr>' : ''}
             ${truncNotice}
             <tr style="font-weight: 700; background: ${totalsBg}; color: ${totalsColor}; border: ${totalsBorder};">
-                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                <td style="text-align: right; color: ${totalsColor};">${totalsLabel}</td>
-                <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.venta)}</td>
-                <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayTotals.bultos)}</td>
-                <td style="color: ${totalsColor};">${formatNumber(displayTotals.cajas)}</td>
-                <td style="text-align: right; color: ${totalsColor};">${formatCurrencySigned(displayTotals.envio)}</td>
-                <td style="text-align: right; color: ${totalsColor};">${formatNumber(displayPorcentaje, 2)}%</td>
-                <td></td><td></td><td></td><td></td><td></td><td></td>
+                ${totalsCells.join('')}
             </tr>
             ${this._truncated ? '<tr><td colspan="23" style="padding: 0.35rem 0;"><div style="font-size: 0.75rem; color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 6px 10px; text-align: center;">⚠️ El rango tiene más de 2,000 registros (tope de descarga): se muestran solo los más recientes. <button type="button" onclick="Interlogic.loadFullRange()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;margin-left:6px;">⬇ Cargar todo</button></div></td></tr>' : ''}
             <tr>
@@ -961,6 +1117,8 @@ const InterlogicRender = {
                 </td>
             </tr>
         `;
+
+        this._applyColumnOrder();
 
         const selectAll = document.getElementById('select-all-checkbox');
         if (selectAll) {

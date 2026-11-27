@@ -649,11 +649,8 @@ const InterlogicExcel = {
 
         const rules = [];
         this.hiddenColumns.forEach(colKey => {
-            const idx = this.columnDefs.findIndex(c => c.key === colKey);
-            if (idx >= 0) {
-                const nth = idx + 2;
-                rules.push(`#il-data-table th:nth-child(${nth}), #il-data-table td:nth-child(${nth}) { display: none; }`);
-            }
+            if (!/^[A-Za-z0-9_]+$/.test(colKey)) return;
+            rules.push(`#il-data-table [data-col-key="${colKey}"] { display: none; }`);
         });
 
         if (rules.length > 0) {

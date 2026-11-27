@@ -1,7 +1,7 @@
 # AGENTS.md - Reglas vinculantes para cualquier AI
 
-> Este archivo lo leen automaticamente Aider, Claude Code, Cursor, opencode, Qwen,
-> Kilo, miMocode, etc. **Antes de tocar codigo, lee todo este archivo y obedecelo.**
+> Lo leen Aider, Claude Code, Cursor, opencode, Qwen, Kilo, miMocode, etc.
+> **Antes de tocar codigo, lee todo este archivo y obedecelo.**
 > Si una instruccion del usuario contradice algo aqui, confirma antes de saltarte la regla.
 
 ## Regla de oro
@@ -9,126 +9,205 @@
 **Entender el flujo antes de tocar. Verificar que no se rompe despues.**
 
 1. Antes de editar, abre `public/index.html` y revisa el orden de carga de los `<script>`
-   (lineas ~370-430). Ahi se ve que depende de que.
-2. Toca **solo lo minimo necesario** para resolver lo pedido. No "aproveches" para
-   refactorizar, renombrar ni reformatear codigo que funciona.
-3. Antes de entregar, corre la verificacion (ver seccion "Verificacion obligatoria").
+   (lineas ~376-421). Ahi se ve que depende de que.
+2. Toca **solo lo minimo necesario**. No refactorices, renombres ni reformatees codigo
+   que funciona.
+3. Antes de entregar, corre `node verify.js` (ver "Verificacion obligatoria").
 
-## Estructura del proyecto
+## Stack y estructura
 
-Proyecto **JavaScript vanilla + Firebase Hosting**. Sin `package.json`, sin build, sin
-bundlers, sin tests automaticos. El navegador carga los `.js` directamente en orden.
+**JavaScript vanilla + Firebase Hosting.** Sin build, sin bundler, sin transpilacion:
+el navegador carga los `.js` en el orden de `public/index.html`.
 
-Orden de carga (lo importante):
+- Firebase Web SDK **compat 10.7.1** (CDN gstatic). Usa la API `firebase.firestore()`,
+  no la modular: todo el codigo asume `firebase.*` global.
+- `functions/` es un paquete Node aparte, con su propio `package.json`. Se despliega
+  con el resto pero se instala por separado.
+- No hay tests automatizados. `verify.js` es la unica red de seguridad.
+
+Orden de carga relevante (index.html):
 
 ```
-CDNs:        apexcharts, exceljs, xlsx, html2pdf
-Firebase:    app / auth / firestore / storage / functions (compat 10.7.1)
-Nucleo:      theme.js  ->  init.js  ->  utils.js  ->  access.js  ->  modules.js
-             ->  shared/components.js  ->  dashboard.js  ->  app.js
-             auth.js  ->  users.js  ->  settings.js  ->  deliveries.js
-Interlogic:  interlogic/core.js -> render.js -> filters.js -> crud.js
-             -> excel.js -> routes.js -> index.js
-Otros:       entregas.js, problemas.js, clientes.js, kpi.js, asistencia.js, tarimas.js
-Flota:       flota/core.js -> vehicles.js -> maintenance.js -> orders.js -> index.js
+theme.js -> init.js (no defer) -> utils.js -> access.js -> modules.js
+  -> shared/components.js -> dashboard.js -> app.js
+  -> auth.js (no defer) -> users.js -> settings.js -> deliveries.js
+  -> interlogic/core -> render -> filters -> crud -> excel -> routes -> index
+  -> entregas -> problemas -> clientes -> kpi -> asistencia
+  -> flota/core -> vehicles -> maintenance -> orders -> index
+  -> tarimas -> ivette -> ux_redesign
 ```
 
-Modulos del nav (`data-module`): dashboard, interlogic, entregas, tarimas,
-problemas, clientes, flota, deliveries, kpi, asistencia, settings, users.
-`liquidacion` fue eliminado; `entregas` (reporte sobre `interlogic`) y
-`deliveries` (Entrega de Muebles) son modulos distintos — no los confundas.
+`init.js` y `auth.js` se cargan **sin** `defer`; el resto (incluido `theme.js`) con
+`defer`. No reordenes ni quites `defer` sin entender la dependencia.
 
-Notas:
-- `js/signature-pad.js` existe en disco pero **no se carga** en `index.html`.
-  No lo agregues al HTML sin peticion explicita.
-- No existe el modulo `cobranza/`: se elimino en `96bd1ae` (2026-09-09), junto
-  con `entregas.js` y `repartidores.js`. Las colecciones huerfanas
-  (`cobros`, `gestiones`, `ajustes`, `liquidaciones`, `empleados`) fueron
-  removidas de `firestore.rules`.
+## Modulos
 
-- Cada modulo se inicializa cuando el usuario abre su seccion (no todo de una vez).
-- `core.js` de cada subcarpeta es la base del modulo: **no lo cambies salvo que sea
-  estrictamente necesario**, porque los demas archivos del modulo dependen de el.
-- Patrones en uso: objetos literales tipo `const X = { ... }` con metodos (p. ej.
-  `InterlogicRender`, `Clientes`, `Flota`), delegacion de eventos en un contenedor
-  padre (no listeners individuales por boton), y cache-busting con `?v=N` en `index.html`.
+Los 13 modulos del nav (`data-module`): `dashboard`, `interlogic`, `entregas`,
+`tarimas`, `ivette`, `problemas`, `clientes`, `flota`, `deliveries`, `kpi`,
+`asistencia`, `settings`, `users`.
+
+- `entregas` es un **reporte sobre la coleccion `interlogic`**; `deliveries` es
+  **Entrega de Muebles** (otra cosa). No los confundas.
+- Los modulos antiguos `liquidacion`, `cobranza` y `repartidores` ya no existen.
+- Cada modulo se registra con `ModuleRegistry.register({ key, label, render, cleanup })`
+  y se renderiza solo cuando el usuario abre su seccion. Si el `<script>` no esta en
+  `index.html`, `ModuleRegistry.has()` da false, la nav lo oculta y `App.loadModule`
+  falla: no hay error de sintaxis que te avise.
+
+### Para agregar o quitar un modulo hay que tocar 4 sitios
+
+1. `<script>` en `public/index.html` (con `?v=1`).
+2. `AccessControl.modules` en `public/js/access.js` (si no esta ahi, `level()` = `hidden`).
+3. `ModuleRegistry.register(...)` al final del archivo del modulo (patron: al final,
+   despues de definir el objeto literal).
+4. HTML del nav: `.nav-item` en el sidebar, `.bn-item` en la bottom nav movil y, si
+   aplica, el menu "Mas".
+
+### Desktop y movil son dos renders distintos
+
+Muchos modulos ramifican en `render()` con `window.innerWidth <= 768` y tienen
+`renderMobile()` + otra plantilla HTML (`ivette.js`, `problemas.js`, `tarimas.js`);
+otros solo guardan `this.isMobile` y ramifican dentro del mismo render (`entregas.js`).
+**Un cambio de UI casi siempre hay que aplicarlo en las dos rutas**, no solo en la de
+escritorio.
+
+## Permisos
+
+- Roles: `admin`, `editor`, `user` (se muestra como "Lector").
+- `AccessControl.level()` devuelve `hidden` / `read` / `write`; `access.js` lo traduce a
+  `window.permissions` (`canCreate`, `canEdit`, `canDelete`, `readOnly`, `exportData`,
+  `manageMetas`, `entregaScope`).
+- Privilegios granulares por usuario en `users/{uid}.privileges`:
+  `modules[]`, `readOnly`, `entregaScope[]`, `manageMetas`, `exportData`.
+- `window.permissions` solo es valido **despues** de `AccessControl.apply(modulo)`, que
+  llama `App.loadModule()`. No lo leas antes de renderizar.
+- `canDelete` es exclusivo de `admin`. Los modulos deben usar `window.permissions.*`
+  en vez de comparar roles a mano.
+
+## Control Interlogic (modulo principal)
+
+- La coleccion es `interlogic` (una fila = una guia/venta). Dinero: usar
+  `InterlogicCore.signedAmount()` / `signedAmount()` de `utils.js`.
+- **Notas de credito (`doc === 'NC'`) cuentan negativo**; registros con `anulado: true`
+  cuentan 0. Restar/sumar con `venta` directo rompe los totales.
+- Los porcentajes/costos se redondean con `toCents`/`fromCents` (enteros), no con
+  aritmetica de floats suelta.
+- `_fullMode = true` significa que el rango se cargo completo con `loadFullRange()` (sin
+  listener en tiempo real); no asumas listener activo.
+- La tabla se renderiza en `InterlogicRender._renderTableNow()` y usa delegacion de
+  eventos en `contentArea`. No agregues listeners por fila.
+- Columnas ocultas se persisten en `localStorage['il_hidden_cols']`.
+
+## Datos y backend
+
+- Colecciones en `firestore.rules`: `interlogic`, `entregas`/`rutaEntregas`/`rutas`,
+  `tarimas_walmart`, `ivette_movimientos`, `deliveries`, `problemas`, `clientes`,
+  `proveedores`, `repartidores`, `vehiculos`, `mantenimientos`, `ordenesTrabajo`,
+  `kpiEvaluations`, `asistencia`, `notasCredito`, `users`, `user_registry`, `config`,
+  `login_attempt_limits`.
+- Cloud Functions en `functions/index.js`: `authenticateUsername` (login por nombre de
+  usuario; el frontend lo llama via `httpsCallable`) y `createManagedUser`.
+- El login NO es email directo: `auth.js` resuelve usuario -> email con la function y
+  luego `signInWithEmailAndPassword`.
+
+## Librerias CDN
+
+`apexcharts`, `exceljs`, `xlsx`, `html2pdf`/`jspdf` **no** estan en `<script>`: se cargan
+bajo demanda con `ensureLib(nombre)` de `utils.js` (y se precargan al final). Para usarlas:
+
+```js
+await ensureLib('xlsx');
+```
+
+No agregues `<script src="...cdn...">` para esto; rompe el arranque y duplica descargas.
 
 ## Prohibido tocar sin aprobacion explicita
 
-Estos archivos son criticos o sensibles. **No los modifiques** salvo que el usuario te
-lo pida explicitamente, y aun asi confirma el alcance antes:
-
-- `firestore.rules` y `firestore.indexes.json` - seguridad y indices de la BD.
-- `firebase.json`, `.firebaserc`, `storage.rules` - config de despliegue.
-- `.env` - secretos. Nunca lo leas, lo imprimas ni lo commitees.
-- `public/js/auth.js` y `public/js/init.js` - autenticacion y arranque.
-- `public/js/interlogic/core.js`, `public/js/flota/core.js`
-  - nucleo de cada modulo.
-- `opencode.json` - configuracion de las AIs (incluye API keys).
-- Scripts historicos en la raiz: `fix_*.js`, `fix_*.py`, `apply_*.js`, `add_*.js`,
-  `nvidia_integrate.py`, `fix_corruption.js`. Son parches de un solo uso: no los recicles.
+- `firestore.rules`, `firestore.indexes.json` - seguridad e indices.
+- `firebase.json`, `.firebaserc`, `storage.rules` - despliegue.
+- `.env` - secretos. Nunca lo leas, imprimas ni commitees.
+- `public/js/auth.js`, `public/js/init.js` - autenticacion y arranque.
+- `public/js/interlogic/core.js`, `public/js/flota/core.js` - nucleo de cada modulo.
+- `opencode.json` - config de las AIs (contiene API keys).
+- Scripts historicos de raiz (`fix_*.js`, `fix_*.py`, `apply_*.js`, `add_*.js`,
+  `nvidia_integrate.py`): parches de un solo uso, no los recicles.
 
 ## Convenios obligatorios
 
 ### Bump de version (cache-busting)
-Cada vez que edites un `public/js/*.js` o `public/css/*.css` que se carga con `?v=N`
-en `index.html`, **sube ese numero** (p. ej. `render.js?v=4` -> `render.js?v=5`).
-Si el archivo no tenia `?v=`, agregaselo al editarlo. Esto fuerza al navegador a usar
-la version nueva y evita el clasico "lo arregle pero el cliente sigue viendo el viejo".
+Si editas un `public/js/*.js` o `public/css/*.css` referenciado con `?v=N` en
+`index.html`, **sube ese numero** (`?v=4` -> `?v=5`). Si no tenia `?v=`, agregaselo.
+Sin esto el cliente sigue viendo la version vieja y el bug "no se arregla".
 
 ### Estilo
-- **Sin comentarios** a menos que el usuario los pida.
-- No reformatees archivos completos ni cambies estilo de codigo que ya funciona.
-- No agregues librerias nuevas (no hay `package.json`; el proyecto es vanilla + CDN).
-- Respeta los patrones existentes (objetos literales, delegacion de eventos, etc.).
-- Si anades un elemento al DOM que dispara eventos, usa el listener delegado que ya
-  existe en el contenedor padre; no anadas un `addEventListener` nuevo por elemento.
+- **Sin comentarios** salvo que el usuario los pida.
+- No reformatees archivos completos ni cambies el estilo existente.
+- No agregues librerias ni dependencias nuevas.
+- Patrones en uso: objeto literal `const X = { ... }` con metodos, delegacion de
+  eventos en un contenedor padre, `SharedComponents.renderModuleHeader(...)`.
+- Si agregas elementos al DOM, engancha eventos con el listener delegado del contenedor;
+  no un `addEventListener` por elemento.
+- Tema: el anti-flash vive en un `<script>` inline del `<head>` y `ThemeManager` solo
+  sincroniza. No muevas ese script ni las hojas de estilo antes de el.
+
+### localStorage (claves en uso)
+`dalse-theme`, `dalse-theme-default:<uid>`, `dalse-remembered-user`, `il_hidden_cols`,
+`il_col_order`, `il_last_values`, `ux-compact`, `entregas_cols`. No renombres estas
+claves: rompen preferencias ya guardadas en los navegadores de los usuarios.
 
 ### Commits
-- No commitees nada salvo que el usuario te lo pida explicitamente.
-- Si te pide commit, revisa `git status` y `git diff` primero y stage solo lo pertinente.
-- Mensajes en español, estilo del historial: `fix(modulo): descripcion` o `feat(modulo): ...`.
+- No commitees salvo que el usuario lo pida explicitamente.
+- Revisa `git status` y `git diff` y stagea solo lo pertinente.
+- Mensajes en español, estilo del historial: `fix(modulo): ...`, `feat(modulo): ...`.
 
 ## Verificacion obligatoria antes de entregar
 
-**La verificacion es AUTOMATICA.** No necesitas que el usuario te la pida:
-
-- **Plugin de opencode** (`.opencode/plugins/verify.js`): despues de cada edicion a un
-  archivo de `public/js/` o `public/css/`, corre `node verify.js` y si falla te
-  devuelve el error en el propio resultado de la herramienta. Corrigelo y continua.
-- **Git pre-commit hook** (`.git/hooks/pre-commit`): bloquea cualquier commit si
-  `verify.js` falla. Aplica a todas las AIs y al usuario.
-
-Si aun asi quieres confirmar a mano (recomendado tras cambios grandes):
+**No hay plugin ni hook automatico: la verificacion es manual.** No existe
+`.opencode/plugins/verify.js` ni `.git/hooks/pre-commit` (verificado). Si no corres
+`verify.js`, nadie lo corre por ti.
 
 ```bash
-node verify.js
+node verify.js          # errores -> exit 1
+node verify.js --strict # los avisos tambien fallan
 ```
 
-Que hace `verify.js` (sin dependencias, solo Node nativo):
-1. `node --check` sobre los 28 `.js` de `public/js/` (los que se cargan en
-   `index.html`; `signature-pad.js` esta en disco pero no se carga) -> sintaxis.
-2. Detecta funciones globales declaradas en mas de un archivo (colision de scope).
-3. Verifica que si se edito un JS/CSS, su `?v=N` en `index.html` haya subido.
+`verify.js` (solo Node nativo, sin dependencias) comprueba:
+1. `node --check` sobre los **33** `.js` de `public/js/` (recursivo).
+2. Funciones globales declaradas en mas de un archivo (colision de scope global).
+3. Que el `?v=N` en `index.html` haya subido para cada JS/CSS modificado segun git.
 
-- Si **falla** (por el plugin o a mano), corrige antes de dar por terminado el cambio.
-  No entregues con errores ni fuerces un commit que el hook va a bloquear.
-- Con `node verify.js --strict` los avisos tambien cuentan como fallo (mas estricto).
+Si falla por el bump es lo esperado: sube el `?v=` y vuelve a correrlo hasta que pase.
 
-### Si verify.js falla por el bump despues de editar un JS/CSS
-Es el comportamiento esperado: editaste `render.js` pero todavia no subiste `?v=` en
-`index.html`. Sube el numero (p. ej. `render.js?v=5` -> `?v=6`) y vuelve a correr
-`node verify.js` hasta que pase. No ignores el aviso.
+## Trampas conocidas
+
+- `public/js/signature-pad.js` existe pero **no se carga**. No lo agregues al HTML.
+- `public/diagnostico-login.html` es herramienta temporal y esta en `.gitignore`.
+- `preview/`, `.visual-backups/`, `.opencode/`, `.claude/`, `.perch/`, `.freebuff/`,
+  `.commandcode/`, `.mimocode/` estan gitignoreados: son locales, no los commitees.
+- Hay `vercel.json` ademas de Firebase; el deploy normal es Firebase. No borres ninguno.
+- `README.md`/`DEPLOY_GUIDE.md` estan desactualizados (hablan solo de "deliveries").
+  La fuente de verdad es el codigo y `index.html`.
+
+## Deploy
+
+```bash
+firebase deploy --only hosting          # solo frontend (lo habitual)
+firebase deploy --only functions
+firebase deploy --only firestore:rules   # requiere aprobacion
+firebase serve                           # local
+```
 
 ## Codigo de referencia rapida
 
-- `InterlogicRender._renderTableNow()` en `public/js/interlogic/render.js` - render de
-  la tabla principal; usa delegacion de eventos en `contentArea` (render.js ~411).
-- `Clientes`, `Flota`, `Interlogic` - modulos con la misma estructura (objeto literal + metodos).
-- `public/index.html` lineas ~370-430 - orden de carga de todos los scripts.
-- `firestore.rules` - reglas de seguridad (prohibido tocar sin aprobacion).
+- `public/index.html` (~376-421): orden de carga y versiones `?v=`.
+- `public/js/app.js`: `App.loadModule()` (permiso -> cleanup -> render).
+- `public/js/access.js`: permisos y visibilidad del nav.
+- `public/js/modules.js`: `ModuleRegistry`.
+- `public/js/interlogic/render.js`: `_renderTableNow()` (tabla principal).
+- `public/js/shared/components.js`: header de modulo y componentes compartidos.
+- `public/js/utils.js`: `signedAmount`, `ensureLib`, toasts, fechas, sanitizacion.
 
 ## Nota para la AI
 
-Si tienes duda sobre si un cambio puede romper el flujo, **prefiere preguntar antes** a
-hacer el cambio. La prioridad numero uno es **no romper lo que ya funciona**.
+Si dudas si un cambio rompe el flujo, **pregunta antes**. La prioridad numero uno es
+**no romper lo que ya funciona**.
